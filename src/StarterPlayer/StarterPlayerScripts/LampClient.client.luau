@@ -21,7 +21,7 @@ ContextActionService:BindAction("ToggleLamp", function(_name, state)
 end, true, Enum.KeyCode.F)
 ContextActionService:SetTitle("ToggleLamp", "Luz")
 
-type Beam = { part: Part, light: SpotLight, dir: Vector3 }
+type Beam = { part: Part, light: SpotLight, fill: SpotLight, dir: Vector3 }
 local beams: { [Player]: Beam } = {}
 
 local function destroyBeam(player: Player)
@@ -48,11 +48,20 @@ local function getBeam(player: Player): Beam
 	part.Parent = camera -- contenedor local: no se replica
 	local light = Instance.new("SpotLight")
 	light.Face = Enum.NormalId.Front
-	light.Angle = 70
+	light.Angle = Config.LampAngle
 	light.Brightness = 3
 	light.Shadows = false
 	light.Parent = part
-	local b: Beam = { part = part, light = light, dir = camera.CFrame.LookVector }
+	-- Relleno: cono ancho y corto, tenue, para que el suelo cercano (p. ej. al mirar hacia abajo) no quede a oscuras.
+	local fill = Instance.new("SpotLight")
+	fill.Name = "Fill"
+	fill.Face = Enum.NormalId.Front
+	fill.Angle = Config.LampFillAngle
+	fill.Range = Config.LampFillRange
+	fill.Brightness = Config.LampFillBrightness
+	fill.Shadows = false
+	fill.Parent = part
+	local b: Beam = { part = part, light = light, fill = fill, dir = camera.CFrame.LookVector }
 	beams[player] = b
 	return b
 end
@@ -76,7 +85,7 @@ RunService.RenderStepped:Connect(function(dt)
 				b.dir = head.CFrame.LookVector
 			end
 			local dir = b.dir.Unit
-			local pos = head.Position + dir * 1.2 -- adelantada para no iluminar la propia cabeza
+			local pos = head.Position + dir * Config.LampOriginOffset
 			b.part.CFrame = CFrame.lookAt(pos, pos + dir)
 			local level = (player:GetAttribute("Up_Lamp") :: number?) or 0
 			b.light.Range = Config.LampRange + level * Config.Upgrades.Lamp.RangeBonus

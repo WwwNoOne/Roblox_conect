@@ -74,6 +74,11 @@ return table.freeze({
 	DayLengthSeconds = 600, -- un día completo dura 10 min reales
 	StartClockTime = 14, -- hora inicial (0-24)
 	LampRange = 60,
+	LampAngle = 45, -- grados del cono (antes 70, demasiado ancho para una linterna)
+	LampFillAngle = 120, -- luz de relleno corta y suave para iluminar el suelo cercano (ponla en 0 brillo para quitarla)
+	LampFillRange = 14,
+	LampFillBrightness = 1.2,
+	LampOriginOffset = 0.4, -- studs por delante de la cabeza donde nace la luz (antes 1.2)
 	LampToggleCooldown = 0.25,
 
 	Upgrades = Upgrades,
