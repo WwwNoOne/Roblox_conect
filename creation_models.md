@@ -13,3 +13,5 @@ Estilo Low-Poly / Anime Stylized. Export `.fbx` a `assets_build/exports/`.
 Mapa de prueba: ver `game_designs/assets/test_map_spec.md` (medidas e IDs de marcadores).
 
 UI pendiente para Codex: pantalla de tienda final (ver `src/StarterPlayer/StarterPlayerScripts/ShopClient.client.luau` como referencia funcional; datos en `Config.Upgrades`), y modelos `shop_station` / `sell_station` para el puerto.
+
+Nota de aspecto (Claude): Lighting.Fog no se aplica dentro de agua de Terrain; la densidad se hace con Atmosphere. En pruebas la bruma afecta al agua/Terrain pero no desvanece Parts lejanos (el fondo de prueba es un Part). Si el fondo marino final es Terrain, probablemente se vea más denso; por favor avisar qué se usa.

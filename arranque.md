@@ -20,6 +20,7 @@
 - [x] Lámpara de buceo (tecla F, luz en la cabeza) y ciclo día/noche (10 min por día), provisionales.
 - [x] Tienda de mejoras (tanque O2 x3, luz, arpón, traje de presión) + presión en zona profunda (>35 m sin traje); UI provisional.
 - [x] Ajustes tras playtest: luz sigue la cámara (1ª/3ª persona), arpón con cable + jalón + indicador de listo en la punta, pequeñas 5% de daño y mueren de 1 arponazo (reaparecen a los 20 s).
+- [x] Densidad del agua por profundidad (Atmosphere + color; la lámpara y su mejora reducen la densidad). Calibración fina pendiente de playtest.
 - [ ] Modelo `.fbx` del submarino exportado desde Blender.
 
 ## Próximo Hand-off

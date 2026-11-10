@@ -36,6 +36,24 @@ local Upgrades = table.freeze({
 	PressureSuit = table.freeze({ Name = "Traje de presión", Order = 4, Prices = { 300 } }),
 })
 
+-- Aspecto del agua. Se usa Atmosphere (Lighting.Fog NO se aplica dentro de agua de Terrain).
+-- Todos son valores de partida a ajustar jugando; Density/Haze no equivalen a studs exactos.
+local Water = table.freeze({
+	SurfaceDensity = 0.35, -- densidad justo bajo la superficie
+	DeepDensity = 0.9, -- densidad a DeepDepth
+	SurfaceHaze = 2,
+	DeepHaze = 8,
+	DeepDepth = 60, -- metros a los que se alcanza lo más oscuro/denso
+	SurfaceColor = Color3.fromRGB(30, 140, 170),
+	DeepColor = Color3.fromRGB(3, 12, 30),
+	NightDarkness = 0.85, -- cuánto oscurece de noche el color del agua
+	DarkenAtDepth = 0.25, -- oscurecimiento máximo de la imagen a DeepDepth
+	LampDensityReduction = 0.1, -- cuánto baja la densidad con la lámpara encendida
+	LampDensityPerLevel = 0.07, -- reducción extra por nivel de "Luz potente"
+	MinDensity = 0.12,
+	TransitionSpeed = 4, -- suavizado al cruzar la superficie
+})
+
 return table.freeze({
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
@@ -59,6 +77,7 @@ return table.freeze({
 	LampToggleCooldown = 0.25,
 
 	Upgrades = Upgrades,
+	Water = Water,
 	DeepZoneDepth = 35, -- metros; por debajo hace falta el traje de presión
 	PressureDamagePerSecond = 8,
 	ShopUseDistance = 20, -- studs máx. a la tienda para comprar
