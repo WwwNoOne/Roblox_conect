@@ -13,7 +13,8 @@ local Creatures = table.freeze({
 	Small = table.freeze({
 		Count = 4, Size = Vector3.new(1.5, 1, 3), Color = Color3.fromRGB(60, 190, 170),
 		Speed = 14, Detect = 35, Reach = 3.5, Patrol = "Random",
-		Behavior = "Bite", DamagePct = 0.25, HitCooldown = 1.5,
+		Behavior = "Bite", DamagePct = 0.05, HitCooldown = 1.5,
+		Killable = true, Respawn = 20, -- el arpón las mata de 1 golpe
 	}),
 	Medium = table.freeze({
 		Count = 2, Size = Vector3.new(3, 2.5, 8), Color = Color3.fromRGB(130, 80, 190),

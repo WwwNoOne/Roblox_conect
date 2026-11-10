@@ -9,10 +9,12 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local markers = workspace:WaitForChild("Markers")
 
 -- Límites de la zona de agua de prueba (ver test_map_spec.md).
-local WATER_MIN = Vector3.new(-55, -52, -92)
-local WATER_MAX = Vector3.new(135, -6, 92)
+-- Y llega hasta el fondo (-60) para poder alcanzar al jugador en el naufragio/tesoro (-58).
+local WATER_MIN = Vector3.new(-55, -58, -92)
+local WATER_MAX = Vector3.new(135, -4, 92)
 
 type Creature = {
+	tierName: string,
 	part: Part,
 	tier: any,
 	state: "Patrol" | "Chase" | "Grab",
@@ -186,7 +188,7 @@ local function step(c: Creature, dt: number)
 					humanoid:TakeDamage(humanoid.MaxHealth * c.tier.DamagePct)
 					c.hitCooldown = c.tier.HitCooldown
 					bitIFrame[player] = os.clock() + Config.BiteIFrames
-					notify(player, "¡Mordisco! -25% de vida")
+					notify(player, string.format("¡Mordisco! -%d%% de vida", math.round(c.tier.DamagePct * 100)))
 				end
 			else
 				startGrab(c, player, root)
@@ -223,7 +225,7 @@ local function spawnCreature(tierName: string, tier: any)
 	part.Position = randomWaterPoint()
 	part.Parent = folder
 	local c: Creature = {
-		part = part, tier = tier, state = "Patrol", target = part.Position, markerIndex = 0,
+		tierName = tierName, part = part, tier = tier, state = "Patrol", target = part.Position, markerIndex = 0,
 		victim = nil, victimChar = nil, grabLeft = 0, hitCooldown = 0,
 	}
 	pickPatrolTarget(c)
@@ -235,6 +237,22 @@ for tierName, tier in Config.Creatures do
 		spawnCreature(tierName, tier)
 	end
 end
+
+-- El arpón mata a las criaturas "Killable" (pequeñas) y reaparecen tras tier.Respawn segundos.
+local creatureHit = game:GetService("ServerScriptService"):WaitForChild("CreatureHit") :: BindableEvent
+creatureHit.Event:Connect(function(hitPart: unknown)
+	for i, c in creatures do
+		if c.part == hitPart and c.tier.Killable then
+			if c.state == "Grab" then
+				endGrab(c, false)
+			end
+			table.remove(creatures, i)
+			c.part:Destroy()
+			task.delay(c.tier.Respawn, spawnCreature, c.tierName, c.tier)
+			return
+		end
+	end
+end)
 
 RunService.Heartbeat:Connect(function(dt)
 	for _, c in creatures do

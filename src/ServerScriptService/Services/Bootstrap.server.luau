@@ -18,6 +18,15 @@ local toggleLamp = Instance.new("RemoteEvent")
 toggleLamp.Name = "ToggleLamp"
 toggleLamp.Parent = remotes
 
+local aimLamp = Instance.new("RemoteEvent")
+aimLamp.Name = "AimLamp"
+aimLamp.Parent = remotes
+
+-- Aviso interno (servidor) de que el arpón golpeó una criatura; lo escucha CreatureService.
+local creatureHit = Instance.new("BindableEvent")
+creatureHit.Name = "CreatureHit"
+creatureHit.Parent = game:GetService("ServerScriptService")
+
 local requestPurchase = Instance.new("RemoteFunction")
 requestPurchase.Name = "RequestPurchase"
 requestPurchase.Parent = remotes

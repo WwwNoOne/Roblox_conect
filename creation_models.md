@@ -4,7 +4,7 @@ Estilo Low-Poly / Anime Stylized. Export `.fbx` a `assets_build/exports/`.
 | :-- | :-- | :-- |
 | `submarine` | Submarino del jugador (puerto/entrada a inmersión) | 5000 |
 | `leviathan` | Criatura grande (agarra y mata); ~8x5x20 studs, boca en el frente (-Z) | 5000 |
-| `harpoon` | Arpón (Tool) | 2500 |
+| `harpoon` | Arpón (Tool). Debe incluir: punta (parte "Tip", Neon; el servidor la pone verde=listo / roja=recarga) y un Attachment "RopeStart" en la punta para el cable | 2500 |
 | `lamp` | Lámpara de buceo montada en la cabeza/casco (luz Spot al frente, tecla F) | 2500 |
 | `creature_small` | Criatura pequeña (muerde); ~1.5x1x3 studs | 2500 |
 | `creature_medium` | Criatura mediana (agarra); ~3x2.5x8 studs | 5000 |
