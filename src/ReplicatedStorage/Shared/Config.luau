@@ -43,4 +43,9 @@ return table.freeze({
 	Creatures = Creatures,
 	BiteIFrames = 1, -- segundos de invulnerabilidad a mordiscos tras recibir uno
 	GrabImmunity = 6, -- segundos sin ser agarrado tras ser soltado
+
+	DayLengthSeconds = 600, -- un día completo dura 10 min reales
+	StartClockTime = 14, -- hora inicial (0-24)
+	LampRange = 60,
+	LampToggleCooldown = 0.25,
 })

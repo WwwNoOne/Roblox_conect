@@ -67,14 +67,16 @@ invLabel.Parent = frame
 
 local function refreshInventory()
 	invLabel.Text = string.format(
-		"Botín: %d/%d",
+		"Botín: %d/%d   [F] Luz: %s",
 		player:GetAttribute("InventoryCount") or 0,
-		player:GetAttribute("InventoryCapacity") or 0
+		player:GetAttribute("InventoryCapacity") or 0,
+		if player:GetAttribute("LampOn") then "ON" else "OFF"
 	)
 end
 refreshInventory()
 player:GetAttributeChangedSignal("InventoryCount"):Connect(refreshInventory)
 player:GetAttributeChangedSignal("InventoryCapacity"):Connect(refreshInventory)
+player:GetAttributeChangedSignal("LampOn"):Connect(refreshInventory)
 
 local notice = Instance.new("TextLabel")
 notice.AnchorPoint = Vector2.new(0.5, 0)

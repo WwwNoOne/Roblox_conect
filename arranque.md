@@ -17,6 +17,7 @@
 - [x] Mapa de prueba (puerto, agua, marcadores) por Codex; recorrido, oxígeno y DataStore verificados en Studio "The_FireBit".
 - [x] Bucle de pesca (arpón, peces, tesoro, venta en puerto) con modelos provisionales; valores de prueba: pez 10, tesoro 50, inventario 10.
 - [x] Criaturas hostiles (pequeña: mordisco 25%; mediana: agarra y deja al 50%; grande: agarra y mata), modelos provisionales.
+- [x] Lámpara de buceo (tecla F, luz en la cabeza) y ciclo día/noche (10 min por día), provisionales.
 - [ ] Modelo `.fbx` del submarino exportado desde Blender.
 
 ## Próximo Hand-off

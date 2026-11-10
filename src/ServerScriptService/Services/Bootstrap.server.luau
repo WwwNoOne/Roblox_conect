@@ -14,6 +14,10 @@ local fireHarpoon = Instance.new("RemoteEvent")
 fireHarpoon.Name = "FireHarpoon"
 fireHarpoon.Parent = remotes
 
+local toggleLamp = Instance.new("RemoteEvent")
+toggleLamp.Name = "ToggleLamp"
+toggleLamp.Parent = remotes
+
 local requestPurchase = Instance.new("RemoteFunction")
 requestPurchase.Name = "RequestPurchase"
 requestPurchase.Parent = remotes
