@@ -1,0 +1,12 @@
+{
+  "name": "OceanDepthExplorer",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": { "$className": "ReplicatedStorage", "Shared": { "$path": "src/ReplicatedStorage/Shared" } },
+    "ServerScriptService": { "$className": "ServerScriptService", "Services": { "$path": "src/ServerScriptService/Services" } },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": { "$className": "StarterPlayerScripts", "$path": "src/StarterPlayer/StarterPlayerScripts" }
+    }
+  }
+}
