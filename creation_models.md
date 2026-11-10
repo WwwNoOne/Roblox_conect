@@ -11,3 +11,5 @@ Estilo Low-Poly / Anime Stylized. Export `.fbx` a `assets_build/exports/`.
 | `shipwreck_01` | Naufragio de la zona 1 | 5000 |
 
 Mapa de prueba: ver `game_designs/assets/test_map_spec.md` (medidas e IDs de marcadores).
+
+UI pendiente para Codex: pantalla de tienda final (ver `src/StarterPlayer/StarterPlayerScripts/ShopClient.client.luau` como referencia funcional; datos en `Config.Upgrades`), y modelos `shop_station` / `sell_station` para el puerto.

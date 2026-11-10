@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Upgrades = require(script.Parent:WaitForChild("Upgrades"))
 local toggleLamp = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ToggleLamp") :: RemoteEvent
 
 local lastToggle: { [Player]: number } = {}
@@ -16,7 +17,8 @@ local function addLamp(character: Model)
 	local light = Instance.new("SpotLight")
 	light.Name = "DiveLamp"
 	light.Face = Enum.NormalId.Front
-	light.Range = Config.LampRange
+	local owner = Players:GetPlayerFromCharacter(character)
+	light.Range = if owner then Upgrades.LampRange(owner) else Config.LampRange
 	light.Angle = 70
 	light.Brightness = 3
 	light.Enabled = false
@@ -46,6 +48,7 @@ toggleLamp.OnServerEvent:Connect(function(player: Player)
 	if not humanoid or humanoid.Health <= 0 or not light then
 		return
 	end
+	light.Range = Upgrades.LampRange(player)
 	light.Enabled = not light.Enabled
 	player:SetAttribute("LampOn", light.Enabled)
 end)

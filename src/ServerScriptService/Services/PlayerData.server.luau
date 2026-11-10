@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Inventory = require(script.Parent:WaitForChild("Inventory"))
+local Upgrades = require(script.Parent:WaitForChild("Upgrades"))
 local store: DataStore? = nil
 local okStore, storeOrErr = pcall(function()
 	return DataStoreService:GetDataStore(Config.SaveKey)
@@ -40,6 +41,7 @@ local function load(player: Player)
 	stats.Parent = player
 
 	Inventory.Set(player, if data then data.InventoryTable else nil)
+	Upgrades.Set(player, if data then data.Upgrades else nil)
 end
 
 local function save(player: Player)
@@ -52,6 +54,7 @@ local function save(player: Player)
 		Coins = (stats :: any).Coins.Value,
 		Stage = (stats :: any).Stage.Value,
 		InventoryTable = inv,
+		Upgrades = Upgrades.Get(player) or {},
 	}
 	local ok, err = pcall(function()
 		(store :: DataStore):SetAsync(tostring(player.UserId), payload)
@@ -65,6 +68,7 @@ Players.PlayerAdded:Connect(load)
 Players.PlayerRemoving:Connect(function(player)
 	save(player)
 	Inventory.Clear(player)
+	Upgrades.Clear(player)
 end)
 for _, p in Players:GetPlayers() do
 	task.spawn(load, p)

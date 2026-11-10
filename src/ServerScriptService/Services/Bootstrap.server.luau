@@ -22,7 +22,4 @@ local requestPurchase = Instance.new("RemoteFunction")
 requestPurchase.Name = "RequestPurchase"
 requestPurchase.Parent = remotes
 
--- TODO(RequestPurchase): validar saldo en servidor cuando exista el catálogo de mejoras.
-requestPurchase.OnServerInvoke = function(_player: Player, _itemId: unknown)
-	return false, "NotImplemented"
-end
+-- RequestPurchase.OnServerInvoke lo define ShopService.

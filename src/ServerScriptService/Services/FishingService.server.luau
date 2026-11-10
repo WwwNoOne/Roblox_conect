@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Inventory = require(script.Parent:WaitForChild("Inventory"))
+local Upgrades = require(script.Parent:WaitForChild("Upgrades"))
 local fireHarpoon = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireHarpoon") :: RemoteEvent
 local markers = workspace:WaitForChild("Markers")
 
@@ -156,7 +157,7 @@ fireHarpoon.OnServerEvent:Connect(function(player: Player, aim: unknown)
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character }
 	params.IgnoreWater = true
-	local result = workspace:Raycast(root.Position, delta.Unit * Config.HarpoonRange, params)
+	local result = workspace:Raycast(root.Position, delta.Unit * Upgrades.HarpoonRange(player), params)
 	if not result or not result.Instance:IsDescendantOf(fishFolder) then
 		return
 	end

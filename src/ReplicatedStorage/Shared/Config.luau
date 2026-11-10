@@ -27,6 +27,14 @@ local Creatures = table.freeze({
 	}),
 })
 
+-- Mejoras de la tienda (precios por nivel). Valores de prueba aprobados, no están en el GDD.
+local Upgrades = table.freeze({
+	OxygenTank = table.freeze({ Name = "Tanque de oxígeno", Order = 1, Prices = { 100, 250, 500 }, PerLevel = 60 }),
+	Lamp = table.freeze({ Name = "Luz potente", Order = 2, Prices = { 150 }, RangeBonus = 30 }),
+	Harpoon = table.freeze({ Name = "Arpón largo", Order = 3, Prices = { 200 }, RangeBonus = 30 }),
+	PressureSuit = table.freeze({ Name = "Traje de presión", Order = 4, Prices = { 300 } }),
+})
+
 return table.freeze({
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
@@ -48,4 +56,10 @@ return table.freeze({
 	StartClockTime = 14, -- hora inicial (0-24)
 	LampRange = 60,
 	LampToggleCooldown = 0.25,
+
+	Upgrades = Upgrades,
+	DeepZoneDepth = 35, -- metros; por debajo hace falta el traje de presión
+	PressureDamagePerSecond = 8,
+	ShopUseDistance = 20, -- studs máx. a la tienda para comprar
+	PurchaseCooldown = 0.3,
 })
