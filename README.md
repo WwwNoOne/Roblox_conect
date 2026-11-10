@@ -1,2 +1,2 @@
 # Roblox_conect
-conect to roblox studio skilss etc
+conect to roblox studio skilss for develop
