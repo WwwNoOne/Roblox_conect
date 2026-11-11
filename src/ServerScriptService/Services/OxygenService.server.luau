@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
-local Upgrades = require(script.Parent:WaitForChild("Upgrades"))
+local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local updateHud = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpdateHUD") :: RemoteEvent
 
 local REFILL_RATE = 4 -- segundos de oxígeno recuperados por segundo en superficie
@@ -28,7 +28,7 @@ while true do
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and humanoid.Health > 0 then
-			local max = Upgrades.MaxOxygen(player)
+			local max = Config.BaseOxygenSeconds -- mejoras de oxígeno: T05
 			local submerged = root.Position.Y < Config.SeaLevelY
 			local nextValue = if submerged then current - dt else math.min(max, current + dt * REFILL_RATE)
 			nextValue = math.clamp(nextValue, 0, max)
@@ -37,7 +37,8 @@ while true do
 				humanoid.Health = 0
 				oxygen[player] = max
 			end
-			updateHud:FireClient(player, nextValue, max)
+			local payload: Types.HudPayload = { oxygen = nextValue, oxygenMax = max }
+			updateHud:FireClient(player, payload)
 		end
 	end
 end

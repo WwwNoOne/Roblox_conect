@@ -1,5 +1,5 @@
 {
-  "name": "OceanDepthExplorer",
+  "name": "Abismo",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": { "$className": "ReplicatedStorage", "Shared": { "$path": "src/ReplicatedStorage/Shared" } },

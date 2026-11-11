@@ -1,34 +1,17 @@
 --!strict
--- Crea los Remotes definidos en el GDD y levanta los servicios.
+-- Crea los remotos de Abismo (lista en Shared/Remotes) y levanta los servicios.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local remotes = Instance.new("Folder")
-remotes.Name = "Remotes"
-remotes.Parent = ReplicatedStorage
+local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))
 
-local updateHud = Instance.new("RemoteEvent")
-updateHud.Name = "UpdateHUD"
-updateHud.Parent = remotes
+local folder = Instance.new("Folder")
+folder.Name = "Remotes"
+for name, kind in Remotes.List do
+	local remote: Instance = if kind == "Function" then Instance.new("RemoteFunction") else Instance.new("RemoteEvent")
+	remote.Name = name
+	remote.Parent = folder
+end
+folder.Parent = ReplicatedStorage
 
-local fireHarpoon = Instance.new("RemoteEvent")
-fireHarpoon.Name = "FireHarpoon"
-fireHarpoon.Parent = remotes
-
-local toggleLamp = Instance.new("RemoteEvent")
-toggleLamp.Name = "ToggleLamp"
-toggleLamp.Parent = remotes
-
-local aimLamp = Instance.new("RemoteEvent")
-aimLamp.Name = "AimLamp"
-aimLamp.Parent = remotes
-
--- Aviso interno (servidor) de que el arpón golpeó una criatura; lo escucha CreatureService.
-local creatureHit = Instance.new("BindableEvent")
-creatureHit.Name = "CreatureHit"
-creatureHit.Parent = game:GetService("ServerScriptService")
-
-local requestPurchase = Instance.new("RemoteFunction")
-requestPurchase.Name = "RequestPurchase"
-requestPurchase.Parent = remotes
-
--- RequestPurchase.OnServerInvoke lo define ShopService.
+-- Los handlers de RemoteFunction (CreateRoom, JoinRoom, RequestPurchase, SellTreasure) los definen
+-- sus servicios (T02, T05). Mientras no existan, el invoke del cliente queda sin respuesta: no llamarlos aún.

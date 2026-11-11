@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local updateHud = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpdateHUD") :: RemoteEvent
 local player = Players.LocalPlayer
 
@@ -65,18 +66,21 @@ invLabel.TextSize = 14
 invLabel.TextColor3 = Color3.new(1, 1, 1)
 invLabel.Parent = frame
 
-local function refreshInventory()
+local function refreshInfo(hull: number?, hullMax: number?, money: number?)
+	local hullText = if hull and hullMax then string.format("Casco: %d/%d", hull, hullMax) else "Casco: --"
+	local moneyText = if money then string.format("  $%d", money) else ""
 	invLabel.Text = string.format(
-		"Botín: %d/%d   [F] Luz: %s",
-		player:GetAttribute("InventoryCount") or 0,
-		player:GetAttribute("InventoryCapacity") or 0,
+		"%s%s   [F] Luz: %s",
+		hullText,
+		moneyText,
 		if player:GetAttribute("LampOn") then "ON" else "OFF"
 	)
 end
-refreshInventory()
-player:GetAttributeChangedSignal("InventoryCount"):Connect(refreshInventory)
-player:GetAttributeChangedSignal("InventoryCapacity"):Connect(refreshInventory)
-player:GetAttributeChangedSignal("LampOn"):Connect(refreshInventory)
+refreshInfo(nil, nil, nil)
+local lastHull: number?, lastHullMax: number?, lastMoney: number? = nil, nil, nil
+player:GetAttributeChangedSignal("LampOn"):Connect(function()
+	refreshInfo(lastHull, lastHullMax, lastMoney)
+end)
 
 local notice = Instance.new("TextLabel")
 notice.AnchorPoint = Vector2.new(0.5, 0)
@@ -108,7 +112,10 @@ player:GetAttributeChangedSignal("HudNotice"):Connect(function()
 	end)
 end)
 
-updateHud.OnClientEvent:Connect(function(current: number, max: number)
+updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
+	lastHull, lastHullMax, lastMoney = payload.hull, payload.hullMax, payload.money
+	refreshInfo(lastHull, lastHullMax, lastMoney)
+	local current, max = payload.oxygen, payload.oxygenMax
 	local ratio = math.clamp(current / max, 0, 1)
 	bar.Size = UDim2.fromScale(ratio, 1)
 	bar.BackgroundColor3 = if ratio < 0.2 then Color3.fromRGB(255, 70, 70) else Color3.fromRGB(60, 190, 255)
@@ -119,6 +126,6 @@ RunService.RenderStepped:Connect(function()
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
 		local depth = math.max(0, Config.SeaLevelY - root.Position.Y)
-		depthLabel.Text = string.format("Profundidad: %d m", depth)
+		depthLabel.Text = string.format("Profundidad: %d m", depth) -- T03: usar payload.depth del submarino
 	end
 end)
