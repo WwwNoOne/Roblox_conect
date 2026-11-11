@@ -47,8 +47,22 @@ local Run = table.freeze({
 
 -- Economía de partida (T05). Valores de prueba a calibrar en T08.
 -- Cangrejo guardián (T07). Valores de prueba: velocidades < nado del jugador (16) para poder huir.
+-- Natación (cliente). Valores de prueba: Speed ligeramente mayor que la caminata (16) para que no se sienta lento.
+local Swim = table.freeze({
+	Speed = 20, -- WalkSpeed mientras se nada
+	WalkSpeed = 16, -- WalkSpeed fuera del agua
+	VerticalSpeed = 16, -- subir (Espacio) / bajar (Ctrl, C)
+	VerticalAccel = 6, -- suavizado al subir/bajar (mayor = más brusco)
+	Damping = 3, -- planeo al soltar los controles (mayor = frena antes)
+	VerticalDamping = 30, -- anula la flotabilidad sin órdenes
+	LeanSmoothing = 8, -- suavizado de la inclinación del cuerpo
+	LeanMinSpeed = 6, -- velocidad a partir de la cual el cuerpo se inclina del todo
+	BubbleMinSeconds = 3,
+	BubbleMaxSeconds = 6,
+})
+
 local Crab = table.freeze({
-	Speed = 10, -- persecución
+	Speed = 12, -- persecución (antes 10; el nado subió a 20)
 	WanderSpeed = 4,
 	ReturnSpeed = 12,
 	DetectRange = 45, -- studs; con la lámpara encendida se multiplica
@@ -107,6 +121,7 @@ return table.freeze({
 	Run = Run,
 	Economy = Economy,
 	Crab = Crab,
+	Swim = Swim,
 	Upgrades = Upgrades,
 	Water = Water,
 })

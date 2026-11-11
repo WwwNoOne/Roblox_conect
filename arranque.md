@@ -83,3 +83,10 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - Guías en `game_designs/levels/` (`README.md`, `Level_1.md`, `Level_2.md`, `Level_3.md`, `Parada.md`): tamaño, disposición, tesoros (cuotas 100 / 200 / sin cuota), marcadores del cangrejo y de la baliza, y lista de entrega.
 - Cajas de referencia creadas en Studio: `Workspace.LevelSizeGuides` (fuera de los mapas actuales). **El tamaño es una propuesta; se ajustará tras probarlo.** Los cambios de Studio no están guardados.
 - En pausa hasta tener los mapas finales de Codex: curas en la tienda (T07b) y el Leviatán.
+
+## Natación fluida y burbujas (Claude)
+
+- `SwimClient.client.luau` (movimiento): velocidad de nado 20 (antes 16, `Config.Swim.Speed`), arranque y frenado suaves por exponencial (planeo al soltar), subir/bajar con aceleración (`Espacio`, `Ctrl`/`C`), flotabilidad neutra sin deriva apreciable (≈0,5 studs/s al reposo). El cangrejo sube a 12 para mantener la proporción.
+- `SwimVisualsClient.client.luau` (para todos los personajes, cada cliente los dibuja): el cuerpo se inclina según la dirección de nado (vertical en reposo/al subir, horizontal al avanzar; R15 moderno usa `AnimationConstraint.Transform` en `Stepped`, R6 `Motor6D.C0`) y **burbujas** (`ParticleEmitter` en la boca) cada 3–6 s con ráfagas de 3–6 partículas, visibles en primera y tercera persona. Parámetros en `Config.Swim`.
+- Probado en Studio (R15, agua del Nivel 1): `WalkSpeed` 20 al nadar; inclinación −78° al avanzar y ~−5° en reposo/subiendo; planeo a ~0 en 0,3 s; burbujas visibles en una captura.
+- No hecho: animaciones nuevas del esqueleto (brazadas propias): necesitarían crearse y publicarse como `Animation`; hoy se usa la animación de nado por defecto más la inclinación. No se probó con otro jugador viendo el efecto (2 clientes), ni el teclado real (`Espacio`, `Ctrl`, `C`), ni la sensación de velocidad en el mapa final de 700³.
