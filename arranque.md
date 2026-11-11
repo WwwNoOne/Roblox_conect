@@ -57,3 +57,9 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - Probado en Studio (1 cliente): partida completa L1→L3 con cuotas cumplidas (dinero 575); soltar la baliza antes de tiempo no gana; una pulsación completa (1 s) gana una sola vez y la luz pasa a verde; muerte → `RunAlive=false`, pantalla DERROTA / AllDead, tras el cierre reaparece, la sala vuelve a Lobby y la nueva partida empieza con dinero 0 y casco 100.
 - **No verificado:** pulsación completa de 3 s con `InputHoldBegin` (el simulador de Studio no completó ninguna espera ≥ 3 s, ni siquiera en prompts de tesoros). Verificar a mano en Studio con teclado real. Tampoco se probó el espectador con compañeros vivos (requiere 2 clientes).
 - Pendiente: la prueba con 2 y 4 clientes (V01), modelo `Beacon` de Codex.
+
+## Flotabilidad neutra (Claude)
+
+- `SwimClient.client.luau`: al nadar sin dar órdenes el jugador se queda quieto en vez de subir. Moverse nada hacia donde mira la cámara, `Espacio`/saltar sube y `Ctrl` o `C` baja (16 studs/s). Se desactiva con el atributo de jugador `NeutralBuoyancy = false`.
+- Probado en Studio (Nivel 1, agua de Terrain): sin el script el jugador sube 8 studs en 3 s; con él, 0,4. El movimiento y el salto siguen funcionando.
+- No cambia el comportamiento dentro del submarino fuera del agua (Parada, interior seco).
