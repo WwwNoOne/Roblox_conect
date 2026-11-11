@@ -26,6 +26,7 @@ local Water = table.freeze({
 -- Partida (T03). TODOS son valores de prueba a calibrar en T08.
 -- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
 -- Kind "Level": se sale a explorar (compuerta abierta). Kind "Parada": nadie sale; se vende/repara/compra desde dentro.
+-- Crab = true: el nivel tiene al cangrejo guardián.
 -- Beacon = true: el nivel tiene la baliza (victoria al activarla).
 -- Quota (opcional): valor de tesoros a depositar en ese nivel; el último nivel (baliza) no tiene cuota.
 -- Depth en metros (HUD); PressureDps = daño/s al casco en esa etapa (en la parada es 0: refugio seguro).
@@ -38,13 +39,30 @@ local Run = table.freeze({
 	Stages = table.freeze({
 		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 40, PressureDps = 0.1, Quota = 100 }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 80, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5, Quota = 200 }),
+		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5, Quota = 200, Crab = true }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 170, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2, Beacon = true }),
+		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2, Beacon = true, Crab = true }),
 	}),
 })
 
 -- Economía de partida (T05). Valores de prueba a calibrar en T08.
+-- Cangrejo guardián (T07). Valores de prueba: velocidades < nado del jugador (16) para poder huir.
+local Crab = table.freeze({
+	Speed = 10, -- persecución
+	WanderSpeed = 4,
+	ReturnSpeed = 12,
+	DetectRange = 45, -- studs; con la lámpara encendida se multiplica
+	LampDetectMultiplier = 1.5,
+	AlertSeconds = 1.0, -- animación Sorprender antes de perseguir
+	GrabReach = 6, -- distancia horizontal para atrapar
+	CarrySpeed = 14,
+	CarryMinSeconds = 3,
+	CarryMaxSeconds = 8,
+	TotalDamage = 20, -- daño total repartido durante el traslado
+	Immunity = 6, -- segundos sin poder ser atrapado tras soltarte
+	RetryDelay = 4, -- pausa del cangrejo tras soltar
+})
+
 local Economy = table.freeze({
 	CarrySlots = 4, -- objetos que lleva cada jugador (1 por slot)
 	Treasure = table.freeze({
@@ -88,6 +106,7 @@ return table.freeze({
 
 	Run = Run,
 	Economy = Economy,
+	Crab = Crab,
 	Upgrades = Upgrades,
 	Water = Water,
 })
