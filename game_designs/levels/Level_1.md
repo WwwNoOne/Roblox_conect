@@ -4,7 +4,7 @@
 
 | Dato | Valor |
 | :-- | :-- |
-| Tamaño propuesto (X × Y × Z) | **200 × 60 × 260 studs** |
+| Tamaño propuesto (X × Y × Z) | **700 × 700 × 700 studs** (cubo) |
 | Profundidad (HUD) | ~40 m |
 | Presión | 0,1 daño/s al casco (muy baja) |
 | Cuota | **100 $** |
@@ -12,6 +12,7 @@
 | Tiempo de exploración objetivo | 2–3 minutos por equipo de 2 |
 
 ## Disposición
+> Con el cubo de 700 las distancias de abajo son relativas: el nivel es mucho más grande que lo que se llena. Llenar solo las zonas de juego (ruta, naufragios/cuevas, `DeepZone`) y dejar el resto como agua abierta, roca o niebla; el cubo es el límite (`Bounds`), no un área que haya que decorar entera. Criaturas grandes: espacios de al menos 3× su tamaño.
 - `SubDock` en el centro del extremo −Z. El nivel crece hacia +Z.
 - Un **naufragio** (`Wreck`) grande y fácil de recorrer a ~100–140 studs del `SubDock`, con 2–3 compartimentos; luz natural tenue en la zona del submarino y más oscuro dentro del casco hundido.
 - Suelo marino con algo de relieve y rocas para orientarse; sin cuevas largas.

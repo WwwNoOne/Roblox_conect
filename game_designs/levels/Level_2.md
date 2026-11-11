@@ -4,7 +4,7 @@
 
 | Dato | Valor |
 | :-- | :-- |
-| Tamaño propuesto (X × Y × Z) | **280 × 80 × 380 studs** |
+| Tamaño propuesto (X × Y × Z) | **700 × 700 × 700 studs** (cubo) |
 | Profundidad (HUD) | ~120 m |
 | Presión | 0,5 daño/s al casco |
 | Cuota | **200 $** |
@@ -12,6 +12,7 @@
 | Tiempo de exploración objetivo | 3–4 minutos por equipo de 2 |
 
 ## Disposición
+> Con el cubo de 700 las distancias de abajo son relativas: el nivel es mucho más grande que lo que se llena. Llenar solo las zonas de juego (ruta, naufragios/cuevas, `DeepZone`) y dejar el resto como agua abierta, roca o niebla; el cubo es el límite (`Bounds`), no un área que haya que decorar entera. Criaturas grandes: espacios de al menos 3× su tamaño.
 - `SubDock` en el extremo −Z. Dos zonas:
   - **Zona segura** (primeros ~120 studs): fondo abierto con un naufragio pequeño y tesoros fáciles.
   - **Territorio del cangrejo** (resto, hacia +Z): cuevas y un naufragio más grande y oscuro.

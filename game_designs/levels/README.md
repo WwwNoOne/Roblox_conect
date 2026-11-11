@@ -2,18 +2,18 @@
 
 Guías para modelar el mapa final de cada nivel. Una por mapa: [Nivel 1](Level_1.md), [Nivel 2](Level_2.md), [Nivel 3](Level_3.md) y [Parada](Parada.md). Recorrido: **Nivel 1 → Parada → Nivel 2 → Parada → Nivel 3**.
 
-Las medidas son propuestas de partida. Para comprobarlas hay una caja por nivel en Studio (`Workspace.LevelSizeGuides`): ajustar su tamaño si no sirve y avisar para actualizar estas guías y los valores de `Config`.
+Las medidas son propuestas de partida (decisión actual: los tres niveles son cubos de 700 × 700 × 700). Para comprobarlas hay una caja por nivel en Studio (`Workspace.LevelSizeGuides`): ajustar su tamaño si no sirve y avisar para actualizar estas guías y los valores de `Config`.
 
 ## Cajas de tamaño en Studio
 
-`Workspace.LevelSizeGuides` tiene una caja por mapa (`Level_1_Guide`, `Level_2_Guide`, `Level_3_Guide`, `Parada_Guide`), en una fila aparte (z de −900 en adelante) para no solaparse con los mapas actuales:
+`Workspace.LevelSizeGuides` tiene una caja por mapa (`Level_1_Guide`, `Level_2_Guide`, `Level_3_Guide`, `Parada_Guide`), en una fila aparte (z de −900 en adelante, separadas 800 studs en X) para no solaparse con los mapas actuales:
 
 | Mapa | Tamaño (X × Y × Z) | Centro (X, Y, Z) |
 | :-- | :-- | :-- |
-| Nivel 1 | 200 × 60 × 260 | (0, −22, −770) |
-| Nivel 2 | 280 × 80 × 380 | (340, −92, −710) |
-| Nivel 3 | 360 × 110 × 520 | (760, −177, −640) |
-| Parada | 80 × 40 × 80 | (1080, −32, −860) |
+| Nivel 1 | 700 × 700 × 700 | (0, 298, −550) |
+| Nivel 2 | 700 × 700 × 700 | (800, 218, −550) |
+| Nivel 3 | 700 × 700 × 700 | (1600, 118, −550) |
+| Parada | 80 × 40 × 80 | (2300, −32, −860) |
 
 Cada caja incluye: `SizeBox` (el volumen, con su tamaño en el atributo `SizeXYZ`), `SubScaleRef` (un bloque gris del tamaño del submarino acoplado), `DockRef` (bola verde: dónde va `SubDock`, extremo −Z) y `DeepRef` (bola roja: zona profunda sugerida, extremo +Z). Para ajustar: cambiar el `Size` de `SizeBox` y avisar el valor definitivo.
 
