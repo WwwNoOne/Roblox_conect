@@ -151,7 +151,7 @@ RunService.Heartbeat:Connect(function(dt)
 				local speed = v.Magnitude
 				local activity = math.clamp(speed / S.LeanMinSpeed, 0, 1)
 				local elevation = math.atan2(v.Y, horizontal) -- +: sube, −: baja
-				target = -(math.pi / 2 - elevation) * activity * 0.9
+				target = math.clamp(-(math.pi / 2 - elevation) * activity * 0.9, -S.LeanMax, S.LeanMax)
 			end
 			st.pitch += (target - st.pitch) * (1 - math.exp(-S.LeanSmoothing * dt))
 			if st.joint:IsA("Motor6D") then

@@ -93,3 +93,6 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 
 ### Corrección: la flotabilidad seguía empujando hacia arriba (Claude)
 Poner la velocidad vertical a 0 no bastaba: el motor vuelve a empujar hacia arriba en cada paso de física. Ahora, al quedarse quieto, `SwimClient` recuerda la altura y corrige la posición hacia ella (`Config.Swim.HoldGain`, `HoldMaxSpeed`). Medido en Studio: deriva de 0,02 studs en 9 s (antes ~0,5 studs/s). Al moverse o pulsar subir/bajar se suelta la altura. Pendiente de confirmar a mano con teclado real.
+
+### Inclinación del cuerpo limitada (Claude)
+La inclinación al nadar llegaba a ~80° (casi horizontal, "boca abajo") y se veía mal con el avatar del proyecto. Ahora se limita con `Config.Swim.LeanMax` (0,45 rad ≈ 26°); poner 0 la desactiva. No se verificó el resultado visual en el juego real.

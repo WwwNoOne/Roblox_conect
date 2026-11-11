@@ -56,6 +56,7 @@ local Swim = table.freeze({
 	Damping = 3, -- planeo al soltar los controles (mayor = frena antes)
 	HoldGain = 20, -- fuerza con la que vuelve a su altura al quedarse quieto (anula la flotabilidad)
 	HoldMaxSpeed = 8, -- velocidad vertical máxima de esa corrección
+	LeanMax = 0.45, -- inclinación máxima del cuerpo en radianes (~26°); 0 = sin inclinación
 	LeanSmoothing = 8, -- suavizado de la inclinación del cuerpo
 	LeanMinSpeed = 6, -- velocidad a partir de la cual el cuerpo se inclina del todo
 	BubbleMinSeconds = 3,
