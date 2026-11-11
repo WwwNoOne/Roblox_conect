@@ -36,6 +36,23 @@ Runs.Ended:Connect(function(code: string, result: string, reason: string)
 			runEnded:FireClient(p, result, reason)
 		end
 	end
+	-- Pantalla final y vuelta a la sala (T06): los muertos reaparecen y se puede iniciar otra partida.
+	task.delay(Config.Run.EndScreenSeconds, function()
+		local ended = Runs.Get(code)
+		if not ended then
+			return
+		end
+		local ids = table.clone(ended.members)
+		Runs.Close(code)
+		Rooms.SetState(code, "Lobby")
+		for _, userId in ids do
+			local p = Players:GetPlayerByUserId(userId)
+			local humanoid = p and p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+			if p and (not humanoid or humanoid.Health <= 0) then
+				p:LoadCharacter()
+			end
+		end
+	end)
 end)
 
 local lastDescend: { [Player]: number } = {}

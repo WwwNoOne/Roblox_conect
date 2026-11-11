@@ -17,7 +17,6 @@ Remotes.List = table.freeze({
 	RequestPurchase = "Function", -- (itemId: string) -> { ok: boolean, err: string? }
 	ShopOpen = "Event", -- servidor -> cliente: ShopState (abrir panel de la tienda)
 	DepositTreasure = "Function", -- () -> { ok: boolean, earned: number? (valor depositado), err: string? }
-	PlaceBeacon = "Event", -- cliente -> servidor: (active: boolean) mantener/soltar
 	DescentFx = "Event", -- servidor -> cliente: (phase: "Start" | "End") efecto de cabina sellada
 	RunEnded = "Event", -- servidor -> cliente: (result: "Won" | "Lost", reason: string)
 	-- Equipo (reutilizado del prototipo)

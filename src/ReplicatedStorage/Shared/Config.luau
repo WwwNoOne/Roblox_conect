@@ -26,18 +26,21 @@ local Water = table.freeze({
 -- Partida (T03). TODOS son valores de prueba a calibrar en T08.
 -- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
 -- Kind "Level": se sale a explorar (compuerta abierta). Kind "Parada": nadie sale; se vende/repara/compra desde dentro.
+-- Beacon = true: el nivel tiene la baliza (victoria al activarla).
 -- Quota (opcional): valor de tesoros a depositar en ese nivel; el último nivel (baliza) no tiene cuota.
 -- Depth en metros (HUD); PressureDps = daño/s al casco en esa etapa (en la parada es 0: refugio seguro).
 local Run = table.freeze({
 	HullMax = 100,
 	StartMoney = 0,
+	BeaconHoldSeconds = 5, -- mantener E para activar la baliza (ProximityPrompt.HoldDuration)
+	EndScreenSeconds = 8, -- tiempo de la pantalla final antes de volver a la sala
 	TravelSeconds = 20, -- duración del viaje entre etapas
 	Stages = table.freeze({
 		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 40, PressureDps = 0.1, Quota = 100 }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 80, PressureDps = 0 }),
 		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5, Quota = 200 }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 170, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2 }),
+		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2, Beacon = true }),
 	}),
 })
 

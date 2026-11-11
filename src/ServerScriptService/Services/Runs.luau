@@ -31,6 +31,10 @@ export type Result = { ok: boolean, err: string? }
 
 local Runs = {}
 
+local homePivot: CFrame? = nil -- posición inicial del submarino (se restaura al empezar otra partida)
+local defaultRespawn = Players.RespawnTime
+local RESPAWN_LOCK = 1e5 -- durante una partida los muertos no reaparecen (espectador)
+
 local runs: { [string]: Run } = {}
 local runOf: { [number]: string } = {}
 
@@ -170,12 +174,24 @@ function Runs.Start(code: string, members: { number })
 	-- Colocar a la tripulación en los SpawnPoint del submarino.
 	local sub = submarine()
 	if sub then
+		if not homePivot then
+			homePivot = sub:GetPivot()
+		end
+		sub:PivotTo(homePivot :: CFrame)
 		for i, userId in run.members do
 			local spawn = sub:FindFirstChild("SpawnPoint" .. i, true)
 			local root = aliveRoot(userId)
 			if spawn and spawn:IsA("BasePart") and root then
 				root.CFrame = spawn.CFrame + Vector3.new(0, 0.5, 0)
 			end
+		end
+	end
+	Players.RespawnTime = RESPAWN_LOCK
+	for _, userId in members do
+		local p = Players:GetPlayerByUserId(userId)
+		if p then
+			p:SetAttribute("InRun", true)
+			p:SetAttribute("RunAlive", true)
 		end
 	end
 	stateChanged:Fire(code, "Descending")
@@ -266,6 +282,26 @@ function Runs.RequestDescend(userId: number, hostId: number): Result
 	return { ok = true }
 end
 
+-- Libera la partida terminada: los miembros dejan de ser espectadores y pueden reaparecer.
+function Runs.Close(code: string)
+	local run = runs[code]
+	if not run then
+		return
+	end
+	for _, userId in run.members do
+		runOf[userId] = nil
+		local p = Players:GetPlayerByUserId(userId)
+		if p then
+			p:SetAttribute("InRun", false)
+			p:SetAttribute("RunAlive", true)
+		end
+	end
+	runs[code] = nil
+	if next(runs) == nil then
+		Players.RespawnTime = defaultRespawn
+	end
+end
+
 function Runs.RemoveUser(userId: number)
 	local code = runOf[userId]
 	runOf[userId] = nil
@@ -279,12 +315,37 @@ function Runs.RemoveUser(userId: number)
 	end
 	if #run.members == 0 then
 		runs[code] = nil
+		if next(runs) == nil then
+			Players.RespawnTime = defaultRespawn
+		end
 	end
 end
 
 function Runs.Step(dt: number)
 	for _, run in runs do
 		if run.ended then
+			continue
+		end
+		-- Muertes: espectador, se pierde lo que cargaba; todos muertos = derrota.
+		local alive = 0
+		for _, userId in run.members do
+			local p = Players:GetPlayerByUserId(userId)
+			local humanoid = p and p.Character and p.Character:FindFirstChildOfClass("Humanoid")
+			local dead = humanoid ~= nil and humanoid.Health <= 0
+			if p then
+				p:SetAttribute("RunAlive", not dead)
+			end
+			if dead then
+				if p and #(run.carried[userId] or {}) > 0 then
+					run.carried[userId] = {}
+					p:SetAttribute("CarryCount", 0)
+				end
+			else
+				alive += 1
+			end
+		end
+		if alive == 0 and #run.members > 0 then
+			finish(run, "Lost", "AllDead")
 			continue
 		end
 		if run.state == "Descending" then

@@ -47,3 +47,13 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - `SellStation` ahora **deposita** durante un nivel (`Level`); `RepairStation` y `ShopStation` solo en la Parada. Al partir se paga: cuota cumplida = depositado + 50 % de la cuota; fallida = 75 % de lo depositado y +1 fallo; lo no depositado se pierde; 2 fallos = `Lost / QuotaFailed`. Cuotas de prueba: Nivel 1 = 100, Nivel 2 = 200 (`Config.Run.Stages`, `Config.Economy.Quota`). El HUD muestra `Cuota depositado/cuota` y `Fallos`.
 - Probado en Studio (1 cliente): depósito, pago 125 → +$175 con extra $50, `NOT_AT_PARADA` al reparar en nivel, fallo 1/2 con $0 y 2 objetos perdidos, y derrota al 2.º fallo (`RunEnded Lost/QuotaFailed` una vez; luego `NO_RUN`).
 - Pendiente: curas y daño de criaturas (T07), soltar objetos al morir (T06), calibrar cuotas con partidas reales (T08).
+
+## T06 · Baliza, espectador y final de partida (Claude)
+
+- `BeaconService.server.luau`: en el Nivel 3 (`Beacon = true` en `Config.Run.Stages`) aparece la baliza en `Level_3.BeaconSite`. Si existe `Maps.Level_3.Beacon` (Model con `Light` y `PromptAttachment`) se usa; si no, una baliza provisional. Se activa manteniendo `E` (`Config.Run.BeaconHoldSeconds`, 5 s en el repo): soltar o alejarse la interrumpe (lo hace el `ProximityPrompt`). Al activarla: `Won / Beacon`, la luz pasa a verde. Se eliminó el remoto `PlaceBeacon` (innecesario).
+- Muerte: el jugador muerto no reaparece durante la partida (`Players.RespawnTime` bloqueado), pierde lo que cargaba y pasa a espectador (`SpectatorClient`: Q/E o botones `<` `>` para cambiar de compañero vivo). Todos muertos = `Lost / AllDead`. Atributos de jugador `InRun` y `RunAlive`.
+- Fin: `RunEndClient` muestra VICTORIA/DERROTA y el motivo; tras `EndScreenSeconds` (8 s) la partida se cierra, los muertos reaparecen, la sala vuelve a `Lobby` y el host puede iniciar otra (el submarino vuelve a su posición inicial).
+- Arreglo: `StartRun` ya no se descarta tras `CreateRoom`/`JoinRoom` (enfriamiento por acción).
+- Probado en Studio (1 cliente): partida completa L1→L3 con cuotas cumplidas (dinero 575); soltar la baliza antes de tiempo no gana; una pulsación completa (1 s) gana una sola vez y la luz pasa a verde; muerte → `RunAlive=false`, pantalla DERROTA / AllDead, tras el cierre reaparece, la sala vuelve a Lobby y la nueva partida empieza con dinero 0 y casco 100.
+- **No verificado:** pulsación completa de 3 s con `InputHoldBegin` (el simulador de Studio no completó ninguna espera ≥ 3 s, ni siquiera en prompts de tesoros). Verificar a mano en Studio con teclado real. Tampoco se probó el espectador con compañeros vivos (requiere 2 clientes).
+- Pendiente: la prueba con 2 y 4 clientes (V01), modelo `Beacon` de Codex.
