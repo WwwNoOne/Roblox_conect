@@ -122,3 +122,6 @@ La zona final (`Zone_4`) añade `BeaconSite` (Part) donde va la baliza.
 
 ### Decisión de descenso y mapas (2026-11-11)
 El submarino es una cabina sellada: el descenso es cierre de compuerta + fundido + teletransporte al `SubDock` siguiente, sin animación visible de viaje. Cada zona es un escenario independiente. Para Codex: cada `Zone_N` debe esconder la caja del submarino en un **nicho o bahía de acoplamiento** (roca, estructura, muelle) alrededor de `SubDock`, con la compuerta (`Hatch.ExitPoint`) dando al área explorable. No hace falta tubo ni continuidad visual entre zonas.
+
+### Escala del submarino (2026-11-11)
+En Studio se aplicó `Submarine:ScaleTo(1.5)` a `submarine_A01_v2`: interior 22,3 × 12 × 29,1 studs, compuerta 9,3 × 9,6, cubierta 24 × 30,8. Los `SpawnPoint` se colocaron a 3 studs sobre la cubierta. Codex: al actualizar el modelo, usar estas medidas como base (escala 1.5 sobre la v2) para no repetir el ajuste.

@@ -142,7 +142,7 @@ function Runs.Start(code: string, members: { number })
 			local spawn = sub:FindFirstChild("SpawnPoint" .. i, true)
 			local root = aliveRoot(userId)
 			if spawn and spawn:IsA("BasePart") and root then
-				root.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
+				root.CFrame = spawn.CFrame + Vector3.new(0, 0.5, 0)
 			end
 		end
 	end
