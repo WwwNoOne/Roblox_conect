@@ -39,3 +39,83 @@ Nota de aspecto (Claude): Lighting.Fog no se aplica dentro de agua de Terrain; l
 ## Estado de los archivos
 
 Los FBX provisionales están en `assets_build/exports`. El casco exterior de `submarine` es referencia para A01. El `leviathan` necesita verificación de tamaño y orientación para A05. `lamp` y `shipwreck_01` son referencias para sus versiones nuevas. Hoja Coral tiene un FBX con rig y textura, y el clip fue probado en Studio. Su asignación a `creature_small` sigue pendiente.
+
+## Contrato de nombres (Claude -> Codex)
+Los scripts buscan por **nombre exacto** (sensible a mayúsculas) con `FindFirstChild(..., true)`. No renombrar. Los `ProximityPrompt`, `SurfaceGui` y sonidos los añade el script: el modelo solo aporta la parte o el Attachment donde van. Partes decorativas: `CanCollide = false`. Partes de control (zonas, puntos): transparentes, `CanCollide = false`, `Anchored = true`.
+
+### Submarino (`Submarine`, Model)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `Hull` | Part (PrimaryPart) | Pivote del submarino; el servidor lo mueve entre paradas. Origen en el centro del interior |
+| `SpawnPoint1`…`SpawnPoint4` | Part | Dónde aparecen los 4 jugadores dentro |
+| `InteriorZone` | Part (volumen) | Cubre todo el interior; dentro de él se recarga oxígeno y se considera "dentro del sub" |
+| `Hatch` | Model | Compuerta |
+| `Hatch.Door` | Part | Se abre/cierra por script (Tween) |
+| `Hatch.InsidePrompt` | Attachment | "Salir" (lado interior) |
+| `Hatch.OutsidePrompt` | Attachment | "Entrar" (lado exterior) |
+| `Hatch.ExitPoint` | Attachment | Donde aparece el jugador al salir (fuera, frente a la puerta) |
+| `Hatch.EntryPoint` | Attachment | Donde aparece al entrar (dentro) |
+| `SellStation` | Model | Venta de tesoros |
+| `ShopStation` | Model | Tienda |
+| `RepairStation` | Model | Reparación del casco |
+| `<Estación>.PromptAttachment` | Attachment | Para el ProximityPrompt (dentro de cada estación) |
+| `HullGauge` | Model | Indicador de casco |
+| `HullGauge.Screen` | Part (plana) | Superficie del SurfaceGui con casco/profundidad |
+| `HullGauge.Fill` | Part | Barra que escala según el HP (opcional) |
+| `Lights` | Folder | Luces interiores `InteriorLight1…N` (PointLight o parte Neon) y `AlarmLight` (parpadea al peligro) |
+
+Medidas: interior para 4 avatares sin estorbar (≥ 14×8×10 studs). Colisión simple en suelo y paredes. Puerta ≥ 5 studs de ancho.
+
+### Tesoros (`Treasure_Small`, `Treasure_Medium`, `Treasure_Large`, Model)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `Handle` | Part/MeshPart (PrimaryPart) | Pieza que se sujeta y transporta; pivote en el centro |
+| `GripPoint` | Attachment (en `Handle`) | Punto de agarre para la mano |
+| `Glow` | Part Neon o PointLight (opcional) | Resalta el tesoro en la oscuridad |
+
+El valor y el peso los asigna el script (no van en el modelo).
+
+### Puntos de aparición (en naufragios y cuevas)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `TreasureSpawn` | Attachment | Aquí aparece un tesoro. Atributo `Size` = `Small` / `Medium` / `Large` (poner en Studio) |
+| `CreatureSpawn` | Attachment | Origen de una criatura |
+| `Patrol1`…`PatrolN` | Attachment | Ruta de patrulla de criaturas, orden numérico |
+
+### Paradas / zonas (`Workspace.Zones.Zone_1`…`Zone_4`, Model/Folder)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `SubDock` | Part | Donde se estaciona el submarino (el servidor hace `Hull:PivotTo(SubDock.CFrame)`). Eje Z = frente |
+| `Bounds` | Part (volumen) | Límite de la zona |
+| `Wreck` | Model | Naufragio/cueva de la zona |
+| `DepthMarker` | Attachment | Profundidad de la parada (atributo `Depth` en metros, en Studio) |
+
+La zona final (`Zone_4`) añade `BeaconSite` (Part) donde va la baliza.
+
+### Baliza (`Beacon`, Model)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `Base` | Part (PrimaryPart) | Pivote; Attachment `Base` en ella |
+| `Light` | Part Neon | Cambia de color al activarse |
+| `PromptAttachment` | Attachment | Para mantener `E` |
+
+### Criaturas (`Hunter`, `Leviathan`, `SmallCreature`, Model)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `Root` | Part (PrimaryPart) | Cuerpo principal / pivote; frente = -Z |
+| `Hitbox` | Part invisible | Tamaño de colisión/captura |
+| `Mouth` | Attachment | Punto de captura (en `Root`) |
+| `EyeLight` | Part Neon o PointLight | Ojos (visibles en la oscuridad) |
+| `AnimationController` + `Animator` | — | Animaciones nombradas `Idle`, `Swim`, `Attack` |
+
+### Lobby (`Workspace.Lobby`, Model)
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `LobbySpawn1`…`LobbySpawn4` | Part | Aparición en el lobby |
+| `RoomTerminal` | Model | Terminal de sala |
+| `RoomTerminal.Screen` | Part (plana) | SurfaceGui con código y jugadores |
+| `RoomTerminal.PromptAttachment` | Attachment | ProximityPrompt crear/unirse |
+| `SubPreview` | Model | Submarino decorativo visible |
+
+### Equipo del jugador (Accessory)
+`Handle` en cada accesorio. Lámpara: Attachment `LampOrigin` en la parte delantera del casco/lámpara (de aquí nace la luz).
