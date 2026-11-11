@@ -23,6 +23,20 @@ local Water = table.freeze({
 	TransitionSpeed = 4, -- suavizado al cruzar la superficie
 })
 
+-- Partida (T03). TODOS son valores de prueba a calibrar en T08 (GDD: curva de daño, tiempos, etc.).
+-- Depth en metros; PressureDps = daño/s al casco al estar a esa profundidad (entre paradas se interpola).
+local Run = table.freeze({
+	HullMax = 100,
+	StartMoney = 0,
+	TravelSeconds = 20, -- duración del descenso entre paradas
+	Zones = table.freeze({
+		table.freeze({ Depth = 40, PressureDps = 0.1 }),
+		table.freeze({ Depth = 120, PressureDps = 0.5 }),
+		table.freeze({ Depth = 220, PressureDps = 1.2 }),
+		table.freeze({ Depth = 320, PressureDps = 2.5 }),
+	}),
+})
+
 return table.freeze({
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
@@ -42,6 +56,7 @@ return table.freeze({
 	LampOriginOffset = 0.4, -- studs por delante de la cabeza donde nace la luz (antes 1.2)
 	LampToggleCooldown = 0.25,
 
+	Run = Run,
 	Upgrades = Upgrades,
 	Water = Water,
 })

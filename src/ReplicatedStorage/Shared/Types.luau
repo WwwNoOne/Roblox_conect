@@ -10,6 +10,8 @@ export type HudPayload = {
 	hullMax: number?,
 	depth: number?,
 	money: number?,
+	runState: RunState?,
+	zone: number?, -- parada actual/última alcanzada (0 = superficie)
 }
 
 export type RunState = "Lobby" | "Descending" | "Stopover" | "Won" | "Lost"

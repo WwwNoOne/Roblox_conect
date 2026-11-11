@@ -4,8 +4,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
-local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
-local updateHud = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpdateHUD") :: RemoteEvent
 
 local REFILL_RATE = 4 -- segundos de oxígeno recuperados por segundo en superficie
 
@@ -37,8 +35,9 @@ while true do
 				humanoid.Health = 0
 				oxygen[player] = max
 			end
-			local payload: Types.HudPayload = { oxygen = nextValue, oxygenMax = max }
-			updateHud:FireClient(player, payload)
+			-- HudService lee estos atributos y envía UpdateHUD.
+			player:SetAttribute("Oxygen", nextValue)
+			player:SetAttribute("OxygenMax", max)
 		end
 	end
 end

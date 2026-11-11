@@ -78,6 +78,7 @@ local function refreshInfo(hull: number?, hullMax: number?, money: number?)
 end
 refreshInfo(nil, nil, nil)
 local lastHull: number?, lastHullMax: number?, lastMoney: number? = nil, nil, nil
+local runDepth: number? = nil -- profundidad del submarino (servidor) durante una partida
 player:GetAttributeChangedSignal("LampOn"):Connect(function()
 	refreshInfo(lastHull, lastHullMax, lastMoney)
 end)
@@ -114,6 +115,7 @@ end)
 
 updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	lastHull, lastHullMax, lastMoney = payload.hull, payload.hullMax, payload.money
+	runDepth = payload.depth
 	refreshInfo(lastHull, lastHullMax, lastMoney)
 	local current, max = payload.oxygen, payload.oxygenMax
 	local ratio = math.clamp(current / max, 0, 1)
@@ -125,7 +127,7 @@ end)
 RunService.RenderStepped:Connect(function()
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
-		local depth = math.max(0, Config.SeaLevelY - root.Position.Y)
-		depthLabel.Text = string.format("Profundidad: %d m", depth) -- T03: usar payload.depth del submarino
+		local depth = runDepth or math.max(0, Config.SeaLevelY - root.Position.Y)
+		depthLabel.Text = string.format("Profundidad: %d m", depth)
 	end
 end)

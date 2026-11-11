@@ -12,6 +12,7 @@ Remotes.List = table.freeze({
 	StartRun = "Event", -- cliente -> servidor: el anfitrión inicia
 	RoomUpdate = "Event", -- servidor -> cliente: RoomState
 	-- Partida (T03-T06)
+	RequestDescend = "Function", -- () -> { ok: boolean, err: string? }; solo el anfitrión, parada actual
 	UpdateHUD = "Event", -- servidor -> cliente: HudPayload
 	RequestPurchase = "Function", -- (itemId: string) -> { ok: boolean, err: string? }
 	SellTreasure = "Function", -- () -> { ok: boolean, earned: number?, err: string? }
