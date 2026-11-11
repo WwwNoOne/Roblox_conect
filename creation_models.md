@@ -119,3 +119,6 @@ La zona final (`Zone_4`) añade `BeaconSite` (Part) donde va la baliza.
 
 ### Equipo del jugador (Accessory)
 `Handle` en cada accesorio. Lámpara: Attachment `LampOrigin` en la parte delantera del casco/lámpara (de aquí nace la luz).
+
+### Decisión de descenso y mapas (2026-11-11)
+El submarino es una cabina sellada: el descenso es cierre de compuerta + fundido + teletransporte al `SubDock` siguiente, sin animación visible de viaje. Cada zona es un escenario independiente. Para Codex: cada `Zone_N` debe esconder la caja del submarino en un **nicho o bahía de acoplamiento** (roca, estructura, muelle) alrededor de `SubDock`, con la compuerta (`Hatch.ExitPoint`) dando al área explorable. No hace falta tubo ni continuidad visual entre zonas.

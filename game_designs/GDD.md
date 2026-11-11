@@ -22,6 +22,12 @@ De 2 a 4 jugadores descienden en un submarino lo más profundo posible, exploran
 * Se repara con dinero común (y, opcional, con kit de reparación manual dentro del sub).
 * Casco = 0 → implosión, fin de la partida (derrota).
 
+### Descenso y estructura del mapa (decisión 2026-11-11)
+* **Niveles separados**: cada zona es su propio escenario, sin conexión visual entre ellas.
+* **Cabina sellada**: el submarino es una cabina. Para descender se cierra la compuerta (todos dentro), hay crujidos, vibración y fundido a negro, y el servidor lleva el submarino al `SubDock` de la siguiente zona. Los jugadores no ven el exterior durante el viaje.
+* En cada parada el submarino queda acoplado en un nicho/bahía de roca o estructura, para que desde fuera no se aprecie como una caja.
+* Mejora opcional futura: tubo conector entre niveles (híbrido) sin cambiar la lógica, porque cada nivel ya tiene su `SubDock`.
+
 ### Zonas (3–4, con parada entre ellas)
 | Zona | Profundidad | Presión (daño/s al casco) | Contenido |
 | :-- | :-- | :-- | :-- |
