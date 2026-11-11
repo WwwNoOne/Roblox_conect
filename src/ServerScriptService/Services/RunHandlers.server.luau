@@ -72,6 +72,10 @@ while true do
 				payload.money = run.money
 				payload.runState = run.state
 				payload.zone = run.zone
+				local stage = Config.Run.Stages[if run.state == "Level" then run.zone else run.zone + 1]
+				payload.quota = stage and stage.Quota
+				payload.deposited = run.deposited
+				payload.failures = run.failures
 			end
 			updateHud:FireClient(player, payload)
 		end

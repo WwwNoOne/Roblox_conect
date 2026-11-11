@@ -26,15 +26,16 @@ local Water = table.freeze({
 -- Partida (T03). TODOS son valores de prueba a calibrar en T08.
 -- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
 -- Kind "Level": se sale a explorar (compuerta abierta). Kind "Parada": nadie sale; se vende/repara/compra desde dentro.
+-- Quota (opcional): valor de tesoros a depositar en ese nivel; el último nivel (baliza) no tiene cuota.
 -- Depth en metros (HUD); PressureDps = daño/s al casco en esa etapa (en la parada es 0: refugio seguro).
 local Run = table.freeze({
 	HullMax = 100,
 	StartMoney = 0,
 	TravelSeconds = 20, -- duración del viaje entre etapas
 	Stages = table.freeze({
-		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 40, PressureDps = 0.1 }),
+		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 40, PressureDps = 0.1, Quota = 100 }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 80, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5 }),
+		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5, Quota = 200 }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 170, PressureDps = 0 }),
 		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2 }),
 	}),
@@ -42,11 +43,17 @@ local Run = table.freeze({
 
 -- Economía de partida (T05). Valores de prueba a calibrar en T08.
 local Economy = table.freeze({
-	CarryCapacity = 6, -- peso máximo que lleva cada jugador
+	CarrySlots = 4, -- objetos que lleva cada jugador (1 por slot)
 	Treasure = table.freeze({
-		Small = table.freeze({ Value = 25, Weight = 1, Size = Vector3.new(1, 1, 1), Color = Color3.fromRGB(240, 200, 80) }),
-		Medium = table.freeze({ Value = 75, Weight = 2, Size = Vector3.new(1.6, 1.6, 1.6), Color = Color3.fromRGB(120, 220, 240) }),
-		Large = table.freeze({ Value = 200, Weight = 4, Size = Vector3.new(2.4, 2.4, 2.4), Color = Color3.fromRGB(230, 90, 220) }),
+		Small = table.freeze({ Value = 25, Size = Vector3.new(1, 1, 1), Color = Color3.fromRGB(240, 200, 80) }),
+		Medium = table.freeze({ Value = 75, Size = Vector3.new(1.6, 1.6, 1.6), Color = Color3.fromRGB(120, 220, 240) }),
+		Large = table.freeze({ Value = 200, Size = Vector3.new(2.4, 2.4, 2.4), Color = Color3.fromRGB(230, 90, 220) }),
+	}),
+	-- Cuota por nivel: se deposita en el submarino durante el nivel y se cobra al cerrarlo.
+	Quota = table.freeze({
+		BonusFraction = 0.5, -- cuota cumplida: pago = depositado + cuota * BonusFraction (extra para equipamiento)
+		ShortfallFactor = 0.75, -- cuota fallida: pago = depositado * ShortfallFactor y suma un fallo
+		MaxFailures = 2, -- al llegar a este número de fallos se pierde (GDD: subir a 3 con más niveles)
 	}),
 	RepairChunk = 10, -- HP por uso del panel de reparación
 	RepairCostPerHp = 2,

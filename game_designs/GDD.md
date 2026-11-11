@@ -53,10 +53,16 @@ Para la primera versión de prueba hay **3 niveles** y un mapa de **parada** com
 * Las criaturas **cazan** por vista/sonido/luz; si atrapan a un jugador lo matan (o lo arrastran).
 * Criatura grande en el fondo como amenaza final.
 
-### Economía (solo dentro de la partida)
-* **Fondo común** del equipo: vender tesoros en el submarino.
-* Gasto: reparar casco, comprar equipo (más oxígeno, mejor luz, blindaje, etc.).
-* El dinero **no se guarda** entre partidas.
+### Inventario, cuota y economía (decisión 2026-11-11)
+* **Inventario:** cada jugador lleva hasta **4 objetos** (1 por slot, cualquier tamaño). Hay que volver al submarino para vaciarlos, lo que obliga a varios viajes.
+* **Depósito:** durante un nivel, desde el panel de depósito del submarino (`SellStation`), los objetos pasan al almacén del equipo. Lo que se lleva encima al partir sin depositar **se pierde**.
+* **Cuota por nivel (niveles 1 y 2):** al cerrar el nivel (partir hacia la Parada) se compara lo depositado con la cuota.
+  * **Cumplida:** se paga lo depositado + un extra (50 % de la cuota) para equipamiento.
+  * **Fallida:** se paga el 75 % de lo depositado y cuenta un **fallo**.
+  * **2 fallos = derrota** (configurable; subir a 3 con más niveles). El Nivel 3 no tiene cuota: lo termina la baliza.
+* **Fondo común** del equipo: reparar el casco (2 $/HP, +10 HP por uso) y comprar equipo en la Parada, desde dentro del submarino. No se guarda entre partidas.
+* **Equipo (tienda):** blindaje del casco, tanque de oxígeno y, pendiente, curas y linterna.
+* **Curas y salud:** las criaturas **dañan** (2–3 golpes) en vez de matar de golpe; las curas se compran en la tienda (pendiente, T07).
 
 ### Muerte y derrota
 * Jugador muerto → **espectador** (observa a los vivos). Revivir con ítem: opcional/futuro.

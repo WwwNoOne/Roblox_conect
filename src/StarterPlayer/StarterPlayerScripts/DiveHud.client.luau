@@ -17,7 +17,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local frame = Instance.new("Frame")
 frame.AnchorPoint = Vector2.new(0, 1)
 frame.Position = UDim2.new(0, 16, 1, -16)
-frame.Size = UDim2.fromOffset(300, 96)
+frame.Size = UDim2.fromOffset(300, 120)
 frame.BackgroundColor3 = Color3.fromRGB(10, 30, 50)
 frame.BackgroundTransparency = 0.25
 frame.Parent = gui
@@ -70,10 +70,10 @@ local function refreshInfo(hull: number?, hullMax: number?, money: number?)
 	local hullText = if hull and hullMax then string.format("Casco: %d/%d", hull, hullMax) else "Casco: --"
 	local moneyText = if money then string.format("  $%d", money) else ""
 	invLabel.Text = string.format(
-		"%s%s  Carga %d/%d  [F] %s",
+		"%s%s  Slots %d/%d  [F] %s",
 		hullText,
 		moneyText,
-		player:GetAttribute("CarryWeight") or 0,
+		player:GetAttribute("CarryCount") or 0,
 		player:GetAttribute("CarryCapacity") or 0,
 		if player:GetAttribute("LampOn") then "ON" else "OFF"
 	)
@@ -81,11 +81,22 @@ end
 refreshInfo(nil, nil, nil)
 local lastHull: number?, lastHullMax: number?, lastMoney: number? = nil, nil, nil
 local runDepth: number? = nil -- profundidad del submarino (servidor) durante una partida
-for _, attr in { "LampOn", "CarryWeight", "CarryCapacity" } do
+for _, attr in { "LampOn", "CarryCount", "CarryCapacity" } do
 	player:GetAttributeChangedSignal(attr):Connect(function()
 		refreshInfo(lastHull, lastHullMax, lastMoney)
 	end)
 end
+
+local quotaLabel = Instance.new("TextLabel")
+quotaLabel.BackgroundTransparency = 1
+quotaLabel.Position = UDim2.fromOffset(8, 90)
+quotaLabel.Size = UDim2.new(1, -16, 0, 22)
+quotaLabel.TextXAlignment = Enum.TextXAlignment.Left
+quotaLabel.Font = Enum.Font.GothamMedium
+quotaLabel.TextSize = 14
+quotaLabel.TextColor3 = Color3.fromRGB(255, 220, 120)
+quotaLabel.Text = ""
+quotaLabel.Parent = frame
 
 local notice = Instance.new("TextLabel")
 notice.AnchorPoint = Vector2.new(0.5, 0)
@@ -120,6 +131,11 @@ end)
 updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	lastHull, lastHullMax, lastMoney = payload.hull, payload.hullMax, payload.money
 	runDepth = payload.depth
+	if payload.quota then
+		quotaLabel.Text = string.format("Cuota %d/%d   Fallos %d/%d", payload.deposited or 0, payload.quota, payload.failures or 0, Config.Economy.Quota.MaxFailures)
+	else
+		quotaLabel.Text = ""
+	end
 	refreshInfo(lastHull, lastHullMax, lastMoney)
 	local current, max = payload.oxygen, payload.oxygenMax
 	local ratio = math.clamp(current / max, 0, 1)

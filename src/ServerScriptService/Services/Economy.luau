@@ -13,17 +13,10 @@ export type Result = { ok: boolean, err: string?, earned: number?, state: Types.
 
 local Economy = {}
 
-local function weightOf(run: Runs.Run, userId: number): number
-	local total = 0
-	for _, item in run.carried[userId] or {} do
-		total += item.weight
-	end
-	return total
-end
-
 local function syncCarry(player: Player, run: Runs.Run?)
-	player:SetAttribute("CarryWeight", if run then weightOf(run, player.UserId) else 0)
-	player:SetAttribute("CarryCapacity", Config.Economy.CarryCapacity)
+	local list = run and run.carried[player.UserId]
+	player:SetAttribute("CarryCount", if list then #list else 0)
+	player:SetAttribute("CarryCapacity", Config.Economy.CarrySlots)
 end
 
 local function aliveInside(player: Player): boolean
@@ -41,35 +34,36 @@ function Economy.Pickup(player: Player, size: string): Result
 	if not humanoid or humanoid.Health <= 0 then
 		return { ok = false, err = "DEAD" }
 	end
-	if weightOf(run, player.UserId) + def.Weight > Config.Economy.CarryCapacity then
-		return { ok = false, err = "TOO_HEAVY" }
-	end
 	local list = run.carried[player.UserId] or {}
+	if #list >= Config.Economy.CarrySlots then
+		return { ok = false, err = "INVENTORY_FULL" }
+	end
 	run.carried[player.UserId] = list
-	table.insert(list, { size = size, value = def.Value, weight = def.Weight })
+	table.insert(list, { size = size, value = def.Value })
 	syncCarry(player, run)
 	return { ok = true }
 end
 
 -- Vende todo lo que carga el jugador; suma al fondo común una sola vez.
-function Economy.Sell(player: Player): Result
+-- Deposita lo que carga el jugador en el almacén del submarino (cuenta para la cuota del nivel).
+function Economy.Deposit(player: Player): Result
 	local run = Runs.GetByUser(player.UserId)
-	if not run or run.ended or run.state ~= "Stopover" then
-		return { ok = false, err = "NOT_AT_PARADA" }
+	if not run or run.ended or run.state ~= "Level" then
+		return { ok = false, err = "NOT_IN_LEVEL" }
 	end
 	if not aliveInside(player) then
 		return { ok = false, err = "NOT_INSIDE" }
 	end
 	local list = run.carried[player.UserId]
 	if not list or #list == 0 then
-		return { ok = false, err = "NOTHING_TO_SELL" }
+		return { ok = false, err = "NOTHING_TO_DEPOSIT" }
 	end
 	local total = 0
 	for _, item in list do
 		total += item.value
 	end
 	run.carried[player.UserId] = {}
-	Runs.AddMoney(run.code, total)
+	run.deposited += total
 	syncCarry(player, run)
 	return { ok = true, earned = total }
 end

@@ -40,3 +40,10 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - Paneles (solo activos en la Parada y con el jugador dentro): `SellStation` vende todo lo cargado, `RepairStation` repara +10 HP por uso (2 $/HP), `ShopStation` abre el panel (Blindaje del casco: −20 % presión por nivel, 3 niveles; Tanque de oxígeno: +60 s por nivel, 3 niveles). Remotos `SellTreasure` y `RequestPurchase` (`"Repair"` o id de mejora) usan el mismo camino validado en servidor.
 - Probado en Studio (1 cliente, submarino en los 3 mapas de Codex): vender en nivel → `NOT_AT_PARADA`; recoger 3 tesoros (carga 4/6); venta única (+125, segunda venta `NOTHING_TO_SELL`); reparación (cobra al 2 $/HP; segunda `HULL_FULL`); compra de oxígeno (máx. 360 → 420); `NOT_ENOUGH_MONEY`; `UNKNOWN_ITEM`; sobrepeso rechazado con aviso; el dinero vuelve a 0 al empezar otra partida (estado nuevo por `Runs.Start`).
 - Pendiente: dos reparaciones simultáneas con dos clientes reales, soltar la carga al morir (T06), modelos `Treasure_*` de A03 y UI final de la tienda (Codex).
+
+## T05b · Slots, depósito y cuota (Claude)
+
+- Slots: 4 por jugador (`CarryCount`/`CarryCapacity`); sustituye al límite por peso. Remoto `SellTreasure` renombrado a `DepositTreasure`.
+- `SellStation` ahora **deposita** durante un nivel (`Level`); `RepairStation` y `ShopStation` solo en la Parada. Al partir se paga: cuota cumplida = depositado + 50 % de la cuota; fallida = 75 % de lo depositado y +1 fallo; lo no depositado se pierde; 2 fallos = `Lost / QuotaFailed`. Cuotas de prueba: Nivel 1 = 100, Nivel 2 = 200 (`Config.Run.Stages`, `Config.Economy.Quota`). El HUD muestra `Cuota depositado/cuota` y `Fallos`.
+- Probado en Studio (1 cliente): depósito, pago 125 → +$175 con extra $50, `NOT_AT_PARADA` al reparar en nivel, fallo 1/2 con $0 y 2 objetos perdidos, y derrota al 2.º fallo (`RunEnded Lost/QuotaFailed` una vez; luego `NO_RUN`).
+- Pendiente: curas y daño de criaturas (T07), soltar objetos al morir (T06), calibrar cuotas con partidas reales (T08).

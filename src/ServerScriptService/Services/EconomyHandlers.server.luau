@@ -12,7 +12,7 @@ local Economy = require(script.Parent:WaitForChild("Economy"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local shopOpen = remotes:WaitForChild("ShopOpen") :: RemoteEvent
-local sellTreasure = remotes:WaitForChild("SellTreasure") :: RemoteFunction
+local depositTreasure = remotes:WaitForChild("DepositTreasure") :: RemoteFunction
 local requestPurchase = remotes:WaitForChild("RequestPurchase") :: RemoteFunction
 
 local treasureFolder = Instance.new("Folder")
@@ -20,9 +20,10 @@ treasureFolder.Name = "RunTreasure"
 treasureFolder.Parent = workspace
 
 local MESSAGES: { [string]: string } = {
-	TOO_HEAVY = "Demasiado peso",
+	INVENTORY_FULL = "Inventario lleno (4/4)",
 	NOT_ENOUGH_MONEY = "Fondos insuficientes",
-	NOTHING_TO_SELL = "No llevas tesoros",
+	NOTHING_TO_DEPOSIT = "No llevas tesoros",
+	NOT_IN_LEVEL = "Solo se deposita durante un nivel",
 	HULL_FULL = "El casco está intacto",
 	NOT_AT_PARADA = "Solo en la Parada",
 	NOT_INSIDE = "Debes estar dentro del submarino",
@@ -111,9 +112,9 @@ end
 
 -- ===== Paneles del submarino =====
 local sub = workspace:WaitForChild("Submarine", 30)
-local panelPrompts: { ProximityPrompt } = {}
+local panelPrompts: { { prompt: ProximityPrompt, state: string } } = {}
 if sub then
-	local function panel(stationName: string, action: string, handler: (Player) -> ())
+	local function panel(stationName: string, action: string, activeIn: string, handler: (Player) -> ())
 		local station = sub:FindFirstChild(stationName)
 		local att = station and station:FindFirstChild("PromptAttachment", true)
 		if not att then
@@ -130,18 +131,18 @@ if sub then
 		prompt.Enabled = false
 		prompt.Parent = att
 		prompt.Triggered:Connect(handler)
-		table.insert(panelPrompts, prompt)
+		table.insert(panelPrompts, { prompt = prompt, state = activeIn })
 	end
 
-	panel("SellStation", "Vender tesoros", function(player)
-		local r = Economy.Sell(player)
+	panel("SellStation", "Depositar tesoros", "Level", function(player)
+		local r = Economy.Deposit(player)
 		if r.ok then
-			notice(player, "Vendido: +$" .. tostring(r.earned))
+			notice(player, "Depositado: $" .. tostring(r.earned))
 		else
 			fail(player, r.err)
 		end
 	end)
-	panel("RepairStation", "Reparar casco", function(player)
+	panel("RepairStation", "Reparar casco", "Stopover", function(player)
 		local r = Economy.Repair(player)
 		if r.ok then
 			notice(player, "Casco reparado")
@@ -149,7 +150,7 @@ if sub then
 			fail(player, r.err)
 		end
 	end)
-	panel("ShopStation", "Tienda", function(player)
+	panel("ShopStation", "Tienda", "Stopover", function(player)
 		local state = Economy.ShopState(player)
 		if state then
 			shopOpen:FireClient(player, state)
@@ -179,8 +180,32 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 	elseif state == "Descending" or state == "Won" or state == "Lost" then
 		clearTreasure()
 	end
-	for _, prompt in panelPrompts do
-		prompt.Enabled = state == "Stopover"
+	for _, p in panelPrompts do
+		p.prompt.Enabled = state == p.state
+	end
+end)
+
+-- Resultado del cierre de nivel (cuota): aviso a la tripulación y sincronizar slots.
+Runs.Settled:Connect(function(code: string, info: Runs.Settlement)
+	local run = Runs.Get(code)
+	if not run then
+		return
+	end
+	local text
+	if info.met then
+		text = string.format("Cuota cumplida (%d/%d). +$%d (extra $%d)", info.deposited, info.quota, info.payout, info.bonus)
+	else
+		text = string.format("Cuota fallida (%d/%d). +$%d. Fallo %d/%d", info.deposited, info.quota, info.payout, info.failures, Config.Economy.Quota.MaxFailures)
+	end
+	if info.lostItems > 0 then
+		text ..= string.format(" (perdidos sin depositar: %d)", info.lostItems)
+	end
+	for _, userId in run.members do
+		local p = Players:GetPlayerByUserId(userId)
+		if p then
+			notice(p, text)
+			Economy.SyncCarry(p, run)
+		end
 	end
 end)
 
@@ -195,11 +220,11 @@ local function throttled(player: Player): boolean
 	return false
 end
 
-sellTreasure.OnServerInvoke = function(player: Player)
+depositTreasure.OnServerInvoke = function(player: Player)
 	if throttled(player) then
 		return { ok = false, err = "TOO_FAST" }
 	end
-	return Economy.Sell(player)
+	return Economy.Deposit(player)
 end
 
 -- itemId: "Repair" o el id de una mejora (Armor, Oxygen).

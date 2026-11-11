@@ -13,5 +13,5 @@ for name, kind in Remotes.List do
 end
 folder.Parent = ReplicatedStorage
 
--- Los handlers de RemoteFunction (CreateRoom, JoinRoom, RequestPurchase, SellTreasure) los definen
+-- Los handlers de RemoteFunction (CreateRoom, JoinRoom, RequestPurchase, DepositTreasure) los definen
 -- sus servicios (T02, T05). Mientras no existan, el invoke del cliente queda sin respuesta: no llamarlos aún.

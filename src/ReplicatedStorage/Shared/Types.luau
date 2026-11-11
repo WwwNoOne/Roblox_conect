@@ -12,6 +12,9 @@ export type HudPayload = {
 	money: number?,
 	runState: RunState?,
 	zone: number?, -- etapa actual/última alcanzada (0 = inicio)
+	quota: number?, -- cuota del nivel actual (o del siguiente, en la Parada)
+	deposited: number?, -- valor depositado en el nivel actual
+	failures: number?, -- cuotas falladas
 }
 
 -- Level = explorando (compuerta abierta); Stopover = en la Parada (compuerta cerrada); Descending = viaje sellado.

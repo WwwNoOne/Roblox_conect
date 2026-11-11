@@ -8,7 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 
-export type Item = { size: string, value: number, weight: number }
+export type Item = { size: string, value: number }
 
 export type Run = {
 	code: string,
@@ -23,6 +23,8 @@ export type Run = {
 	ended: boolean,
 	carried: { [number]: { Item } }, -- tesoros cargados por jugador (UserId)
 	upgrades: { [string]: number }, -- niveles de mejora del equipo
+	deposited: number, -- valor depositado en el nivel actual (se cobra al cerrarlo)
+	failures: number, -- cuotas falladas
 }
 
 export type Result = { ok: boolean, err: string? }
@@ -34,6 +36,19 @@ local runOf: { [number]: string } = {}
 
 local stateChanged = Instance.new("BindableEvent")
 Runs.StateChanged = stateChanged.Event -- (code: string, state: Types.RunState)
+export type Settlement = {
+	quota: number,
+	deposited: number,
+	met: boolean,
+	payout: number,
+	bonus: number,
+	failures: number,
+	lostItems: number,
+	lost: boolean,
+}
+
+local settled = Instance.new("BindableEvent")
+Runs.Settled = settled.Event -- (code: string, info: Settlement)
 local ended = Instance.new("BindableEvent")
 Runs.Ended = ended.Event -- (code: string, result: "Won" | "Lost", reason: string)
 
@@ -145,6 +160,8 @@ function Runs.Start(code: string, members: { number })
 		ended = false,
 		carried = {},
 		upgrades = {},
+		deposited = 0,
+		failures = 0,
 	}
 	runs[code] = run
 	for _, userId in members do
@@ -179,6 +196,44 @@ function Runs.GetByUser(userId: number): Run?
 	return if code then runs[code] else nil
 end
 
+-- Cierra el nivel: compara lo depositado con la cuota, paga y cuenta fallos. Niveles sin cuota: no hace nada.
+local function settle(run: Run)
+	local def = Config.Run.Stages[run.zone]
+	local quota = def and def.Quota
+	if not quota then
+		return
+	end
+	local q = Config.Economy.Quota
+	local deposited = run.deposited
+	local met = deposited >= quota
+	local bonus = if met then math.ceil(quota * q.BonusFraction) else 0
+	local payout = if met then deposited + bonus else math.floor(deposited * q.ShortfallFactor)
+	if not met then
+		run.failures += 1
+	end
+	run.money += payout
+	run.deposited = 0
+	local lostItems = 0
+	for userId, list in run.carried do
+		lostItems += #list
+		run.carried[userId] = {} -- lo no depositado se pierde al partir
+	end
+	local lost = run.failures >= q.MaxFailures
+	settled:Fire(run.code, {
+		quota = quota,
+		deposited = deposited,
+		met = met,
+		payout = payout,
+		bonus = bonus,
+		failures = run.failures,
+		lostItems = lostItems,
+		lost = lost,
+	} :: Settlement)
+	if lost then
+		finish(run, "Lost", "QuotaFailed")
+	end
+end
+
 function Runs.RequestDescend(userId: number, hostId: number): Result
 	local run = Runs.GetByUser(userId)
 	if not run or run.ended then
@@ -197,6 +252,12 @@ function Runs.RequestDescend(userId: number, hostId: number): Result
 		local root = aliveRoot(id)
 		if root and not isInsideSub(root) then
 			return { ok = false, err = "CREW_OUTSIDE" }
+		end
+	end
+	if run.state == "Level" then
+		settle(run)
+		if run.ended then
+			return { ok = true } -- la partida terminó por cuotas falladas
 		end
 	end
 	run.travelFrom = run.depth
