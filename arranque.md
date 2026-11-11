@@ -1,7 +1,7 @@
 # Estado de Arranque y Sincronización de Agentes
 
 ## Contexto de la Sesión Actual
-- **Proyecto:** Roblox Ocean Exploration / Submarine Game
+- **Proyecto:** Abismo — terror cooperativo de submarino estilo REPO (nuevo GDD 2026-11-11)
 - **Fase actual:** Configuración inicial de UI y mallas 3D
 - **Objetivo de hoy:** Implementar HUD de buceo (Claude) y modelar submarino/leviatán (Codex).
 
@@ -22,6 +22,9 @@
 - [x] Ajustes tras playtest: luz sigue la cámara (1ª/3ª persona), arpón con cable + jalón + indicador de listo en la punta, pequeñas 5% de daño y mueren de 1 arponazo (reaparecen a los 20 s).
 - [x] Densidad del agua por profundidad (Atmosphere + color; la lámpara y su mejora reducen la densidad). Calibración fina pendiente de playtest.
 - [ ] Modelo `.fbx` del submarino exportado desde Blender.
+
+## Cambio de dirección (2026-11-11)
+El GDD fue reescrito: lobby + salas 2–4, descenso por zonas, casco compartido con daño por presión, criaturas sin combate, economía común sin guardado, baliza al fondo. El código existente (arpón, DataStore, tienda individual) aún NO está adaptado; pendiente fase de migración.
 
 ## Próximo Hand-off
 *Claude esperará a que Codex guarde `assets_build/exports/submarine.fbx` para enlazar la MeshPart en Roblox Studio.*

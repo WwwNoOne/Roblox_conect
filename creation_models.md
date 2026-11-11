@@ -1,17 +1,37 @@
 # Modelos requeridos (hand-off Claude -> Codex)
 Estilo Low-Poly / Anime Stylized. Export `.fbx` a `assets_build/exports/`.
+
+> **Cambio de dirección (2026-11-11):** el juego ahora es terror cooperativo de submarino estilo REPO (ver `game_designs/GDD.md`). Sin combate: el arpón queda descartado. Ambiente oscuro y opresivo; las criaturas deben dar miedo y leerse bien con poca luz.
+
+## Prioridad 1 (necesarios para el primer prototipo)
 | Id | Descripción | Tris máx |
 | :-- | :-- | :-- |
-| `submarine` | Submarino del jugador (puerto/entrada a inmersión) | 5000 |
-| `leviathan` | Criatura grande (agarra y mata); ~8x5x20 studs, boca en el frente (-Z) | 5000 |
-| `harpoon` | Arpón (Tool). Debe incluir: punta (parte "Tip", Neon; el servidor la pone verde=listo / roja=recarga) y un Attachment "RopeStart" en la punta para el cable | 2500 |
-| `lamp` | Lámpara de buceo montada en la cabeza/casco (luz Spot al frente, tecla F) | 2500 |
-| `creature_small` | Criatura pequeña (muerde); ~1.5x1x3 studs | 2500 |
-| `creature_medium` | Criatura mediana (agarra); ~3x2.5x8 studs | 5000 |
-| `shipwreck_01` | Naufragio de la zona 1 | 5000 |
+| `submarine` | Submarino del equipo (2–4 jugadores). Exterior + **interior transitable**: puesto de mando, estación de venta/tienda, panel de reparación, compuerta de salida (airlock). Partes nombradas: `HullGauge` (indicador de casco), `SellStation`, `ShopStation`, `RepairStation`, `Hatch` | 8000 |
+| `treasure_small` | Tesoro pequeño (moneda/joya/cofre chico), recogible, ~0.5 stud | 800 |
+| `treasure_medium` | Tesoro mediano (estatua/reliquia), ~1.5 studs | 1500 |
+| `treasure_large` | Tesoro grande (cofre/ídolo pesado, requiere cargar), ~3 studs | 2500 |
+| `beacon` | Baliza final (se coloca en el fondo). Parte `Light` (Neon) que cambia de color al activarse; Attachment `Base` | 2500 |
+| `creature_hunter` | Criatura cazadora de zonas 2–3 (persigue por luz/sonido), ~3x2x8 studs, silueta clara y ojos/luz propia | 5000 |
+| `leviathan` | Criatura grande del fondo (zona 4); ~8x5x20 studs, boca al frente (-Z) | 5000 |
 
-Mapa de prueba: ver `game_designs/assets/test_map_spec.md` (medidas e IDs de marcadores).
+## Prioridad 2
+| Id | Descripción | Tris máx |
+| :-- | :-- | :-- |
+| `creature_small` | Criatura pasiva/ambiental de zona 1 (no combate), ~1.5x1x3 studs | 2500 |
+| `shipwreck_01` | Naufragio zona 1 (con zonas huecas para recorrer y puntos de aparición de tesoros: Attachments `TreasureSpawn`) | 5000 |
+| `shipwreck_02` | Naufragio zonas 2–3, más dañado y oscuro, con `TreasureSpawn` | 5000 |
+| `cave_kit` | Kit modular de cuevas (3–4 piezas encajables: recto, curva, cámara, bifurcación) con `TreasureSpawn` | 4000 c/u |
+| `lamp` | Lámpara/linterna de buceo en casco (luz Spot al frente, tecla F) | 2500 |
+| `diving_suit` | Traje/casco de buceo del jugador (referencia visual) | 5000 |
 
-UI pendiente para Codex: pantalla de tienda final (ver `src/StarterPlayer/StarterPlayerScripts/ShopClient.client.luau` como referencia funcional; datos en `Config.Upgrades`), y modelos `shop_station` / `sell_station` para el puerto.
+## Descartado
+`harpoon`, `creature_medium` (combate eliminado). Si Codex ya tiene avance, se puede reutilizar `creature_medium` como base de `creature_hunter`.
 
-Nota de aspecto (Claude): Lighting.Fog no se aplica dentro de agua de Terrain; la densidad se hace con Atmosphere. En pruebas la bruma afecta al agua/Terrain pero no desvanece Parts lejanos (el fondo de prueba es un Part). Si el fondo marino final es Terrain, probablemente se vea más denso; por favor avisar qué se usa.
+## Lobby
+Escena de lobby simple (puerto/muelle o hangar) con: mesa/terminal para crear/unirse a sala (`RoomTerminal`), spawn de jugadores y vista del submarino. ~Mapa pequeño, sin mecánicas de supervivencia.
+
+## Referencias
+* Mapa de prueba anterior: `game_designs/assets/test_map_spec.md` (a revisar; el nuevo mapa es por zonas con paradas).
+* UI pendiente: HUD (casco, profundidad, oxígeno, dinero común), pantalla de tienda/reparación (datos en `Config.Upgrades`, referencia funcional `ShopClient.client.luau`) y pantalla de lobby (crear/unirse por código).
+
+Nota de aspecto (Claude): Lighting.Fog no se aplica dentro de agua de Terrain; la densidad se hace con Atmosphere. En pruebas la bruma afecta al agua/Terrain pero no desvanece Parts lejanos. Si el fondo marino final es Terrain, probablemente se vea más denso; avisar qué se usa.
