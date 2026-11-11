@@ -82,15 +82,15 @@ El valor y el peso los asigna el script (no van en el modelo).
 | `CreatureSpawn` | Attachment | Origen de una criatura |
 | `Patrol1`…`PatrolN` | Attachment | Ruta de patrulla de criaturas, orden numérico |
 
-### Paradas / zonas (`Workspace.Zones.Zone_1`…`Zone_4`, Model/Folder)
-| Nombre | Tipo | Uso |
-| :-- | :-- | :-- |
-| `SubDock` | Part | Donde se estaciona el submarino (el servidor hace `Hull:PivotTo(SubDock.CFrame)`). Eje Z = frente |
-| `Bounds` | Part (volumen) | Límite de la zona |
-| `Wreck` | Model | Naufragio/cueva de la zona |
-| `DepthMarker` | Attachment | Profundidad de la parada (atributo `Depth` en metros, en Studio) |
+### Mapas (`Workspace.Maps`, Folder) — propuesta 2026-11-11
+Tres niveles de prueba y un mapa de parada. Cada uno es una carpeta/Model con al menos estos dos objetos:
 
-La zona final (`Zone_4`) añade `BeaconSite` (Part) donde va la baliza.
+| Mapa | Hijos mínimos |
+| :-- | :-- |
+| `Maps.Level_1`, `Maps.Level_2`, `Maps.Level_3` | `Platform` (Part base del nivel) y `SubDock` (Part donde el submarino se acopla; eje Z = frente) |
+| `Maps.Parada` | `Platform` (base) y `SubDock` (donde se acopla el submarino; aquí nadie sale) |
+
+Opcionales (para cuando se llenen los niveles): `Bounds` (volumen del nivel), `Wreck` (Model), `DepthMarker` (Attachment con atributo `Depth` en metros), y en `Level_3` el `BeaconSite` (Part). La compuerta (`Hatch.ExitPoint`) debe dar al área explorable del nivel; en `Parada` basta con una base.
 
 ### Baliza (`Beacon`, Model)
 | Nombre | Tipo | Uso |
@@ -121,7 +121,7 @@ La zona final (`Zone_4`) añade `BeaconSite` (Part) donde va la baliza.
 `Handle` en cada accesorio. Lámpara: Attachment `LampOrigin` en la parte delantera del casco/lámpara (de aquí nace la luz).
 
 ### Decisión de descenso y mapas (2026-11-11)
-El submarino es una cabina sellada: el descenso es cierre de compuerta + fundido + teletransporte al `SubDock` siguiente, sin animación visible de viaje. Cada zona es un escenario independiente. Para Codex: cada `Zone_N` debe esconder la caja del submarino en un **nicho o bahía de acoplamiento** (roca, estructura, muelle) alrededor de `SubDock`, con la compuerta (`Hatch.ExitPoint`) dando al área explorable. No hace falta tubo ni continuidad visual entre zonas.
+El submarino es una cabina sellada: el descenso es cierre de compuerta + fundido + teletransporte al `SubDock` siguiente, sin animación visible de viaje. Cada zona es un escenario independiente. Para Codex: cada `Level_N` debe esconder la caja del submarino en un **nicho o bahía de acoplamiento** (roca, estructura, muelle) alrededor de `SubDock`, con la compuerta (`Hatch.ExitPoint`) dando al área explorable. No hace falta tubo ni continuidad visual entre zonas.
 
 ### Escala del submarino (2026-11-11)
 En Studio se aplicó `Submarine:ScaleTo(1.5)` a `submarine_A01_v2`: interior 22,3 × 12 × 29,1 studs, compuerta 9,3 × 9,6, cubierta 24 × 30,8. Los `SpawnPoint` se colocaron a 3 studs sobre la cubierta. Codex: al actualizar el modelo, usar estas medidas como base (escala 1.5 sobre la v2) para no repetir el ajuste.
