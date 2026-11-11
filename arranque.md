@@ -61,5 +61,5 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 ## Flotabilidad neutra (Claude)
 
 - `SwimClient.client.luau`: al nadar sin dar órdenes el jugador se queda quieto en vez de subir. Moverse nada hacia donde mira la cámara, `Espacio`/saltar sube y `Ctrl` o `C` baja (16 studs/s). Se desactiva con el atributo de jugador `NeutralBuoyancy = false`.
-- Probado en Studio (Nivel 1, agua de Terrain): sin el script el jugador sube 8 studs en 3 s; con él, 0,4. El movimiento y el salto siguen funcionando.
+- Probado en Studio (Nivel 1, agua de Terrain): sin el script el jugador sube 8 studs en 3 s; con él, 0,4. **No verificado con teclado real:** moverse, `Espacio` y `Ctrl`/`C` (el simulador de Studio no puede dar esas órdenes; el script no toca la velocidad si hay movimiento o se pulsa subir).
 - No cambia el comportamiento dentro del submarino fuera del agua (Parada, interior seco).
