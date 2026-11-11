@@ -2,13 +2,13 @@
 -- Conecta Economy con el mundo: tesoros en los TreasureSpawn del nivel, paneles del submarino y remotos.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 local Economy = require(script.Parent:WaitForChild("Economy"))
+local Assets = require(script.Parent:WaitForChild("Assets"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local shopOpen = remotes:WaitForChild("ShopOpen") :: RemoteEvent
@@ -50,17 +50,32 @@ local function makeTreasure(att: Attachment, size: string)
 	if not def then
 		return
 	end
-	local models = ServerStorage:FindFirstChild("Models")
-	local template = models and models:FindFirstChild("Treasure_" .. size)
+	-- Modelos de Codex en ServerStorage.AbismoAssets; si no hay, pieza provisional.
+	local template = Assets.Find("Treasure_" .. size)
 	local root: BasePart
 	local object: Instance
-	if template and template:IsA("Model") and template.PrimaryPart then
+	if template and template:IsA("Model") then
 		local clone = template:Clone()
-		clone:PivotTo(CFrame.new(att.WorldPosition + Vector3.new(0, def.Size.Y / 2, 0)))
-		object = clone
-		root = clone.PrimaryPart :: BasePart
-	else
-		local part = Instance.new("Part") -- provisional hasta A03
+		local handle = clone.PrimaryPart or clone:FindFirstChild("Handle")
+		if handle and handle:IsA("BasePart") then
+			clone.PrimaryPart = handle
+			local _, bounds = clone:GetBoundingBox()
+			clone:PivotTo(CFrame.new(att.WorldPosition + Vector3.new(0, bounds.Y / 2 + 0.2, 0)))
+			for _, d in clone:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.Anchored = true
+					d.CanCollide = false
+				end
+			end
+			object = clone
+			root = handle
+		else
+			clone:Destroy()
+			template = nil
+		end
+	end
+	if not template then
+		local part = Instance.new("Part") -- provisional
 		part.Name = "Treasure_" .. size
 		part.Size = def.Size
 		part.Color = def.Color

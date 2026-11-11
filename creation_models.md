@@ -125,3 +125,44 @@ El submarino es una cabina sellada: el descenso es cierre de compuerta + fundido
 
 ### Escala del submarino (2026-11-11)
 En Studio se aplicó `Submarine:ScaleTo(1.5)` a `submarine_A01_v2`: interior 22,3 × 12 × 29,1 studs, compuerta 9,3 × 9,6, cubierta 24 × 30,8. Los `SpawnPoint` se colocaron a 3 studs sobre la cubierta. Codex: al actualizar el modelo, usar estas medidas como base (escala 1.5 sobre la v2) para no repetir el ajuste.
+
+## Cangrejo guardián y zona profunda de cada nivel (2026-11-11)
+
+### Comportamiento (Claude lo programa en T07)
+El **Cangrejo** es un guardián, no un cazador sin fin. Conserva la mecánica de atrapar, con esta variante:
+1. Vigila su guarida (`CrabLair`) y patrulla/detecta dentro de `GuardZone` (por vista, luz y ruido).
+2. Al detectar a un jugador: animación `Sorprender`, persecución y `Atrapar`.
+3. **Te lleva más adentro del mapa**: carga al jugador hacia la `DeepZone` y lo suelta en un punto `CrabDrop`. Mientras te carga hace **poco daño** (pocos HP en total; no mata de un golpe).
+4. Tras soltarlo, el jugador queda lejos del submarino y con el oxígeno corriendo: el riesgo es volver a tiempo, no morir en el agarre. El cangrejo regresa a su guarida y hay un periodo de inmunidad antes de poder atraparlo otra vez.
+5. Atrapa a un jugador a la vez.
+
+### Marcadores que debe incluir cada nivel donde viva el cangrejo (mapa final)
+El script identifica las zonas **por nombre exacto**. Son partes/attachments de control: transparentes, `CanCollide = false`, `Anchored = true`.
+
+| Nombre | Tipo | Uso |
+| :-- | :-- | :-- |
+| `DeepZone` | Part (volumen) | La parte profunda del nivel: aquí el cangrejo suelta a los jugadores. Debe quedar lejos del `SubDock` (la zona más lejana/oscura) |
+| `GuardZone` | Part (volumen) | Territorio del cangrejo: donde detecta y persigue. Puede ser igual a `DeepZone` o incluirla, pero no el área del `SubDock` |
+| `CrabLair` | Part o Attachment | Guarida/aparición y punto de regreso del cangrejo |
+| `CrabDrop1`…`CrabDropN` | Attachment | Puntos donde se suelta al jugador, dentro de `DeepZone`. Uno por lo menos |
+| `CrabPatrol1`…`CrabPatrolN` | Attachment (opcional) | Ruta de patrulla dentro de `GuardZone` (si no existe, patrulla al azar) |
+
+Reglas de diseño del mapa: `DeepZone` sin conexión directa y corta al `SubDock` (ruta de regreso de varios segundos), y con algún tesoro `Large` como motivo para entrar. `GuardZone` no debe cubrir el `SubDock` ni la zona de la compuerta.
+
+### Modelo `Cangrejo` (ya importado)
+- Ubicación: `ServerStorage.AbismoAssets.Creatures.Cangrejo`. `PrimaryPart` = `Cangrejo_v1_01` (MeshPart con huesos; mide 7,3 × 3,8 × 5,1 studs).
+- Animaciones (carpeta `Animaciones`, `KeyframeSequence`): `Caminar`, `Sorprender`, `Atrapar`. Falta `Reposo` (opcional).
+- **Falta añadir (Codex):** un Attachment `GrabPoint` en la mesh, delante de las pinzas, donde queda sujeto el jugador; y orientar el frente del modelo hacia `-Z`.
+- Las animaciones deben **publicarse** como `Animation` (ID de la experiencia) para el juego real; en Studio se registran temporalmente.
+
+## Organización de modelos en Studio (2026-11-11)
+Todo lo de Codex vive en `ServerStorage.AbismoAssets`; `Workspace` queda solo con mapas y submarino.
+```
+ServerStorage.AbismoAssets
+  Treasures/   Treasure_Small, Treasure_Medium, Treasure_Large
+  Props/       Beacon
+  Creatures/   Cangrejo
+  _Duplicados/ copias sueltas halladas en Workspace (borrar cuando se confirme):
+               Treasure_Large (con Medium/Small anidados por error), Beacon, Cangrejo sin animaciones
+```
+El código busca los modelos **por nombre** en cualquier subcarpeta de `AbismoAssets` e ignora `_Duplicados` (`Assets.luau`). Los tesoros usan `PrimaryPart` o, si no hay, la pieza `Handle`; la baliza usa `Beacon` con `Light` y `PromptAttachment` y se coloca en `BeaconSite`.

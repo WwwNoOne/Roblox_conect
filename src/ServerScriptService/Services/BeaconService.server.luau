@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
+local Assets = require(script.Parent:WaitForChild("Assets"))
 
 local current: Instance? = nil -- baliza provisional creada por este script
 local currentLight: BasePart? = nil
@@ -29,6 +30,22 @@ local function build(code: string, map: Instance)
 	end
 	-- Si Codex entrega Maps.<nivel>.Beacon (Model con Light y PromptAttachment) se usa; si no, una baliza provisional.
 	local model = map:FindFirstChild("Beacon")
+	if not model then
+		-- Plantilla de Codex en ServerStorage.AbismoAssets (cualquier subcarpeta).
+		local template = Assets.Find("Beacon")
+		if template and template:IsA("Model") then
+			local clone = template:Clone()
+			local _, bounds = clone:GetBoundingBox()
+			clone:PivotTo(CFrame.new(site.Position + Vector3.new(0, site.Size.Y / 2 + bounds.Y / 2, 0)))
+			for _, d in clone:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.Anchored = true
+				end
+			end
+			clone.Parent = workspace
+			model = clone
+		end
+	end
 	local host: Instance
 	local light: BasePart? = nil
 	local attachment: Attachment
@@ -53,7 +70,7 @@ local function build(code: string, map: Instance)
 		host = part
 		light = part
 	end
-	current = if host.Parent == workspace then host else nil -- solo se destruye lo provisional
+	current = if host.Parent == workspace then host else nil -- lo clonado/provisional se destruye al salir del nivel -- solo se destruye lo provisional
 	currentLight = light
 
 	local prompt = Instance.new("ProximityPrompt")

@@ -63,3 +63,9 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - `SwimClient.client.luau`: al nadar sin dar órdenes el jugador se queda quieto en vez de subir. Moverse nada hacia donde mira la cámara, `Espacio`/saltar sube y `Ctrl` o `C` baja (16 studs/s). Se desactiva con el atributo de jugador `NeutralBuoyancy = false`.
 - Probado en Studio (Nivel 1, agua de Terrain): sin el script el jugador sube 8 studs en 3 s; con él, 0,4. **No verificado con teclado real:** moverse, `Espacio` y `Ctrl`/`C` (el simulador de Studio no puede dar esas órdenes; el script no toca la velocidad si hay movimiento o se pulsa subir).
 - No cambia el comportamiento dentro del submarino fuera del agua (Parada, interior seco).
+
+## Orden de modelos y cangrejo (Claude)
+
+- Modelos de Codex organizados en `ServerStorage.AbismoAssets` (`Treasures/`, `Props/`, `Creatures/`, `_Duplicados/`; ver `creation_models.md`). El código los localiza por nombre con `Assets.luau`: los tesoros y la baliza ya usan los modelos reales (probado: nivel 1 genera `Treasure_Small`/`Treasure_Medium` como Model y se recogen).
+- Documentado el contrato del **Cangrejo guardián** y de los marcadores `DeepZone`, `GuardZone`, `CrabLair`, `CrabDrop` para el mapa final. Falta `GrabPoint` en el modelo y publicar las animaciones.
+- La IA del cangrejo (T07) todavía no está programada. La baliza con el modelo real de Codex no se probó (requiere llegar al Nivel 3).

@@ -52,6 +52,7 @@ Para la primera versión de prueba hay **3 niveles** y un mapa de **parada** com
 * **No hay arma de combate.** Se sobrevive huyendo, escondiéndose, apagando luz y evitando hacer ruido.
 * Las criaturas **cazan** por vista/sonido/luz; si atrapan a un jugador lo matan (o lo arrastran).
 * Criatura grande en el fondo como amenaza final.
+* **Cangrejo guardián:** vigila una guarida en cada nivel; si te detecta te atrapa y te **lleva a la zona profunda** del nivel haciendo poco daño, y te suelta lejos del submarino con el oxígeno corriendo. Marcadores y detalles en `creation_models.md`.
 
 ### Inventario, cuota y economía (decisión 2026-11-11)
 * **Inventario:** cada jugador lleva hasta **4 objetos** (1 por slot, cualquier tamaño). Hay que volver al submarino para vaciarlos, lo que obliga a varios viajes.
