@@ -77,3 +77,9 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - Probado en Studio (1 cliente, Nivel 2): aparece una sola vez; no se desvía al esperar; persigue, atrapa a 3,4 s, traslada ~2,9 s (la víctima en `PlatformStand`), daño medido ≈ 17–20 HP (incluida la regeneración de Roblox), suelta con inmunidad y el cangrejo se aleja. Corregido un fallo: el pivote del modelo no coincide con su `PrimaryPart` y el cangrejo derivaba hacia arriba; ahora se mueve por `GetPivot()`.
 - Las animaciones `Caminar`/`Sorprender`/`Atrapar` se registran en Studio con `KeyframeSequenceProvider`; en el juego real hay que publicarlas como `Animation` (no verificado que se reproduzcan visualmente). Falta `GrabPoint` en el modelo (se usa un punto delante de la boca).
 - Pendiente de T07: curas en la tienda, el Leviatán y las pruebas con 2 y 4 clientes; revisar el aspecto de la animación en Studio.
+
+## Guías de niveles y cajas de tamaño (Claude)
+
+- Guías en `game_designs/levels/` (`README.md`, `Level_1.md`, `Level_2.md`, `Level_3.md`, `Parada.md`): tamaño, disposición, tesoros (cuotas 100 / 200 / sin cuota), marcadores del cangrejo y de la baliza, y lista de entrega.
+- Cajas de referencia creadas en Studio: `Workspace.LevelSizeGuides` (fuera de los mapas actuales). **El tamaño es una propuesta; se ajustará tras probarlo.** Los cambios de Studio no están guardados.
+- En pausa hasta tener los mapas finales de Codex: curas en la tienda (T07b) y el Leviatán.

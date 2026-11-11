@@ -166,3 +166,6 @@ ServerStorage.AbismoAssets
                Treasure_Large (con Medium/Small anidados por error), Beacon, Cangrejo sin animaciones
 ```
 El código busca los modelos **por nombre** en cualquier subcarpeta de `AbismoAssets` e ignora `_Duplicados` (`Assets.luau`). Los tesoros usan `PrimaryPart` o, si no hay, la pieza `Handle`; la baliza usa `Beacon` con `Light` y `PromptAttachment` y se coloca en `BeaconSite`.
+
+## Guías de niveles (2026-11-11)
+Cada mapa tiene su guía en `game_designs/levels/` (`README.md`, `Level_1.md`, `Level_2.md`, `Level_3.md`, `Parada.md`) con tamaños propuestos, disposición, tesoros y marcadores. Las medidas se pueden ajustar tras probarlas con las cajas de `Workspace.LevelSizeGuides` en Studio.
