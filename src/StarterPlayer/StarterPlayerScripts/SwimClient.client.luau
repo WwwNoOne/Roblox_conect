@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Co
 local S = Config.Swim
 
 local player = Players.LocalPlayer
+local holdY: number? = nil -- altura que se mantiene al quedarse quieto (contrarresta la flotabilidad del motor)
 
 local function approach(current: number, target: number, rate: number, dt: number): number
 	return current + (target - current) * (1 - math.exp(-rate * dt))
@@ -40,16 +41,21 @@ RunService.Heartbeat:Connect(function(dt)
 	local moving = humanoid.MoveDirection.Magnitude >= 0.05
 
 	if descending then
+		holdY = nil
 		v = Vector3.new(v.X, approach(v.Y, -S.VerticalSpeed, S.VerticalAccel, dt), v.Z)
 	elseif ascending then
+		holdY = nil
 		v = Vector3.new(v.X, approach(v.Y, S.VerticalSpeed, S.VerticalAccel, dt), v.Z)
 	elseif not moving then
-		-- Sin órdenes: planea y se detiene sin subir (anula la flotabilidad).
-		local vy = approach(v.Y, 0, S.VerticalDamping, dt)
-		if math.abs(vy) < 2.5 then
-			vy = 0 -- anula la flotabilidad residual (si no, deriva hacia arriba)
+		-- Sin órdenes: planea en horizontal y MANTIENE la altura. El motor empuja hacia arriba en cada paso de
+		-- física, así que no basta con poner la velocidad vertical a 0: se corrige la posición hacia holdY.
+		if holdY == nil then
+			holdY = root.Position.Y
 		end
-		v = Vector3.new(approach(v.X, 0, S.Damping, dt), vy, approach(v.Z, 0, S.Damping, dt))
+		local correction = math.clamp((holdY - root.Position.Y) * S.HoldGain, -S.HoldMaxSpeed, S.HoldMaxSpeed)
+		v = Vector3.new(approach(v.X, 0, S.Damping, dt), correction, approach(v.Z, 0, S.Damping, dt))
+	else
+		holdY = nil
 	end
 	root.AssemblyLinearVelocity = v
 end)
