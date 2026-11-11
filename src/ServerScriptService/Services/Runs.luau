@@ -8,7 +8,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 
-type Run = {
+export type Item = { size: string, value: number, weight: number }
+
+export type Run = {
 	code: string,
 	members: { number },
 	state: Types.RunState,
@@ -19,6 +21,8 @@ type Run = {
 	travelFrom: number,
 	travelT: number,
 	ended: boolean,
+	carried: { [number]: { Item } }, -- tesoros cargados por jugador (UserId)
+	upgrades: { [string]: number }, -- niveles de mejora del equipo
 }
 
 export type Result = { ok: boolean, err: string? }
@@ -83,6 +87,12 @@ function Runs.PressureDps(run: Run): number
 	return stageDps(run.zone)
 end
 
+-- Multiplicador de presión por el blindaje comprado.
+local function armorFactor(run: Run): number
+	local level = run.upgrades.Armor or 0
+	return math.max(0.2, 1 - Config.Economy.Shop.Armor.PressureFactorPerLevel * level)
+end
+
 local function setState(run: Run, state: Types.RunState)
 	if run.state ~= state then
 		run.state = state
@@ -133,6 +143,8 @@ function Runs.Start(code: string, members: { number })
 		travelFrom = 0,
 		travelT = 0,
 		ended = false,
+		carried = {},
+		upgrades = {},
 	}
 	runs[code] = run
 	for _, userId in members do
@@ -227,7 +239,7 @@ function Runs.Step(dt: number)
 			end
 		end
 		if run.state == "Descending" or run.state == "Level" or run.state == "Stopover" then
-			run.hull = math.max(0, run.hull - Runs.PressureDps(run) * dt)
+			run.hull = math.max(0, run.hull - Runs.PressureDps(run) * armorFactor(run) * dt)
 			if run.hull <= 0 then
 				finish(run, "Lost", "Implosion")
 			end
@@ -236,6 +248,12 @@ function Runs.Step(dt: number)
 end
 
 -- T05/T06 usan estos para dinero y final.
+function Runs.OxygenMax(userId: number): number
+	local run = Runs.GetByUser(userId)
+	local level = run and run.upgrades.Oxygen or 0
+	return Config.BaseOxygenSeconds + level * Config.Economy.Shop.Oxygen.SecondsPerLevel
+end
+
 function Runs.AddMoney(code: string, amount: number)
 	local run = runs[code]
 	if run and not run.ended then

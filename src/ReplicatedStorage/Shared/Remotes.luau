@@ -15,6 +15,7 @@ Remotes.List = table.freeze({
 	RequestDescend = "Function", -- () -> { ok: boolean, err: string? }; solo el anfitrión, parada actual
 	UpdateHUD = "Event", -- servidor -> cliente: HudPayload
 	RequestPurchase = "Function", -- (itemId: string) -> { ok: boolean, err: string? }
+	ShopOpen = "Event", -- servidor -> cliente: ShopState (abrir panel de la tienda)
 	SellTreasure = "Function", -- () -> { ok: boolean, earned: number?, err: string? }
 	PlaceBeacon = "Event", -- cliente -> servidor: (active: boolean) mantener/soltar
 	DescentFx = "Event", -- servidor -> cliente: (phase: "Start" | "End") efecto de cabina sellada

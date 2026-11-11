@@ -17,7 +17,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local frame = Instance.new("Frame")
 frame.AnchorPoint = Vector2.new(0, 1)
 frame.Position = UDim2.new(0, 16, 1, -16)
-frame.Size = UDim2.fromOffset(240, 96)
+frame.Size = UDim2.fromOffset(300, 96)
 frame.BackgroundColor3 = Color3.fromRGB(10, 30, 50)
 frame.BackgroundTransparency = 0.25
 frame.Parent = gui
@@ -70,18 +70,22 @@ local function refreshInfo(hull: number?, hullMax: number?, money: number?)
 	local hullText = if hull and hullMax then string.format("Casco: %d/%d", hull, hullMax) else "Casco: --"
 	local moneyText = if money then string.format("  $%d", money) else ""
 	invLabel.Text = string.format(
-		"%s%s   [F] Luz: %s",
+		"%s%s  Carga %d/%d  [F] %s",
 		hullText,
 		moneyText,
+		player:GetAttribute("CarryWeight") or 0,
+		player:GetAttribute("CarryCapacity") or 0,
 		if player:GetAttribute("LampOn") then "ON" else "OFF"
 	)
 end
 refreshInfo(nil, nil, nil)
 local lastHull: number?, lastHullMax: number?, lastMoney: number? = nil, nil, nil
 local runDepth: number? = nil -- profundidad del submarino (servidor) durante una partida
-player:GetAttributeChangedSignal("LampOn"):Connect(function()
-	refreshInfo(lastHull, lastHullMax, lastMoney)
-end)
+for _, attr in { "LampOn", "CarryWeight", "CarryCapacity" } do
+	player:GetAttributeChangedSignal(attr):Connect(function()
+		refreshInfo(lastHull, lastHullMax, lastMoney)
+	end)
+end
 
 local notice = Instance.new("TextLabel")
 notice.AnchorPoint = Vector2.new(0.5, 0)

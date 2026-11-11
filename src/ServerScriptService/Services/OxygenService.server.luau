@@ -29,7 +29,7 @@ while true do
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and humanoid.Health > 0 then
-			local max = Config.BaseOxygenSeconds -- mejoras de oxígeno: T05
+			local max = Runs.OxygenMax(player.UserId)
 			local inRun = Runs.GetByUser(player.UserId) ~= nil
 			local submerged = inRun and not Runs.IsUserInside(player.UserId)
 			local nextValue = if submerged then current - dt else math.min(max, current + dt * REFILL_RATE)

@@ -40,6 +40,23 @@ local Run = table.freeze({
 	}),
 })
 
+-- Economía de partida (T05). Valores de prueba a calibrar en T08.
+local Economy = table.freeze({
+	CarryCapacity = 6, -- peso máximo que lleva cada jugador
+	Treasure = table.freeze({
+		Small = table.freeze({ Value = 25, Weight = 1, Size = Vector3.new(1, 1, 1), Color = Color3.fromRGB(240, 200, 80) }),
+		Medium = table.freeze({ Value = 75, Weight = 2, Size = Vector3.new(1.6, 1.6, 1.6), Color = Color3.fromRGB(120, 220, 240) }),
+		Large = table.freeze({ Value = 200, Weight = 4, Size = Vector3.new(2.4, 2.4, 2.4), Color = Color3.fromRGB(230, 90, 220) }),
+	}),
+	RepairChunk = 10, -- HP por uso del panel de reparación
+	RepairCostPerHp = 2,
+	StationUseDistance = 14, -- studs máx. a la estación (validación de remotos)
+	Shop = table.freeze({
+		Armor = table.freeze({ Name = "Blindaje del casco", Prices = { 150, 300, 500 }, PressureFactorPerLevel = 0.2 }),
+		Oxygen = table.freeze({ Name = "Tanque de oxígeno", Prices = { 80, 160, 240 }, SecondsPerLevel = 60 }),
+	}),
+})
+
 return table.freeze({
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
@@ -60,6 +77,7 @@ return table.freeze({
 	LampToggleCooldown = 0.25,
 
 	Run = Run,
+	Economy = Economy,
 	Upgrades = Upgrades,
 	Water = Water,
 })

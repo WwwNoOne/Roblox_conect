@@ -15,6 +15,9 @@ export type HudPayload = {
 }
 
 -- Level = explorando (compuerta abierta); Stopover = en la Parada (compuerta cerrada); Descending = viaje sellado.
+export type ShopItem = { id: string, name: string, level: number, maxLevel: number, price: number? }
+export type ShopState = { money: number, items: { ShopItem }, hull: number, hullMax: number, repairCost: number }
+
 export type RunState = "Lobby" | "Descending" | "Level" | "Stopover" | "Won" | "Lost"
 
 export type RoomState = {
