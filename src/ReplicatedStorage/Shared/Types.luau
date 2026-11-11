@@ -11,10 +11,11 @@ export type HudPayload = {
 	depth: number?,
 	money: number?,
 	runState: RunState?,
-	zone: number?, -- parada actual/última alcanzada (0 = superficie)
+	zone: number?, -- etapa actual/última alcanzada (0 = inicio)
 }
 
-export type RunState = "Lobby" | "Descending" | "Stopover" | "Won" | "Lost"
+-- Level = explorando (compuerta abierta); Stopover = en la Parada (compuerta cerrada); Descending = viaje sellado.
+export type RunState = "Lobby" | "Descending" | "Level" | "Stopover" | "Won" | "Lost"
 
 export type RoomState = {
 	code: string,

@@ -15,7 +15,7 @@ type Run = {
 	hull: number,
 	money: number,
 	depth: number,
-	zone: number, -- última parada alcanzada (0 = superficie)
+	zone: number, -- índice de la etapa alcanzada (0 = inicio)
 	travelFrom: number,
 	travelT: number,
 	ended: boolean,
@@ -38,10 +38,11 @@ local function submarine(): Model?
 	return if m and m:IsA("Model") then m else nil
 end
 
-local function dockOf(zone: number): BasePart?
-	local zones = workspace:FindFirstChild("Zones")
-	local z = zones and zones:FindFirstChild("Zone_" .. zone)
-	local dock = z and z:FindFirstChild("SubDock", true)
+local function dockOf(stage: number): BasePart?
+	local def = Config.Run.Stages[stage]
+	local maps = workspace:FindFirstChild("Maps")
+	local map = def and maps and maps:FindFirstChild(def.Map)
+	local dock = map and map:FindFirstChild("SubDock", true)
 	return if dock and dock:IsA("BasePart") then dock else nil
 end
 
@@ -67,17 +68,19 @@ local function isInsideSub(root: BasePart): boolean
 	return math.abs(rel.X) <= half.X and math.abs(rel.Y) <= half.Y and math.abs(rel.Z) <= half.Z
 end
 
--- Daño por segundo al casco según la profundidad (interpolación lineal entre paradas).
-function Runs.PressureDps(depth: number): number
-	local prevDepth, prevDps = 0, 0
-	for _, z in Config.Run.Zones do
-		if depth <= z.Depth then
-			local t = (depth - prevDepth) / math.max(z.Depth - prevDepth, 1e-6)
-			return prevDps + (z.PressureDps - prevDps) * math.clamp(t, 0, 1)
-		end
-		prevDepth, prevDps = z.Depth, z.PressureDps
+-- Daño por segundo al casco: constante en cada etapa; durante el viaje se interpola entre la etapa de origen y la de destino.
+local function stageDps(index: number): number
+	local def = Config.Run.Stages[index]
+	return if def then def.PressureDps else 0
+end
+
+function Runs.PressureDps(run: Run): number
+	if run.state == "Descending" then
+		local alpha = math.clamp(run.travelT / Config.Run.TravelSeconds, 0, 1)
+		local from, to = stageDps(run.zone), stageDps(run.zone + 1)
+		return from + (to - from) * alpha
 	end
-	return prevDps
+	return stageDps(run.zone)
 end
 
 local function setState(run: Run, state: Types.RunState)
@@ -172,10 +175,10 @@ function Runs.RequestDescend(userId: number, hostId: number): Result
 	if userId ~= hostId then
 		return { ok = false, err = "NOT_HOST" }
 	end
-	if run.state ~= "Stopover" then
-		return { ok = false, err = "NOT_AT_STOPOVER" }
+	if run.state ~= "Level" and run.state ~= "Stopover" then
+		return { ok = false, err = "NOT_DOCKED" }
 	end
-	if run.zone >= #Config.Run.Zones then
+	if run.zone >= #Config.Run.Stages then
 		return { ok = false, err = "ALREADY_AT_BOTTOM" }
 	end
 	for _, id in run.members do
@@ -213,18 +216,18 @@ function Runs.Step(dt: number)
 		end
 		if run.state == "Descending" then
 			run.travelT += dt
-			local target = Config.Run.Zones[run.zone + 1]
+			local target = Config.Run.Stages[run.zone + 1]
 			local alpha = math.clamp(run.travelT / Config.Run.TravelSeconds, 0, 1)
 			run.depth = run.travelFrom + (target.Depth - run.travelFrom) * alpha
 			if alpha >= 1 then
 				run.zone += 1
 				run.depth = target.Depth
 				moveSubTo(run, run.zone)
-				setState(run, "Stopover")
+				setState(run, if target.Kind == "Parada" then "Stopover" else "Level")
 			end
 		end
-		if run.state == "Descending" or run.state == "Stopover" then
-			run.hull = math.max(0, run.hull - Runs.PressureDps(run.depth) * dt)
+		if run.state == "Descending" or run.state == "Level" or run.state == "Stopover" then
+			run.hull = math.max(0, run.hull - Runs.PressureDps(run) * dt)
 			if run.hull <= 0 then
 				finish(run, "Lost", "Implosion")
 			end

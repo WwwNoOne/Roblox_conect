@@ -23,17 +23,20 @@ local Water = table.freeze({
 	TransitionSpeed = 4, -- suavizado al cruzar la superficie
 })
 
--- Partida (T03). TODOS son valores de prueba a calibrar en T08 (GDD: curva de daño, tiempos, etc.).
--- Depth en metros; PressureDps = daño/s al casco al estar a esa profundidad (entre paradas se interpola).
+-- Partida (T03). TODOS son valores de prueba a calibrar en T08.
+-- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
+-- Kind "Level": se sale a explorar (compuerta abierta). Kind "Parada": nadie sale; se vende/repara/compra desde dentro.
+-- Depth en metros (HUD); PressureDps = daño/s al casco en esa etapa (en la parada es 0: refugio seguro).
 local Run = table.freeze({
 	HullMax = 100,
 	StartMoney = 0,
-	TravelSeconds = 20, -- duración del descenso entre paradas
-	Zones = table.freeze({
-		table.freeze({ Depth = 40, PressureDps = 0.1 }),
-		table.freeze({ Depth = 120, PressureDps = 0.5 }),
-		table.freeze({ Depth = 220, PressureDps = 1.2 }),
-		table.freeze({ Depth = 320, PressureDps = 2.5 }),
+	TravelSeconds = 20, -- duración del viaje entre etapas
+	Stages = table.freeze({
+		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 40, PressureDps = 0.1 }),
+		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 80, PressureDps = 0 }),
+		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5 }),
+		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 170, PressureDps = 0 }),
+		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2 }),
 	}),
 })
 

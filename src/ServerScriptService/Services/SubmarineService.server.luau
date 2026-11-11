@@ -1,5 +1,5 @@
 --!strict
--- Compuerta del submarino (T04): prompts salir/entrar, puerta abierta solo en parada, cabina sellada al descender.
+-- Compuerta del submarino (T04): prompts salir/entrar, puerta abierta solo en niveles (no en la Parada), cabina sellada al viajar.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -53,7 +53,7 @@ end
 
 local function cross(player: Player, to: Attachment)
 	local run = Runs.GetByUser(player.UserId)
-	if not run or run.state ~= "Stopover" or not hatchOpen then
+	if not run or run.state ~= "Level" or not hatchOpen then
 		return
 	end
 	local character = player.Character
@@ -86,8 +86,11 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 	if state == "Descending" then
 		setHatch(false)
 		phase = "Start"
+	elseif state == "Level" then
+		setHatch(true) -- se sale a explorar
+		phase = "End"
 	elseif state == "Stopover" then
-		setHatch(true)
+		setHatch(false) -- Parada: nadie sale; se opera desde dentro
 		phase = "End"
 	end
 	if phase then

@@ -25,3 +25,10 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 - Oxígeno: en partida se consume fuera de `InteriorZone` y se recarga dentro (30 s/s, valor de prueba); fuera de partida siempre está lleno.
 - Probado en Studio (lugar 137133016631933, 1 cliente, submarino v2 escalado 1,5): salir y entrar por la compuerta, oxígeno 358,4 → 354,2 en 4 s fuera y 354,2 → 360 en 3 s dentro, prompts desactivados durante el viaje, efectos `Start`/`End`. Pendiente: cuatro clientes, pruebas táctiles, respawn/espectador (T06) y sonidos del efecto.
 - Los `ExitPoint`/`EntryPoint` quedan 1,5 studs más altos tras el escalado; el jugador cae sin daño. Codex puede bajarlos en la próxima versión.
+
+## Niveles y Parada en el código (Claude, T03/T04 adaptados)
+
+- `Config.Run.Stages`: Nivel 1 (40 m) → Parada (80) → Nivel 2 (120) → Parada (170) → Nivel 3 (220). Presión 0,1 / 0 / 0,5 / 0 / 1,2 daño/s (valores de prueba). La Parada no daña el casco.
+- Estados de partida: `Descending` (viaje sellado), `Level` (compuerta abierta, se explora), `Stopover` (Parada: compuerta cerrada, nadie sale). El submarino se acopla en `Workspace.Maps.<Map>.SubDock`.
+- Probado en Studio (1 cliente): recorrido completo L1 → Parada → L2 → Parada → L3; acople correcto en cada `SubDock`; compuerta y prompt abiertos solo en niveles; casco sin cambio durante la Parada (99 → 99); `RequestDescend` desde Parada funciona y en el Nivel 3 devuelve `ALREADY_AT_BOTTOM`; al salir en el Nivel 3 el jugador queda dentro de `Bounds` sobre una superficie estable.
+- Pendiente: T05 (paneles interiores de venta/reparación/tienda en la Parada), T06 (baliza en `Level_3.BeaconSite`, espectador, derrota), pruebas con 2 y 4 clientes.
