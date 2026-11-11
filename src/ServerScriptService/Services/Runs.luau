@@ -63,7 +63,7 @@ local function isInsideSub(root: BasePart): boolean
 		return true -- sin modelo de submarino (pruebas): no se exige
 	end
 	local rel = zone.CFrame:PointToObjectSpace(root.Position)
-	local half = zone.Size / 2 + Vector3.new(1, 2, 1)
+	local half = zone.Size / 2 + Vector3.new(0.5, 1, 0.5)
 	return math.abs(rel.X) <= half.X and math.abs(rel.Y) <= half.Y and math.abs(rel.Z) <= half.Z
 end
 
@@ -147,6 +147,12 @@ function Runs.Start(code: string, members: { number })
 		end
 	end
 	stateChanged:Fire(code, "Descending")
+end
+
+-- ¿El jugador vivo está dentro de InteriorZone? (true si no hay modelo de submarino: pruebas)
+function Runs.IsUserInside(userId: number): boolean
+	local root = aliveRoot(userId)
+	return if root then isInsideSub(root) else false
 end
 
 function Runs.Get(code: string): Run?

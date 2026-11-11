@@ -1,11 +1,14 @@
 --!strict
--- Oxígeno autoritativo en servidor: se consume bajo el agua, se recupera en superficie.
+-- Oxígeno personal autoritativo: en partida se consume fuera del submarino y se recarga dentro (InteriorZone).
+-- Fuera de una partida (lobby) siempre está lleno.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 
-local REFILL_RATE = 4 -- segundos de oxígeno recuperados por segundo en superficie
+local Runs = require(script.Parent:WaitForChild("Runs"))
+
+local REFILL_RATE = 30 -- segundos de oxígeno recuperados por segundo dentro del submarino (valor de prueba)
 
 local oxygen: { [Player]: number } = {}
 
@@ -27,7 +30,8 @@ while true do
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and humanoid.Health > 0 then
 			local max = Config.BaseOxygenSeconds -- mejoras de oxígeno: T05
-			local submerged = root.Position.Y < Config.SeaLevelY
+			local inRun = Runs.GetByUser(player.UserId) ~= nil
+			local submerged = inRun and not Runs.IsUserInside(player.UserId)
 			local nextValue = if submerged then current - dt else math.min(max, current + dt * REFILL_RATE)
 			nextValue = math.clamp(nextValue, 0, max)
 			oxygen[player] = nextValue

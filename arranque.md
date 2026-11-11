@@ -18,3 +18,10 @@ Nota de Studio: este lugar ya tiene los scripts de Abismo copiados a mano (sin R
 El código base de Rojo y el prototipo anterior están en el worktree de Claude. Studio todavía ejecuta sus sistemas de pesca y guardado individual. La transición a la partida de Abismo comienza en las tareas T01–T03 del plan.
 
 El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan histórico](docs/superpowers/plans/2026-11-10-ocean-depth-explorer.md) sirven como referencia del prototipo.
+
+## T04 · Compuerta, oxígeno y descenso sellado (Claude)
+
+- `SubmarineService.server.luau`: `ProximityPrompt` "Salir"/"Entrar" en los Attachments `InsidePrompt`/`OutsidePrompt`; teletransporte a `ExitPoint`/`EntryPoint`; la puerta se abre solo en parada y se cierra al descender (tween entre `DoorClosed` y `DoorOpen`). `DescentFx.client.luau`: vibración y fundido a negro. Remoto nuevo `DescentFx`.
+- Oxígeno: en partida se consume fuera de `InteriorZone` y se recarga dentro (30 s/s, valor de prueba); fuera de partida siempre está lleno.
+- Probado en Studio (lugar 137133016631933, 1 cliente, submarino v2 escalado 1,5): salir y entrar por la compuerta, oxígeno 358,4 → 354,2 en 4 s fuera y 354,2 → 360 en 3 s dentro, prompts desactivados durante el viaje, efectos `Start`/`End`. Pendiente: cuatro clientes, pruebas táctiles, respawn/espectador (T06) y sonidos del efecto.
+- Los `ExitPoint`/`EntryPoint` quedan 1,5 studs más altos tras el escalado; el jugador cae sin daño. Codex puede bajarlos en la próxima versión.
