@@ -31,7 +31,11 @@ Estilo Low-Poly / Anime Stylized. Export `.fbx` a `assets_build/exports/`.
 Escena de lobby simple (puerto/muelle o hangar) con: mesa/terminal para crear/unirse a sala (`RoomTerminal`), spawn de jugadores y vista del submarino. ~Mapa pequeño, sin mecánicas de supervivencia.
 
 ## Referencias
-* Mapa de prueba anterior: `game_designs/assets/test_map_spec.md` (a revisar; el nuevo mapa es por zonas con paradas).
+* Mapa anterior: [banco de pruebas de Studio](game_designs/assets/test_map_spec.md). Para la nueva partida, ver [lugares de prueba](Launch.md) y [plan de desarrollo](docs/superpowers/plans/2026-11-11-abismo.md).
 * UI pendiente: HUD (casco, profundidad, oxígeno, dinero común), pantalla de tienda/reparación (datos en `Config.Upgrades`, referencia funcional `ShopClient.client.luau`) y pantalla de lobby (crear/unirse por código).
 
 Nota de aspecto (Claude): Lighting.Fog no se aplica dentro de agua de Terrain; la densidad se hace con Atmosphere. En pruebas la bruma afecta al agua/Terrain pero no desvanece Parts lejanos. Si el fondo marino final es Terrain, probablemente se vea más denso; avisar qué se usa.
+
+## Estado de los archivos
+
+Los FBX provisionales están en `assets_build/exports`. El casco exterior de `submarine` es referencia para A01. El `leviathan` necesita verificación de tamaño y orientación para A05. `lamp` y `shipwreck_01` son referencias para sus versiones nuevas. Hoja Coral tiene un FBX con rig y textura, y el clip fue probado en Studio. Su asignación a `creature_small` sigue pendiente.

@@ -1,4 +1,6 @@
-# Mapa de prueba provisional (Claude -> Codex)
+# Mapa de prueba del prototipo original
+
+> Referencia del lugar de pruebas de Studio. La integración de Abismo sigue [Launch.md](../../Launch.md).
 
 Unidades: studs (1 stud = 1 m en el HUD). Ejes Roblox: +Y arriba. Origen (0,0,0) = nivel del mar.
 `Config.SeaLevelY = 0`: el servidor consume oxígeno cuando `HumanoidRootPart.Position.Y < 0`.
