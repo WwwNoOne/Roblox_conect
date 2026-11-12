@@ -69,7 +69,8 @@ end
 local aimAccum = 0
 local lastSent = Vector3.zero
 
-RunService.RenderStepped:Connect(function(dt)
+-- Después de que la cámara se actualice: si no, la luz usa la dirección del cuadro anterior y "tiembla" al mover la vista.
+RunService:BindToRenderStep("AbismoLamp", Enum.RenderPriority.Camera.Value + 1, function(dt)
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local head = character and character:FindFirstChild("Head") :: BasePart?

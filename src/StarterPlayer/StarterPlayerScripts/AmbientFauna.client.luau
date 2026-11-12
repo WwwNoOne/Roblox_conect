@@ -24,6 +24,22 @@ live.Parent = workspace
 local rng = Random.new()
 local idCache: { [string]: string } = {}
 
+-- Los modelos importados tienen el pivote girado respecto a la malla (ejes de Blender): se coloca la malla
+-- (PrimaryPart) directamente para que el frente sea -Z y el arriba +Y, igual que en los huesos.
+local function setCF(model: Model, cf: CFrame)
+	local pp = model.PrimaryPart
+	if pp then
+		pp.CFrame = cf
+	else
+		model:PivotTo(cf)
+	end
+end
+
+local function getCF(model: Model): CFrame
+	local pp = model.PrimaryPart
+	return if pp then pp.CFrame else model:GetPivot()
+end
+
 -- ===== Animación =====
 -- Si el KeyframeSequence tiene el atributo AnimationId (rbxassetid://...) se usa la animación publicada.
 -- Si no, se registra al vuelo (solo vale dentro de Studio hasta que se publiquen las animaciones).
@@ -188,7 +204,7 @@ local function spawnGiant(map: Instance, s: Schedule)
 	local model = template:Clone()
 	model.Parent = live
 	local pos, dir = sample(path, 0)
-	model:PivotTo(CFrame.lookAt(pos, pos + dir))
+	setCF(model, CFrame.lookAt(pos, pos + dir))
 	playClip(model, "Swim", template)
 	s.active = { model = model, path = path, speed = s.def.Speed, dist = 0 }
 end
@@ -205,7 +221,7 @@ local function stepGiants(map: Instance?, dt: number)
 				s.nextAt = now + s.def.Interval
 			else
 				local pos, dir = sample(g.path, g.dist)
-				g.model:PivotTo(CFrame.lookAt(pos, pos + dir))
+				setCF(g.model, CFrame.lookAt(pos, pos + dir))
 			end
 		elseif map and now >= s.nextAt then
 			spawnGiant(map, s)
@@ -340,8 +356,7 @@ local function stepFish(map: Instance, root: BasePart, dt: number)
 		local basis = CFrame.lookAt(sc.pos, sc.pos + sc.dir)
 		for _, m in sc.members do
 			local target = basis * CFrame.new(m.offset)
-			local current = m.model:GetPivot()
-			m.model:PivotTo(current:Lerp(target, math.min(1, dt * 3)))
+			setCF(m.model, getCF(m.model):Lerp(target, math.min(1, dt * 3)))
 		end
 	end
 	if fishCount < F.MaxFish and rng:NextNumber() < dt * 0.6 then
