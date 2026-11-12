@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local S = Config.Swim
+local Sfx = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Sfx"))
 local terrain = workspace.Terrain
 
 type State = {
@@ -163,6 +164,9 @@ RunService.Heartbeat:Connect(function(dt)
 			st.nextBubble = now + S.BubbleMinSeconds + math.random() * (S.BubbleMaxSeconds - S.BubbleMinSeconds)
 			if swimming then
 				st.emitter:Emit(math.random(3, 6))
+				if st.character == Players.LocalPlayer.Character then
+					Sfx.Play(Config.Sfx.Bubbles, nil, 0.3)
+				end
 			end
 		end
 	end

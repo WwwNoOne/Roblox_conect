@@ -18,7 +18,7 @@ local function approach(current: number, target: number, rate: number, dt: numbe
 end
 
 RunService.Heartbeat:Connect(function(dt)
-	if player:GetAttribute("NeutralBuoyancy") == false then
+	if player:GetAttribute("NeutralBuoyancy") == false or player:GetAttribute("Dashing") == true then
 		return
 	end
 	local character = player.Character

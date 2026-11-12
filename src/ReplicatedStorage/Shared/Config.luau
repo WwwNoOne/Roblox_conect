@@ -106,6 +106,21 @@ local Economy = table.freeze({
 	}),
 })
 
+-- Dash (DashClient): impulso hacia donde mira la cámara, solo nadando.
+local Dash = table.freeze({
+	Key = Enum.KeyCode.Q,
+	Cooldown = 15, -- segundos
+	Speed = 100, -- velocidad inicial (baja linealmente a 0); ~30 studs de recorrido
+	Duration = 0.6,
+})
+
+-- Prefijos de nombre (sin distinguir mayúsculas) de los sonidos en Workspace.sonidos. Ver Shared/Sfx.
+local Sfx = table.freeze({
+	Dash = "dash",
+	Bubbles = "Bubbles Small", -- burbujas de la boca (se elige una variante al azar)
+	FishPass = "Fish Pass By", -- cardumen cercano
+})
+
 -- Fauna ambiental pacífica (solo cliente, AmbientFauna.client). Las plantillas están en ReplicatedStorage.AmbientFauna
 -- y las rutas de los gigantes en Workspace.Maps.<Nivel>.AmbientRoutes.<Ruta> (puntos P01, P02... en orden).
 -- Los gigantes cruzan lejos y por debajo de la zona jugable (casi siluetas en la niebla); los peces nadan en cardúmenes cerca del jugador.
@@ -113,11 +128,16 @@ local Ambient = table.freeze({
 	Giants = table.freeze({
 		Level_1 = table.freeze({
 			-- FirstDelay: segundos desde que el jugador entra al nivel; Interval: pausa entre pasadas.
-			table.freeze({ Template = "Manta_Abisal", Route = "Manta", Speed = 18, FirstDelay = 25, Interval = 170 }),
+			table.freeze({ Template = "Manta_Abisal", Route = "Manta", Branching = true, Speed = 24, FirstDelay = 25, Interval = 170 }),
 			table.freeze({ Template = "Nautilo_Colosal", Route = "Nautilo", Speed = 13, FirstDelay = 210, Interval = 320 }),
 		}),
 	}),
+	-- Ruta ramificada (Branching): M-1 y el último M-n siempre; cada M intermedio se conserva con probabilidad Keep;
+	-- sale por una Exit_n al azar; todos los puntos (menos el inicio) se desplazan hasta Jitter studs. Así cada pasada cambia.
+	Branch = table.freeze({ Keep = 0.65, Jitter = 35 }),
 	Fish = table.freeze({
+		SoundDistance = 70, -- si el cardumen aparece más cerca, suena "Fish Pass By"
+		SoundCooldown = 25,
 		Species = table.freeze({ "Pez_Farol_Rojo", "Pez_Aguja_Espectral", "Pez_Cuchilla", "Pez_Mariposa" }),
 		MaxFish = 18, -- tope de peces vivos a la vez
 		SchoolMin = 3,
@@ -131,6 +151,8 @@ local Ambient = table.freeze({
 
 return table.freeze({
 	Ambient = Ambient,
+	Dash = Dash,
+	Sfx = Sfx,
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
 	HudUpdateInterval = 0.25, -- 4 Hz, muy por debajo del límite de 20 Hz

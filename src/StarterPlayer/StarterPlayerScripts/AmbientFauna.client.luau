@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local Sfx = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Sfx"))
 local A = Config.Ambient
 local player = Players.LocalPlayer
 local templates = ReplicatedStorage:WaitForChild("AmbientFauna", 30)
@@ -102,22 +103,60 @@ end
 -- ===== Rutas (Catmull-Rom) =====
 type Path = { points: { Vector3 }, cum: { number }, length: number }
 
-local function buildPath(routeFolder: Instance): Path?
-	local parts: { BasePart } = {}
+-- Puntos de control de una ruta. Normal: todas las partes en orden de nombre. Branching: M-1..M-n (M-1 y el último
+-- siempre, los intermedios al azar) y una salida Exit_n al azar, con un pequeño desplazamiento (Config.Ambient.Branch).
+local function routePoints(routeFolder: Instance, branching: boolean): { Vector3 }
+	local ctrl: { Vector3 } = {}
+	if not branching then
+		local parts: { BasePart } = {}
+		for _, c in routeFolder:GetChildren() do
+			if c:IsA("BasePart") then
+				table.insert(parts, c)
+			end
+		end
+		table.sort(parts, function(a, b)
+			return a.Name < b.Name
+		end)
+		for _, p in parts do
+			table.insert(ctrl, p.Position)
+		end
+		return ctrl
+	end
+	local nodes: { { n: number, pos: Vector3 } } = {}
+	local exits: { Vector3 } = {}
 	for _, c in routeFolder:GetChildren() do
 		if c:IsA("BasePart") then
-			table.insert(parts, c)
+			local n = tonumber(string.match(c.Name, "^M%-(%d+)$"))
+			if n then
+				table.insert(nodes, { n = n, pos = c.Position })
+			elseif string.match(c.Name, "^Exit") then
+				table.insert(exits, c.Position)
+			end
 		end
 	end
-	if #parts < 2 then
-		return nil
-	end
-	table.sort(parts, function(a, b)
-		return a.Name < b.Name
+	table.sort(nodes, function(a, b)
+		return a.n < b.n
 	end)
-	local ctrl: { Vector3 } = {}
-	for _, p in parts do
-		table.insert(ctrl, p.Position)
+	local B = A.Branch
+	local function jitter(p: Vector3): Vector3
+		return p + Vector3.new(rng:NextNumber(-B.Jitter, B.Jitter), rng:NextNumber(-B.Jitter, B.Jitter) * 0.5, rng:NextNumber(-B.Jitter, B.Jitter))
+	end
+	for i, node in nodes do
+		if i == 1 then
+			table.insert(ctrl, node.pos)
+		elseif i == #nodes or rng:NextNumber() < B.Keep then
+			table.insert(ctrl, jitter(node.pos))
+		end
+	end
+	if #exits > 0 then
+		table.insert(ctrl, jitter(exits[rng:NextInteger(1, #exits)]))
+	end
+	return ctrl
+end
+
+local function buildPath(ctrl: { Vector3 }): Path?
+	if #ctrl < 2 then
+		return nil
 	end
 	local points: { Vector3 } = {}
 	local STEPS = 14
@@ -196,7 +235,7 @@ local function spawnGiant(map: Instance, s: Schedule)
 		s.nextAt = os.clock() + s.def.Interval
 		return
 	end
-	local path = buildPath(folder)
+	local path = buildPath(routePoints(folder, s.def.Branching == true))
 	if not path then
 		s.nextAt = os.clock() + s.def.Interval
 		return
@@ -234,6 +273,7 @@ type Member = { model: Model, offset: Vector3 }
 type School = { pos: Vector3, dir: Vector3, wish: Vector3, speed: number, turnAt: number, checkAt: number, members: { Member } }
 
 local schools: { School } = {}
+local nextFishSound = 0
 local fishCount = 0
 
 local function destroySchool(school: School)
@@ -323,6 +363,19 @@ local function spawnSchool(map: Instance, root: BasePart)
 	end
 	fishCount += size
 	table.insert(schools, school)
+	-- Sonido 3D del cardumen al pasar cerca (con enfriamiento para que no sature).
+	local now = os.clock()
+	if (origin - root.Position).Magnitude <= F.SoundDistance and now >= nextFishSound then
+		local first = school.members[1].model.PrimaryPart
+		if first then
+			nextFishSound = now + F.SoundCooldown
+			local sound = Sfx.Play(Config.Sfx.FishPass, first, 0.5)
+			if sound then
+				sound.RollOffMode = Enum.RollOffMode.InverseTapered
+				sound.RollOffMaxDistance = 90
+			end
+		end
+	end
 end
 
 local function stepFish(map: Instance, root: BasePart, dt: number)
