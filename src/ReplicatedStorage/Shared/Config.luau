@@ -115,9 +115,9 @@ return table.freeze({
 	LampRange = 130, -- alcance del cono (antes 60)
 	LampAngle = 60, -- grados del cono (antes 45)
 	LampBrightness = 6, -- antes 3
-	LampShaftFraction = 0.6, -- largo del cono visible respecto al alcance de la luz
+	LampShaftFraction = 0.9, -- largo del cono visible respecto al alcance de la luz
 	LampShaftDiscs = 10, -- discos que forman el cono visible
-	LampShaftTransparency = 0.93,
+	LampShaftTransparency = 0.97,
 	LampFillAngle = 120, -- luz de relleno corta y suave para iluminar el suelo cercano (ponla en 0 brillo para quitarla)
 	LampFillRange = 14,
 	LampFillBrightness = 1.6,

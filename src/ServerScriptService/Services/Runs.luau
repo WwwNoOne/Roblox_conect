@@ -114,7 +114,7 @@ local function carveCabin()
 	if materials[1][1][1] ~= Enum.Material.Water then
 		return -- sin agua (lobby): nada que vaciar
 	end
-	local size = zone.Size + Vector3.new(4, 4, 4) -- un voxel de margen: FillBlock solo vacía voxels cuyo centro cae dentro
+	local size = zone.Size + Vector3.new(8, 8, 8) -- margen de 4 studs (un voxel) por lado: si no, queda un anillo de agua junto a las paredes
 	terrain:FillBlock(zone.CFrame, size, Enum.Material.Air)
 	carved = { cf = zone.CFrame, size = size }
 end

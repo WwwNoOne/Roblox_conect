@@ -69,7 +69,7 @@ local function getBeam(player: Player): Beam
 		disc.Name = "ShaftDisc"
 		disc.Shape = Enum.PartType.Cylinder
 		disc.Material = Enum.Material.Neon
-		disc.Color = Color3.fromRGB(190, 225, 255)
+		disc.Color = Color3.fromRGB(120, 190, 255)
 		disc.Transparency = Config.LampShaftTransparency
 		disc.Anchored = true
 		disc.CanCollide = false
