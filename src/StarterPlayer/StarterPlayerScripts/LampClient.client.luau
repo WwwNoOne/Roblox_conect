@@ -21,8 +21,7 @@ ContextActionService:BindAction("ToggleLamp", function(_name, state)
 end, true, Enum.KeyCode.F)
 ContextActionService:SetTitle("ToggleLamp", "Luz")
 
-type Beam3D = typeof(Instance.new("Beam"))
-type Beam = { part: Part, light: SpotLight, fill: SpotLight, shaft: Beam3D, tip: Attachment, dir: Vector3 }
+type Beam = { part: Part, light: SpotLight, fill: SpotLight, discs: { Part }, dir: Vector3 }
 local beams: { [Player]: Beam } = {}
 
 local function destroyBeam(player: Player)
@@ -62,24 +61,25 @@ local function getBeam(player: Player): Beam
 	fill.Brightness = Config.LampFillBrightness
 	fill.Shadows = false
 	fill.Parent = part
-	-- Cono visible: cinta que mira a la cámara, estrecha en la lámpara y ancha al final, casi transparente.
-	local origin = Instance.new("Attachment")
-	origin.Parent = part
-	local tip = Instance.new("Attachment")
-	tip.Parent = part
-	local shaft = Instance.new("Beam")
-	shaft.Attachment0 = origin
-	shaft.Attachment1 = tip
-	shaft.FaceCamera = true
-	shaft.LightEmission = 1
-	shaft.LightInfluence = 0
-	shaft.Color = ColorSequence.new(Color3.fromRGB(200, 235, 255))
-	shaft.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 0.7),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	shaft.Parent = part
-	local b: Beam = { part = part, light = light, fill = fill, shaft = shaft, tip = tip, dir = camera.CFrame.LookVector }
+	-- Cono visible: discos finos y casi transparentes apilados a lo largo del haz. Al ser geometría real
+	-- (no una cinta que mira a la cámara) apunta siempre hacia donde alumbra la luz, sin inclinarse.
+	local discs: { Part } = {}
+	for _ = 1, Config.LampShaftDiscs do
+		local disc = Instance.new("Part")
+		disc.Name = "ShaftDisc"
+		disc.Shape = Enum.PartType.Cylinder
+		disc.Material = Enum.Material.Neon
+		disc.Color = Color3.fromRGB(190, 225, 255)
+		disc.Transparency = Config.LampShaftTransparency
+		disc.Anchored = true
+		disc.CanCollide = false
+		disc.CanQuery = false
+		disc.CanTouch = false
+		disc.CastShadow = false
+		disc.Parent = part
+		table.insert(discs, disc)
+	end
+	local b: Beam = { part = part, light = light, fill = fill, discs = discs, dir = camera.CFrame.LookVector }
 	beams[player] = b
 	return b
 end
@@ -109,9 +109,14 @@ RunService.RenderStepped:Connect(function(dt)
 			local range = Config.LampRange + level * Config.Upgrades.Lamp.RangeBonus
 			b.light.Range = range
 			local length = range * Config.LampShaftFraction
-			b.tip.Position = Vector3.new(0, 0, -length)
-			b.shaft.Width0 = 0.3
-			b.shaft.Width1 = 2 * length * math.tan(math.rad(Config.LampAngle / 2))
+			local slope = math.tan(math.rad(Config.LampAngle / 2))
+			local count = #b.discs
+			for i, disc in b.discs do
+				local d = length * i / count
+				local diameter = math.max(0.4, 2 * d * slope)
+				disc.Size = Vector3.new(0.3, diameter, diameter)
+				disc.CFrame = b.part.CFrame * CFrame.new(0, 0, -d) * CFrame.Angles(0, math.rad(90), 0)
+			end
 		else
 			destroyBeam(player)
 		end

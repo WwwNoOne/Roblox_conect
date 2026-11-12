@@ -91,6 +91,34 @@ local function isInsideSub(root: BasePart): boolean
 	return math.abs(rel.X) <= half.X and math.abs(rel.Y) <= half.Y and math.abs(rel.Z) <= half.Z
 end
 
+-- El agua del Terrain llena el interior del submarino: al acoplarlo se vacía la cabina y, al irse, se rellena.
+local carved: { cf: CFrame, size: Vector3 }? = nil
+
+local function restoreWater()
+	if carved then
+		workspace.Terrain:FillBlock(carved.cf, carved.size, Enum.Material.Water)
+		carved = nil
+	end
+end
+
+local function carveCabin()
+	local sub = submarine()
+	local zone = sub and sub:FindFirstChild("InteriorZone", true)
+	if not zone or not zone:IsA("BasePart") then
+		return
+	end
+	local terrain = workspace.Terrain
+	local c = zone.Position
+	local region = Region3.new(c - Vector3.new(4, 4, 4), c + Vector3.new(4, 4, 4)):ExpandToGrid(4)
+	local materials = terrain:ReadVoxels(region, 4)
+	if materials[1][1][1] ~= Enum.Material.Water then
+		return -- sin agua (lobby): nada que vaciar
+	end
+	local size = zone.Size + Vector3.new(4, 4, 4) -- un voxel de margen: FillBlock solo vacía voxels cuyo centro cae dentro
+	terrain:FillBlock(zone.CFrame, size, Enum.Material.Air)
+	carved = { cf = zone.CFrame, size = size }
+end
+
 -- Daño por segundo al casco: constante en cada etapa; durante el viaje se interpola entre la etapa de origen y la de destino.
 local function stageDps(index: number): number
 	local def = Config.Run.Stages[index]
@@ -144,7 +172,9 @@ local function moveSubTo(run: Run, zone: number)
 			table.insert(riders, root)
 		end
 	end
+	restoreWater()
 	sub:PivotTo(new)
+	carveCabin()
 	for _, root in riders do
 		root.CFrame = delta * root.CFrame
 	end
@@ -319,7 +349,9 @@ function Runs.ReturnHome(members: { number })
 			table.insert(if isInsideSub(root) then inside else outside, root)
 		end
 	end
+	restoreWater()
 	sub:PivotTo(homePivot :: CFrame)
+	carveCabin()
 	for _, root in inside do
 		root.CFrame = delta * root.CFrame
 	end

@@ -2,7 +2,6 @@
 -- Compuerta del submarino (T04): prompts salir/entrar, puerta abierta solo en niveles (no en la Parada), cabina sellada al viajar.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
@@ -20,10 +19,8 @@ local insideAtt = hatch:FindFirstChild("InsidePrompt", true) :: Attachment
 local outsideAtt = hatch:FindFirstChild("OutsidePrompt", true) :: Attachment
 local entryAtt = hatch:FindFirstChild("EntryPoint", true) :: Attachment
 local exitAtt = hatch:FindFirstChild("ExitPoint", true) :: Attachment
-local doorOpen = hatch:FindFirstChild("DoorOpen", true) :: Attachment
 local doorClosed = hatch:FindFirstChild("DoorClosed", true) :: Attachment
 
-local DOOR_TIME = 1.5
 local hatchOpen = false
 
 local function makePrompt(parent: Attachment, action: string): ProximityPrompt
@@ -46,9 +43,9 @@ local function setHatch(open: boolean)
 	hatchOpen = open
 	insidePrompt.Enabled = open
 	outsidePrompt.Enabled = open
-	local target = if open then doorOpen.WorldCFrame else doorClosed.WorldCFrame
-	TweenService:Create(door, TweenInfo.new(DOOR_TIME, Enum.EasingStyle.Quad), { CFrame = target }):Play()
-	door.CanCollide = true -- al abrirse se desplaza fuera de la abertura
+	-- La puerta permanece cerrada siempre: se entra y se sale solo con los botones (teletransporte).
+	door.CFrame = doorClosed.WorldCFrame
+	door.CanCollide = true
 end
 
 local function cross(player: Player, to: Attachment)
