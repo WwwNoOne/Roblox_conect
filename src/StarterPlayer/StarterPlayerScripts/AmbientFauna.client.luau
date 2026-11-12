@@ -10,7 +10,6 @@ local RunService = game:GetService("RunService")
 local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
-local Sfx = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Sfx"))
 local A = Config.Ambient
 local player = Players.LocalPlayer
 local templates = ReplicatedStorage:WaitForChild("AmbientFauna", 30)
@@ -273,7 +272,6 @@ type Member = { model: Model, offset: Vector3 }
 type School = { pos: Vector3, dir: Vector3, wish: Vector3, speed: number, turnAt: number, checkAt: number, members: { Member } }
 
 local schools: { School } = {}
-local nextFishSound = 0
 local fishCount = 0
 
 local function destroySchool(school: School)
@@ -363,19 +361,6 @@ local function spawnSchool(map: Instance, root: BasePart)
 	end
 	fishCount += size
 	table.insert(schools, school)
-	-- Sonido 3D del cardumen al pasar cerca (con enfriamiento para que no sature).
-	local now = os.clock()
-	if (origin - root.Position).Magnitude <= F.SoundDistance and now >= nextFishSound then
-		local first = school.members[1].model.PrimaryPart
-		if first then
-			nextFishSound = now + F.SoundCooldown
-			local sound = Sfx.Play(Config.Sfx.FishPass, first, 0.5)
-			if sound then
-				sound.RollOffMode = Enum.RollOffMode.InverseTapered
-				sound.RollOffMaxDistance = 90
-			end
-		end
-	end
 end
 
 local function stepFish(map: Instance, root: BasePart, dt: number)

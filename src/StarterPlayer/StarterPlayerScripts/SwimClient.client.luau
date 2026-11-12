@@ -9,6 +9,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local S = Config.Swim
+local Sfx = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Sfx"))
+local nextStroke = 0
 
 local player = Players.LocalPlayer
 local holdY: number? = nil -- altura que se mantiene al quedarse quieto (contrarresta la flotabilidad del motor)
@@ -39,6 +41,12 @@ RunService.Heartbeat:Connect(function(dt)
 	local descending = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.C)
 	local ascending = UserInputService:IsKeyDown(Enum.KeyCode.Space) or humanoid.Jump
 	local moving = humanoid.MoveDirection.Magnitude >= 0.05
+
+	-- Sonido de brazada mientras se nada de verdad (no al flotar quieto).
+	if (moving or ascending or descending) and v.Magnitude > 4 and os.clock() >= nextStroke then
+		nextStroke = os.clock() + S.StrokeSeconds
+		Sfx.Play(Config.Sfx.Stroke, nil, S.StrokeVolume)
+	end
 
 	if descending then
 		holdY = nil

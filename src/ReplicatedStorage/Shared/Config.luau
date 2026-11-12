@@ -64,6 +64,8 @@ local Swim = table.freeze({
 	LeanMax = 0.45, -- inclinación máxima del cuerpo en radianes (~26°); 0 = sin inclinación
 	LeanSmoothing = 8, -- suavizado de la inclinación del cuerpo
 	LeanMinSpeed = 6, -- velocidad a partir de la cual el cuerpo se inclina del todo
+	StrokeSeconds = 1.6, -- separación entre sonidos de brazada al nadar
+	StrokeVolume = 0.35,
 	BubbleMinSeconds = 3,
 	BubbleMaxSeconds = 6,
 })
@@ -118,7 +120,7 @@ local Dash = table.freeze({
 local Sfx = table.freeze({
 	Dash = "dash",
 	Bubbles = "Bubbles Small", -- burbujas de la boca (se elige una variante al azar)
-	FishPass = "Fish Pass By", -- cardumen cercano
+	Stroke = "Movimiento", -- brazada al nadar (SwimClient)
 })
 
 -- Fauna ambiental pacífica (solo cliente, AmbientFauna.client). Las plantillas están en ReplicatedStorage.AmbientFauna
@@ -136,8 +138,6 @@ local Ambient = table.freeze({
 	-- sale por una Exit_n al azar; todos los puntos (menos el inicio) se desplazan hasta Jitter studs. Así cada pasada cambia.
 	Branch = table.freeze({ Keep = 0.65, Jitter = 35 }),
 	Fish = table.freeze({
-		SoundDistance = 70, -- si el cardumen aparece más cerca, suena "Fish Pass By"
-		SoundCooldown = 25,
 		Species = table.freeze({ "Pez_Farol_Rojo", "Pez_Aguja_Espectral", "Pez_Cuchilla", "Pez_Mariposa" }),
 		MaxFish = 18, -- tope de peces vivos a la vez
 		SchoolMin = 3,
