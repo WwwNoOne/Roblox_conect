@@ -9,15 +9,15 @@ local Upgrades = table.freeze({
 -- Todos son valores de partida a ajustar jugando; Density/Haze no equivalen a studs exactos.
 local Water = table.freeze({
 	SurfaceDensity = 0.35, -- densidad justo bajo la superficie
-	DeepDensity = 0.9, -- densidad a DeepDepth
+	DeepDensity = 0.7, -- densidad a DeepDepth
 	SurfaceHaze = 2,
 	DeepHaze = 8,
 	DeepDepth = 60, -- metros a los que se alcanza lo más oscuro/denso
 	SurfaceColor = Color3.fromRGB(30, 140, 170),
-	DeepColor = Color3.fromRGB(3, 12, 30),
-	NightDarkness = 0.85, -- cuánto oscurece de noche el color del agua
-	DarkenAtDepth = 0.25, -- oscurecimiento máximo de la imagen a DeepDepth
-	LampDensityReduction = 0.1, -- cuánto baja la densidad con la lámpara encendida
+	DeepColor = Color3.fromRGB(8, 28, 55),
+	NightDarkness = 0.6, -- cuánto oscurece de noche el color del agua
+	DarkenAtDepth = 0.15, -- oscurecimiento máximo de la imagen a DeepDepth
+	LampDensityReduction = 0.2, -- cuánto baja la densidad con la lámpara encendida
 	LampDensityPerLevel = 0.07, -- reducción extra por nivel de "Luz potente"
 	MinDensity = 0.12,
 	TransitionSpeed = 4, -- suavizado al cruzar la superficie
@@ -37,11 +37,11 @@ local Run = table.freeze({
 	EndScreenSeconds = 8, -- tiempo de la pantalla final antes de volver a la sala
 	TravelSeconds = 20, -- duración del viaje entre etapas
 	Stages = table.freeze({
-		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 40, PressureDps = 0.1, Quota = 100 }),
-		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 80, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 120, PressureDps = 0.5, Quota = 200, Crab = true }),
-		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 170, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 220, PressureDps = 1.2, Beacon = true, Crab = true }),
+		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 200, PressureDps = 0.1, Quota = 100 }),
+		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 300, PressureDps = 0 }),
+		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 400, PressureDps = 0.5, Quota = 200, Crab = true }),
+		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 500, PressureDps = 0 }),
+		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 600, PressureDps = 1.2, Beacon = true, Crab = true }),
 	}),
 })
 
@@ -112,11 +112,15 @@ return table.freeze({
 
 	DayLengthSeconds = 600, -- un día completo dura 10 min reales
 	StartClockTime = 14, -- hora inicial (0-24)
-	LampRange = 60,
-	LampAngle = 45, -- grados del cono (antes 70, demasiado ancho para una linterna)
+	LampRange = 130, -- alcance del cono (antes 60)
+	LampAngle = 60, -- grados del cono (antes 45)
+	LampBrightness = 6, -- antes 3
+	LampShaftFraction = 0.6, -- largo del cono visible respecto al alcance de la luz
 	LampFillAngle = 120, -- luz de relleno corta y suave para iluminar el suelo cercano (ponla en 0 brillo para quitarla)
 	LampFillRange = 14,
-	LampFillBrightness = 1.2,
+	LampFillBrightness = 1.6,
+	TreasureGlowRange = 18, -- luz propia de cada tesoro para localizarlo en la oscuridad
+	TreasureGlowBrightness = 2,
 	LampOriginOffset = 0.4, -- studs por delante de la cabeza donde nace la luz (antes 1.2)
 	LampToggleCooldown = 0.25,
 

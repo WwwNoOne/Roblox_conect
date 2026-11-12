@@ -88,6 +88,14 @@ local function makeTreasure(att: Attachment, size: string)
 	root.CanCollide = false
 	object:SetAttribute("Size", size)
 
+	-- Luz propia: sin ella el tesoro es casi invisible en el agua oscura.
+	local glow = Instance.new("PointLight")
+	glow.Color = def.Color
+	glow.Range = Config.TreasureGlowRange
+	glow.Brightness = Config.TreasureGlowBrightness
+	glow.Shadows = false
+	glow.Parent = root
+
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Recoger"
 	prompt.ObjectText = "Tesoro " .. size

@@ -10,12 +10,26 @@ Las medidas son propuestas de partida (decisión actual: los tres niveles son cu
 
 | Mapa | Tamaño (X × Y × Z) | Centro (X, Y, Z) |
 | :-- | :-- | :-- |
-| Nivel 1 | 700 × 700 × 700 | (0, 298, −550) |
-| Nivel 2 | 700 × 700 × 700 | (800, 218, −550) |
-| Nivel 3 | 700 × 700 × 700 | (1600, 118, −550) |
-| Parada | 80 × 40 × 80 | (2300, −32, −860) |
+| Nivel 1 | 700 × 700 × 700 | (0, −200, −550) |
+| Nivel 2 | 700 × 700 × 700 | (800, −400, −550) |
+| Nivel 3 | 700 × 700 × 700 | (1600, −600, −550) |
+| Parada | 80 × 40 × 80 | (2300, −300, −860) |
 
 Cada caja incluye: `SizeBox` (el volumen, con su tamaño en el atributo `SizeXYZ`), `SubScaleRef` (un bloque gris del tamaño del submarino acoplado), `DockRef` (bola verde: dónde va `SubDock`, extremo −Z) y `DeepRef` (bola roja: zona profunda sugerida, extremo +Z). Para ajustar: cambiar el `Size` de `SizeBox` y avisar el valor definitivo.
+
+## Profundidades (1 stud = 1 m, superficie en Y = 0)
+
+200 m entre etapas. El `SubDock` de cada mapa está a esa profundidad (Y = −profundidad) y el cubo está centrado en ella:
+
+| Etapa | Profundidad | Y |
+| :-- | :-- | :-- |
+| Nivel 1 | 200 m | −200 |
+| Parada 1 | 300 m | −300 |
+| Nivel 2 | 400 m | −400 |
+| Parada 2 | 500 m | −500 |
+| Nivel 3 | 600 m | −600 |
+
+`Workspace.LevelSizeGuides.DepthIndicators` tiene un plano amarillo por mapa a su profundidad, reglas con marcas cada 50 m (etiquetas cada 100 m) en la esquina de cada nivel y un plano de superficie (0 m).
 
 ## Reglas comunes
 

@@ -21,7 +21,8 @@ ContextActionService:BindAction("ToggleLamp", function(_name, state)
 end, true, Enum.KeyCode.F)
 ContextActionService:SetTitle("ToggleLamp", "Luz")
 
-type Beam = { part: Part, light: SpotLight, fill: SpotLight, dir: Vector3 }
+type Beam3D = typeof(Instance.new("Beam"))
+type Beam = { part: Part, light: SpotLight, fill: SpotLight, shaft: Beam3D, tip: Attachment, dir: Vector3 }
 local beams: { [Player]: Beam } = {}
 
 local function destroyBeam(player: Player)
@@ -49,7 +50,7 @@ local function getBeam(player: Player): Beam
 	local light = Instance.new("SpotLight")
 	light.Face = Enum.NormalId.Front
 	light.Angle = Config.LampAngle
-	light.Brightness = 3
+	light.Brightness = Config.LampBrightness
 	light.Shadows = false
 	light.Parent = part
 	-- Relleno: cono ancho y corto, tenue, para que el suelo cercano (p. ej. al mirar hacia abajo) no quede a oscuras.
@@ -61,7 +62,24 @@ local function getBeam(player: Player): Beam
 	fill.Brightness = Config.LampFillBrightness
 	fill.Shadows = false
 	fill.Parent = part
-	local b: Beam = { part = part, light = light, fill = fill, dir = camera.CFrame.LookVector }
+	-- Cono visible: cinta que mira a la cámara, estrecha en la lámpara y ancha al final, casi transparente.
+	local origin = Instance.new("Attachment")
+	origin.Parent = part
+	local tip = Instance.new("Attachment")
+	tip.Parent = part
+	local shaft = Instance.new("Beam")
+	shaft.Attachment0 = origin
+	shaft.Attachment1 = tip
+	shaft.FaceCamera = true
+	shaft.LightEmission = 1
+	shaft.LightInfluence = 0
+	shaft.Color = ColorSequence.new(Color3.fromRGB(200, 235, 255))
+	shaft.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.7),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	shaft.Parent = part
+	local b: Beam = { part = part, light = light, fill = fill, shaft = shaft, tip = tip, dir = camera.CFrame.LookVector }
 	beams[player] = b
 	return b
 end
@@ -88,7 +106,12 @@ RunService.RenderStepped:Connect(function(dt)
 			local pos = head.Position + dir * Config.LampOriginOffset
 			b.part.CFrame = CFrame.lookAt(pos, pos + dir)
 			local level = (player:GetAttribute("Up_Lamp") :: number?) or 0
-			b.light.Range = Config.LampRange + level * Config.Upgrades.Lamp.RangeBonus
+			local range = Config.LampRange + level * Config.Upgrades.Lamp.RangeBonus
+			b.light.Range = range
+			local length = range * Config.LampShaftFraction
+			b.tip.Position = Vector3.new(0, 0, -length)
+			b.shaft.Width0 = 0.3
+			b.shaft.Width1 = 2 * length * math.tan(math.rad(Config.LampAngle / 2))
 		else
 			destroyBeam(player)
 		end

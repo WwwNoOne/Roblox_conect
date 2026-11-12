@@ -300,6 +300,35 @@ function Runs.Close(code: string)
 	if next(runs) == nil then
 		Players.RespawnTime = defaultRespawn
 	end
+	Runs.ReturnHome(run.members)
+end
+
+-- Devuelve el submarino al lobby; quien estaba dentro viaja con él y quien estaba fuera aparece en la salida.
+function Runs.ReturnHome(members: { number })
+	local sub = submarine()
+	if not sub or not homePivot then
+		return
+	end
+	local old = sub:GetPivot()
+	local delta = (homePivot :: CFrame) * old:Inverse()
+	local inside: { BasePart } = {}
+	local outside: { BasePart } = {}
+	for _, userId in members do
+		local root = aliveRoot(userId)
+		if root then
+			table.insert(if isInsideSub(root) then inside else outside, root)
+		end
+	end
+	sub:PivotTo(homePivot :: CFrame)
+	for _, root in inside do
+		root.CFrame = delta * root.CFrame
+	end
+	local exitAtt = sub:FindFirstChild("ExitPoint", true)
+	for _, root in outside do
+		if exitAtt and exitAtt:IsA("Attachment") then
+			root.CFrame = exitAtt.WorldCFrame
+		end
+	end
 end
 
 function Runs.RemoveUser(userId: number)
