@@ -101,7 +101,31 @@ local Economy = table.freeze({
 	}),
 })
 
+-- Fauna ambiental pacífica (solo cliente, AmbientFauna.client). Las plantillas están en ReplicatedStorage.AmbientFauna
+-- y las rutas de los gigantes en Workspace.Maps.<Nivel>.AmbientRoutes.<Ruta> (puntos P01, P02... en orden).
+-- Los gigantes cruzan lejos y por debajo de la zona jugable (casi siluetas en la niebla); los peces nadan en cardúmenes cerca del jugador.
+local Ambient = table.freeze({
+	Giants = table.freeze({
+		Level_1 = table.freeze({
+			-- FirstDelay: segundos desde que el jugador entra al nivel; Interval: pausa entre pasadas.
+			table.freeze({ Template = "Manta_Abisal", Route = "Manta", Speed = 18, FirstDelay = 25, Interval = 170 }),
+			table.freeze({ Template = "Nautilo_Colosal", Route = "Nautilo", Speed = 13, FirstDelay = 210, Interval = 320 }),
+		}),
+	}),
+	Fish = table.freeze({
+		Species = table.freeze({ "Pez_Farol_Rojo", "Pez_Aguja_Espectral", "Pez_Cuchilla", "Pez_Mariposa" }),
+		MaxFish = 18, -- tope de peces vivos a la vez
+		SchoolMin = 3,
+		SchoolMax = 5,
+		SpawnMin = 30, -- distancia al jugador a la que aparecen un cardumen
+		SpawnMax = 95,
+		DespawnDistance = 150,
+		Speed = table.freeze({ 5, 9 }),
+	}),
+})
+
 return table.freeze({
+	Ambient = Ambient,
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
 	HudUpdateInterval = 0.25, -- 4 Hz, muy por debajo del límite de 20 Hz
