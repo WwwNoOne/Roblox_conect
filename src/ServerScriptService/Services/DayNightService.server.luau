@@ -8,9 +8,9 @@ local Config = require(Shared:WaitForChild("Config"))
 local TimeOfDay = require(Shared:WaitForChild("TimeOfDay"))
 
 local DAY_AMBIENT = Color3.fromRGB(70, 70, 70)
-local NIGHT_AMBIENT = Color3.fromRGB(8, 10, 22)
+local NIGHT_AMBIENT = Color3.fromRGB(22, 34, 60)
 local DAY_BRIGHTNESS = 3
-local NIGHT_BRIGHTNESS = 0.5
+local NIGHT_BRIGHTNESS = 0.9
 local hoursPerSecond = 24 / Config.DayLengthSeconds
 
 local function apply()

@@ -35,6 +35,16 @@ local grade = Instance.new("ColorCorrectionEffect")
 grade.Name = "UnderwaterGrade"
 grade.Parent = Lighting
 
+-- Desenfoque suave de lo lejano: da sensación de agua sin tapar la vista con niebla densa.
+local blur = Instance.new("DepthOfFieldEffect")
+blur.Name = "UnderwaterBlur"
+blur.NearIntensity = 0
+blur.FarIntensity = 0
+blur.FocusDistance = W.BlurFocusDistance
+blur.InFocusRadius = W.BlurInFocusRadius
+blur.Parent = Lighting
+local baseExposure = Lighting.ExposureCompensation
+
 local underwaterTarget = 0
 local uw = 0 -- 0 = fuera del agua, 1 = dentro (suavizado)
 local checkAccum = 0
@@ -54,6 +64,9 @@ local function restore()
 	atm.Decay = base.Decay
 	grade.Brightness = 0
 	grade.TintColor = Color3.new(1, 1, 1)
+	grade.Saturation = 0
+	blur.FarIntensity = 0
+	Lighting.ExposureCompensation = baseExposure
 end
 
 RunService.RenderStepped:Connect(function(dt)
@@ -94,5 +107,9 @@ RunService.RenderStepped:Connect(function(dt)
 	atm.Color = base.Color:Lerp(waterColor, uw)
 	atm.Decay = base.Decay:Lerp(waterColor, uw)
 	grade.Brightness = -W.DarkenAtDepth * t * uw
-	grade.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(170, 210, 255), 0.5 * uw)
+	grade.TintColor = Color3.new(1, 1, 1):Lerp(Color3.fromRGB(150, 205, 255), 0.55 * uw)
+	grade.Saturation = 0.12 * uw
+	blur.FarIntensity = W.BlurFarIntensity * uw
+	-- De noche el agua no queda a oscuras: sube la exposición (solo en este cliente).
+	Lighting.ExposureCompensation = baseExposure + (W.DepthExposure + W.NightExposure * night) * uw
 end)

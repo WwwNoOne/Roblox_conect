@@ -8,18 +8,23 @@ local Upgrades = table.freeze({
 -- Aspecto del agua. Se usa Atmosphere (Lighting.Fog NO se aplica dentro de agua de Terrain).
 -- Todos son valores de partida a ajustar jugando; Density/Haze no equivalen a studs exactos.
 local Water = table.freeze({
-	SurfaceDensity = 0.35, -- densidad justo bajo la superficie
-	DeepDensity = 0.7, -- densidad a DeepDepth
-	SurfaceHaze = 2,
-	DeepHaze = 8,
+	SurfaceDensity = 0.12, -- densidad justo bajo la superficie
+	DeepDensity = 0.2, -- densidad a DeepDepth
+	SurfaceHaze = 0.6,
+	DeepHaze = 1.5,
 	DeepDepth = 60, -- metros a los que se alcanza lo más oscuro/denso
 	SurfaceColor = Color3.fromRGB(30, 140, 170),
 	DeepColor = Color3.fromRGB(8, 28, 55),
-	NightDarkness = 0.6, -- cuánto oscurece de noche el color del agua
-	DarkenAtDepth = 0.15, -- oscurecimiento máximo de la imagen a DeepDepth
-	LampDensityReduction = 0.2, -- cuánto baja la densidad con la lámpara encendida
+	NightDarkness = 0.35, -- cuánto oscurece de noche el color del agua
+	DarkenAtDepth = 0.05, -- oscurecimiento máximo de la imagen a DeepDepth
+	LampDensityReduction = 0.05, -- cuánto baja la densidad con la lámpara encendida
 	LampDensityPerLevel = 0.07, -- reducción extra por nivel de "Luz potente"
-	MinDensity = 0.12,
+	MinDensity = 0.04,
+	NightExposure = 0.9, -- sube la exposición bajo el agua de noche (Lighting.ExposureCompensation, solo local)
+	DepthExposure = 0.25, -- exposición extra bajo el agua a cualquier hora
+	BlurFarIntensity = 0.3, -- desenfoque de lo lejano bajo el agua (da profundidad sin oscurecer)
+	BlurFocusDistance = 60,
+	BlurInFocusRadius = 45,
 	TransitionSpeed = 4, -- suavizado al cruzar la superficie
 })
 
