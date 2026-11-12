@@ -114,9 +114,11 @@ local function carveCabin()
 	if materials[1][1][1] ~= Enum.Material.Water then
 		return -- sin agua (lobby): nada que vaciar
 	end
-	local size = zone.Size + Vector3.new(8, 8, 8) -- margen de 4 studs (un voxel) por lado: si no, queda un anillo de agua junto a las paredes
-	terrain:FillBlock(zone.CFrame, size, Enum.Material.Air)
-	carved = { cf = zone.CFrame, size = size }
+	-- Margen de 4 studs (un voxel) por lado, y 3 más hacia arriba para vaciar también el hueco del techo.
+	local size = zone.Size + Vector3.new(8, 8, 8)
+	local cf = zone.CFrame * CFrame.new(0, 3, 0)
+	terrain:FillBlock(cf, size, Enum.Material.Air)
+	carved = { cf = cf, size = size }
 end
 
 -- Daño por segundo al casco: constante en cada etapa; durante el viaje se interpola entre la etapa de origen y la de destino.
