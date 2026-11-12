@@ -21,8 +21,7 @@ ContextActionService:BindAction("ToggleLamp", function(_name, state)
 end, true, Enum.KeyCode.F)
 ContextActionService:SetTitle("ToggleLamp", "Luz")
 
-type Beam3D = typeof(Instance.new("Beam"))
-type Beam = { part: Part, light: SpotLight, fill: SpotLight, shafts: { Beam3D }, tips: { Attachment }, dir: Vector3 }
+type Beam = { part: Part, light: SpotLight, fill: SpotLight, dir: Vector3 }
 local beams: { [Player]: Beam } = {}
 
 local function destroyBeam(player: Player)
@@ -62,36 +61,7 @@ local function getBeam(player: Player): Beam
 	fill.Brightness = Config.LampFillBrightness
 	fill.Shadows = false
 	fill.Parent = part
-	-- Cono visible (VFX): varios rayos (Beam) cruzados alrededor del eje de la luz. No miran a la cámara, así que
-	-- el cono siempre apunta hacia donde alumbra la luz y no se inclina con ella; al cruzarse dan volumen.
-	local shafts: { Beam3D } = {}
-	local tips: { Attachment } = {}
-	for k = 0, Config.LampShaftPlanes - 1 do
-		local roll = CFrame.Angles(0, 0, math.rad(180 * k / Config.LampShaftPlanes))
-		local a0 = Instance.new("Attachment")
-		a0.CFrame = roll
-		a0.Parent = part
-		local a1 = Instance.new("Attachment")
-		a1.CFrame = roll
-		a1.Parent = part
-		local shaft = Instance.new("Beam")
-		shaft.Attachment0 = a0
-		shaft.Attachment1 = a1
-		shaft.FaceCamera = false
-		shaft.Segments = 1
-		shaft.LightEmission = 1
-		shaft.LightInfluence = 0
-		shaft.Color = ColorSequence.new(Color3.fromRGB(120, 190, 255))
-		shaft.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, Config.LampShaftTransparency),
-			NumberSequenceKeypoint.new(1, 1),
-		})
-		shaft.Width0 = 0.2
-		shaft.Parent = part
-		table.insert(shafts, shaft)
-		table.insert(tips, a1)
-	end
-	local b: Beam = { part = part, light = light, fill = fill, shafts = shafts, tips = tips, dir = camera.CFrame.LookVector }
+	local b: Beam = { part = part, light = light, fill = fill, dir = camera.CFrame.LookVector }
 	beams[player] = b
 	return b
 end
@@ -120,13 +90,6 @@ RunService.RenderStepped:Connect(function(dt)
 			local level = (player:GetAttribute("Up_Lamp") :: number?) or 0
 			local range = Config.LampRange + level * Config.Upgrades.Lamp.RangeBonus
 			b.light.Range = range
-			local length = range * Config.LampShaftFraction
-			local slope = math.tan(math.rad(Config.LampAngle / 2))
-			local width = 2 * length * slope
-			for i, tip in b.tips do
-				tip.CFrame = CFrame.new(0, 0, -length) * (b.shafts[i].Attachment0 :: Attachment).CFrame.Rotation
-				b.shafts[i].Width1 = width
-			end
 		else
 			destroyBeam(player)
 		end
