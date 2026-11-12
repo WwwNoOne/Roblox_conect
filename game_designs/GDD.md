@@ -10,7 +10,7 @@ De 2 a 4 jugadores descienden en un submarino lo más profundo posible, exploran
 1. **Lobby:** un jugador (host) crea una sala; los demás entran por código o invitación de amigos (2–4). El host inicia la partida.
 2. **Descenso:** los jugadores aparecen dentro del submarino, que desciende por zonas.
 3. **Exploración:** en cada zona, los jugadores salen en traje (oxígeno limitado) a naufragios y cuevas cercanos, recolectan tesoros (objetos) y regresan al submarino.
-4. **Venta y mejora (parada entre zonas):** los tesoros se venden en el submarino; el dinero común paga reparaciones del casco y equipo.
+4. **Venta y mejora (parada entre niveles):** en el mapa de parada, sin salir del submarino, se venden los tesoros y el dinero común paga reparaciones y equipo con paneles interiores.
 5. **Presión:** a mayor profundidad, mayor daño por segundo al casco. Sin dinero/reparaciones suficientes, el casco cae a 0 → **implosión → derrota de todos**.
 6. **Final:** en la zona más profunda se coloca la **baliza** (mantener `E` varios segundos, con criaturas acechando). Al activarla → **victoria** y fin de la partida.
 
@@ -22,14 +22,26 @@ De 2 a 4 jugadores descienden en un submarino lo más profundo posible, exploran
 * Se repara con dinero común (y, opcional, con kit de reparación manual dentro del sub).
 * Casco = 0 → implosión, fin de la partida (derrota).
 
-### Zonas (3–4, con parada entre ellas)
-| Zona | Profundidad | Presión (daño/s al casco) | Contenido |
+### Descenso y estructura del mapa (decisión 2026-11-11)
+* **Niveles separados**: cada zona es su propio escenario, sin conexión visual entre ellas.
+* **Cabina sellada**: el submarino es una cabina. Para descender se cierra la compuerta (todos dentro), hay crujidos, vibración y fundido a negro, y el servidor lleva el submarino al `SubDock` de la siguiente zona. Los jugadores no ven el exterior durante el viaje.
+* En cada parada el submarino queda acoplado en un nicho/bahía de roca o estructura, para que desde fuera no se aprecie como una caja.
+* Mejora opcional futura: tubo conector entre niveles (híbrido) sin cambiar la lógica, porque cada nivel ya tiene su `SubDock`.
+
+### Niveles y paradas (decisión 2026-11-11)
+Para la primera versión de prueba hay **3 niveles** y un mapa de **parada** compartido (`Parada`). Secuencia: **Nivel 1 → Parada → Nivel 2 → Parada → Nivel 3 (final, baliza)**.
+
+* **Niveles:** el submarino se acopla en el `SubDock` del nivel; la compuerta se abre y los jugadores salen a explorar, recoger tesoros y volver. La presión daña el casco mientras el submarino está en un nivel o viaja.
+* **Parada:** mapa vacío con solo una base donde se acopla el submarino. **Nadie sale**: se vende, repara y compra desde dentro con los paneles (`SellStation`, `RepairStation`, `ShopStation`). La compuerta permanece cerrada. Propuesta: el casco no recibe presión durante la parada (refugio seguro), a calibrar.
+* Se baja de nivel a parada, o de parada a nivel, con el mismo descenso de cabina sellada (todos dentro, compuerta cerrada, fundido, teletransporte).
+* Al terminar el Nivel 3 la partida acaba con la baliza (no hay parada final).
+
+| Nivel | Profundidad (prueba) | Presión (daño/s al casco) | Contenido |
 | :-- | :-- | :-- | :-- |
-| 1 | 0–50 m | Muy baja | Naufragio inicial, criaturas pasivas/lentas |
-| 2 | 50–150 m | Baja-media | Naufragios y cuevas, primera criatura cazadora |
-| 3 | 150–300 m | Alta | Cuevas, oscuridad total, cazadores más agresivos |
-| 4 (fondo) | 300 m+ | Muy alta | Sitio de la baliza, criatura grande |
-*(Valores numéricos a calibrar en playtest.)*
+| 1 | ~40 m | Muy baja | Naufragio inicial, criaturas pasivas/lentas |
+| 2 | ~120 m | Media | Naufragios y cuevas, primera criatura cazadora |
+| 3 (fondo) | ~220 m | Alta | Cuevas, oscuridad, cazadores agresivos, criatura grande y sitio de la baliza |
+*(Valores numéricos a calibrar en playtest. Más niveles se añaden con el mismo esquema.)*
 
 ### Exploración fuera del submarino
 * Los jugadores salen con traje: **oxígeno limitado** (regresa al sub para recargar).

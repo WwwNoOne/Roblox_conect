@@ -1,0 +1,181 @@
+<?xml version='1.0' encoding='utf-8'?>
+<roblox version="4">
+  <Item class="Model" referent="RBXModel">
+    <Properties>
+      <string name="Name">Treasure_Medium</string>
+      <Ref name="PrimaryPart">RBXPart0</Ref>
+    </Properties>
+    <Item class="Part" referent="RBXPart0">
+      <Properties>
+        <string name="Name">Handle</string>
+        <Vector3 name="size">
+          <X>0.96</X>
+          <Y>0.96</Y>
+          <Z>0.6</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>0</X>
+          <Y>0</Y>
+          <Z>0</Z>
+          <R00>1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>1</R22>
+        </CoordinateFrame>
+        <bool name="Anchored">true</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">true</bool>
+        <bool name="Massless">false</bool>
+        <Color3uint8 name="Color3uint8">4282028669</Color3uint8>
+        <token name="Material">272</token>
+        <token name="TopSurface">0</token>
+        <token name="BottomSurface">0</token>
+      </Properties>
+      <Item class="Attachment" referent="RBXAttachment0">
+        <Properties>
+          <string name="Name">GripPoint</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>0</Y>
+            <Z>0</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="Part" referent="RBXPart1">
+      <Properties>
+        <string name="Name">Plinth</string>
+        <Vector3 name="size">
+          <X>1.36</X>
+          <Y>0.23</Y>
+          <Z>0.97</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>0</X>
+          <Y>-0.59</Y>
+          <Z>0</Z>
+          <R00>1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>1</R22>
+        </CoordinateFrame>
+        <bool name="Anchored">false</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="Massless">true</bool>
+        <Color3uint8 name="Color3uint8">4285683006</Color3uint8>
+        <token name="Material">272</token>
+        <token name="TopSurface">0</token>
+        <token name="BottomSurface">0</token>
+      </Properties>
+      <Item class="WeldConstraint" referent="RBXWeld1">
+        <Properties>
+          <string name="Name">WeldConstraint</string>
+          <Ref name="Part0">RBXPart0</Ref>
+          <Ref name="Part1">RBXPart1</Ref>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="Part" referent="RBXPart2">
+      <Properties>
+        <string name="Name">Crown</string>
+        <Vector3 name="size">
+          <X>0.55</X>
+          <Y>0.36</Y>
+          <Z>0.47</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>0</X>
+          <Y>0.62</Y>
+          <Z>0</Z>
+          <R00>1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>1</R22>
+        </CoordinateFrame>
+        <bool name="Anchored">false</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="Massless">true</bool>
+        <Color3uint8 name="Color3uint8">4290877522</Color3uint8>
+        <token name="Material">272</token>
+        <token name="TopSurface">0</token>
+        <token name="BottomSurface">0</token>
+      </Properties>
+      <Item class="WeldConstraint" referent="RBXWeld2">
+        <Properties>
+          <string name="Name">WeldConstraint</string>
+          <Ref name="Part0">RBXPart0</Ref>
+          <Ref name="Part1">RBXPart2</Ref>
+        </Properties>
+      </Item>
+    </Item>
+    <Item class="Part" referent="RBXPart3">
+      <Properties>
+        <string name="Name">Glow</string>
+        <Vector3 name="size">
+          <X>0.24</X>
+          <Y>0.24</Y>
+          <Z>0.08</Z>
+        </Vector3>
+        <CoordinateFrame name="CFrame">
+          <X>0</X>
+          <Y>0.17</Y>
+          <Z>-0.32</Z>
+          <R00>1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>1</R22>
+        </CoordinateFrame>
+        <bool name="Anchored">false</bool>
+        <bool name="CanCollide">false</bool>
+        <bool name="CanTouch">false</bool>
+        <bool name="CanQuery">false</bool>
+        <bool name="Massless">true</bool>
+        <Color3uint8 name="Color3uint8">4285396681</Color3uint8>
+        <token name="Material">288</token>
+        <token name="TopSurface">0</token>
+        <token name="BottomSurface">0</token>
+      </Properties>
+      <Item class="WeldConstraint" referent="RBXWeld3">
+        <Properties>
+          <string name="Name">WeldConstraint</string>
+          <Ref name="Part0">RBXPart0</Ref>
+          <Ref name="Part1">RBXPart3</Ref>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+</roblox>
