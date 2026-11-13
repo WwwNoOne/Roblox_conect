@@ -48,3 +48,8 @@ El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan hi
 Se reutilizaron las carpetas y bases que ya estaban en Studio. Las tres zonas de exploración tienen agua de Terrain independiente, proa del submarino hacia −Z y salida hacia +Z. La ruta a la baliza rodea la cueva por el este. La separación lateral de 160 studs y la geometría cúbica son decisiones del prototipo.
 
 La prueba geométrica en Studio confirmó agua en los recorridos, tres Attachments `TreasureSpawn` por nivel con atributo `Size`, paso despejado desde `Hatch.ExitPoint` a las zonas explorables y acceso al sitio de la baliza. Queda pendiente ejecutar en Play la secuencia con la lógica de Claude y dos clientes.
+
+## Cangrejo guardián
+
+- El 13 de noviembre de 2026 se comprobó en Studio, sobre un clon sin insertar en el lugar, que el giro de `Cangrejo` y su `GrabPoint` siguen el frente `-Z` al mover y rotar el pivote. La altura y el avance del Attachment se midieron en Blender a partir del cierre de las pinzas en `Atrapar`.
+- En el archivo de mapas final, ambos puntos de liberación de cada nivel están en `DeepZone`, las guaridas y patrullas están en `GuardZone` y los acoples quedan fuera. Cada zona profunda contiene un tesoro `Large`. Queda pendiente comprobar el agarre y la liberación en partida después de instalar el [modelo corregido](assets_build/exports/Cangrejo_v1_01.rbxmx) y los [mapas finales](assets_build/exports/Abismo_Niveles_1-3_Studio.md) en la copia de integración. Los clips se conservan como `KeyframeSequence`. La publicación de sus IDs sigue pendiente.

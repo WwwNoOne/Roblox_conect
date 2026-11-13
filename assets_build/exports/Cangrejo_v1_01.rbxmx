@@ -1,7 +1,7 @@
 <roblox version="4">
   <Item class="Model" referent="0">
     <Properties>
-      <string name="Name">Cangrejo_v1_01</string>
+      <string name="Name">Cangrejo</string>
       <BinaryString name="AttributesSerialize">AQAAAA4AAABSQlhfUmVpbXBvcnRJZAIkAAAANmZhYjFlOTctZjE3MC00ZWQ0LTkwNGItNDllZDM3NjM0ZDgw</BinaryString>
       <SecurityCapabilities name="Capabilities">0</SecurityCapabilities>
       <Content name="ExplorerIconContent">
@@ -74,8 +74,8 @@
         <CoordinateFrame name="CFrame">
           <X>0</X>
           <Y>1.9120178</Y>
-          <Z>0.587986</Z>
-          <R00>1</R00>
+          <Z>-0.587986</Z>
+          <R00>-1</R00>
           <R01>0</R01>
           <R02>0</R02>
           <R10>0</R10>
@@ -83,7 +83,7 @@
           <R12>0</R12>
           <R20>0</R20>
           <R21>0</R21>
-          <R22>1</R22>
+          <R22>-1</R22>
         </CoordinateFrame>
         <bool name="CanCollide">true</bool>
         <bool name="CanQuery">true</bool>
@@ -134,7 +134,7 @@
           <X>0</X>
           <Y>-1.9120178</Y>
           <Z>-0.587986</Z>
-          <R00>1</R00>
+          <R00>-1</R00>
           <R01>0</R01>
           <R02>0</R02>
           <R10>0</R10>
@@ -142,7 +142,7 @@
           <R12>0</R12>
           <R20>0</R20>
           <R21>0</R21>
-          <R22>1</R22>
+          <R22>-1</R22>
         </CoordinateFrame>
         <float name="Reflectance">0</float>
         <token name="RenderFidelity">0</token>
@@ -198,6 +198,25 @@
         </Vector3>
         <int name="VertexCount">14357</int>
       </Properties>
+      <Item class="Attachment" referent="RBXCrabGrabPoint">
+        <Properties>
+          <string name="Name">GrabPoint</string>
+          <CoordinateFrame name="CFrame">
+            <X>0</X>
+            <Y>-0.7620178</Y>
+            <Z>3.462014</Z>
+            <R00>-1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+        </Properties>
+      </Item>
       <Item class="SurfaceAppearance" referent="2">
         <Properties>
           <string name="Name">SurfaceAppearance</string>

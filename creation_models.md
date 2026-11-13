@@ -125,3 +125,9 @@ El submarino es una cabina sellada: el descenso es cierre de compuerta + fundido
 
 ### Escala del submarino (2026-11-11)
 En Studio se aplicó `Submarine:ScaleTo(1.5)` a `submarine_A01_v2`: interior 22,3 × 12 × 29,1 studs, compuerta 9,3 × 9,6, cubierta 24 × 30,8. Los `SpawnPoint` se colocaron a 3 studs sobre la cubierta. Codex: al actualizar el modelo, usar estas medidas como base (escala 1.5 sobre la v2) para no repetir el ajuste.
+
+### Cangrejo guardián (`Cangrejo`, Model)
+
+- El [modelo de Studio](assets_build/exports/Cangrejo_v1_01.rbxmx) está listo para instalar en `ServerStorage.AbismoAssets.Creatures`. Conserva el `MeshPart` primario `Cangrejo_v1_01` y los clips `Caminar`, `Sorprender` y `Atrapar`. La mandíbula y las pinzas apuntan a `-Z` respecto al pivote del modelo.
+- `GrabPoint` es un Attachment del `MeshPart`, centrado delante de las pinzas a 1,15 studs de altura y 4,05 studs por delante del pivote. La [fuente Blender](assets_build/exports/Cangrejo_v1_01.blend) incluye el marcador en `+Y` frontal.
+- El [paquete de mapas](assets_build/exports/Abismo_Niveles_1-3.rbxmx) incluye `CrabLair`, `GuardZone`, `DeepZone`, `CrabDrop1…2` y `CrabPatrol1…4` en `Level_2` y `Level_3`. El lugar de pruebas aún usa los mapas provisionales. Quedan pendientes la instalación del modelo revisado y la prueba de captura en partida.
