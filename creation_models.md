@@ -1,5 +1,12 @@
 # Modelos requeridos (hand-off Claude -> Codex)
-Estilo Low-Poly / Anime Stylized. Export `.fbx` a `assets_build/exports/`.
+
+## Estándar de entrega
+
+- Entrega los modelos y mapas en formato Roblox `.rbxmx` dentro de `assets_build/exports/`.
+- Usa geometría **low poly estilizada**, con siluetas claras, caras amplias y texturas o materiales de color plano.
+- Usa una paleta sombría que conserve la atmósfera de terror submarino. Reserva los acentos luminosos para guiar o destacar detalles.
+- Incluye el rig y los clips editables en el `.rbxmx` para criaturas y otros modelos que deban animarse. Respeta los pedidos de entregar solo el rig.
+- Evita caras visibles coplanares superpuestas. Comprueba en Studio el acabado, las colisiones, los recorridos transitables y las animaciones que correspondan.
 
 > **Cambio de dirección (2026-11-11):** el juego ahora es terror cooperativo de submarino estilo REPO (ver `game_designs/GDD.md`). Sin combate: el arpón queda descartado. Ambiente oscuro y opresivo; las criaturas deben dar miedo y leerse bien con poca luz.
 
