@@ -1,3 +1,5 @@
+-- OBSOLETO (2026-11-18): la decoración de las salas la hace Codex (ver ESTADO.md §0.3); las salas viven ahora en
+-- Workspace.Salas["Bioma(frabrica)"] y este script ya no las encuentra. Se conserva como referencia.
 -- Decora las 10 salas de Workspace.Salas con el kit generado con ForgeGUI
 -- (ServerStorage.AbismoAssets.Kit_Instalacion). Se ejecuta en Studio (modo Edit, execute_luau o barra de comandos).
 -- Cada sala recibe un Model "Decoracion" (se borra y se regenera al volver a ejecutar). Determinista por sala (semilla).

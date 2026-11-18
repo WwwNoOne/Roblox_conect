@@ -16,6 +16,7 @@ export type PieceDef = {
 	boxCenter: Vector3, -- centro de la caja de la pieza (espacio del pivote)
 	half: Vector3, -- mitad de esa caja
 	weight: number?, -- peso al elegir (si falta, el de opts.weights[kind])
+	upright: boolean, -- tiene guías `Orientacion` (salas): solo gira sobre el eje vertical, nunca queda de cabeza
 	vertical: boolean, -- pozo vertical (kind "shaft*"): cuenta para el máximo de piezas verticales
 	junction: Vector3, -- punto central de la pieza (espacio del pivote) para la red de navegación
 }
@@ -64,9 +65,23 @@ function MazeGenerator.ReadPiece(model: Model, kind: string): PieceDef
 	local con = model:FindFirstChild("Conexiones")
 	assert(con, "Falta Conexiones en " .. model.Name)
 	local pivot = model:GetPivot()
+	-- Guías `Orientacion` (una Part por cara con EjeLocal/NormalLocal, en el espacio del pivote): fijan el arriba y el abajo de la sala.
+	-- Con guías, la sala solo se rota sobre el eje vertical y se comprueba que Techo apunta a +Y y Piso a -Y (si no, está guardada de cabeza).
+	local guides = model:FindFirstChild("Orientacion")
+	local guideDir: { [string]: Vector3 } = {}
+	if guides then
+		for _, g in guides:GetChildren() do
+			local n = g:GetAttribute("NormalLocal")
+			if typeof(n) == "Vector3" then
+				guideDir["Cara_" .. g.Name] = n
+			end
+		end
+		local up, down = guideDir.Cara_Techo, guideDir.Cara_Piso
+		assert(up and down and (up - Vector3.yAxis).Magnitude < 0.01 and (down + Vector3.yAxis).Magnitude < 0.01, model.Name .. ": la guia Orientacion no tiene Techo en +Y y Piso en -Y (sala de cabeza)")
+	end
 	local ports: { PortDef } = {}
 	for _, p in con:GetChildren() do
-		local dir = FACE_DIR[p.Name]
+		local dir = guideDir[p.Name] or FACE_DIR[p.Name]
 		if dir and p:IsA("BasePart") then
 			table.insert(ports, { name = p.Name, dir = dir, pos = pivot:PointToObjectSpace(p.Position) })
 		end
@@ -103,6 +118,7 @@ function MazeGenerator.ReadPiece(model: Model, kind: string): PieceDef
 		boxCenter = (mn + mx) / 2,
 		half = (mx - mn) / 2,
 		weight = nil,
+		upright = guides ~= nil,
 		vertical = string.sub(kind, 1, 5) == "shaft",
 		junction = Vector3.new(0, jy, 0),
 	}
@@ -236,7 +252,7 @@ local function planOnce(seed: number, defs: { PieceDef }, entryPos: Vector3, opt
 			and not (fp.node == 0 and entryNeedsTecho and not hasPort(def, Vector3.yAxis))
 		if allowed then
 			-- bajo el pozo: si la pieza ya tiene puerto hacia arriba (pozos, salas) solo gira sobre el eje vertical
-			local rotations = if fp.node == 0 and not hasPort(def, Vector3.yAxis) then ALL_ROTATIONS else YAW_ROTATIONS
+			local rotations = if not def.upright and fp.node == 0 and not hasPort(def, Vector3.yAxis) then ALL_ROTATIONS else YAW_ROTATIONS
 			local candidates: { { cf: CFrame, port: number } } = {}
 			for pi, port in def.ports do
 				for _, rot in rotations do

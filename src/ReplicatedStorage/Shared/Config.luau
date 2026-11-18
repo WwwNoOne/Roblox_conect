@@ -183,7 +183,7 @@ local Maze = table.freeze({
 	MaxLinearRun = 2, -- tramos rectos seguidos (pasillo lineal o pozo recto): el recto y 1 más
 	MaxVertical = 5, -- pozos verticales por nivel (incluida la pieza bajo la sala_0)
 	MaxRooms = 3, -- salas por nivel
-	-- Piezas: Name = Model dentro de Workspace.Pasillo (Pasillos, Pasillos_V) o Workspace.Salas; Kind agrupa las reglas
+	-- Piezas: Name = Model dentro de Workspace.Pasillo (Pasillos, Pasillos_V) o Workspace.Salas (salas agrupadas por bioma: Salas/Bioma(frabrica)); Kind agrupa las reglas
 	-- ("linear"/"shaft" = rectos, "room" = sala); Weight = probabilidad relativa al elegir.
 	Pieces = table.freeze({
 		table.freeze({ Name = "Pasillo_Lineal", Kind = "linear", Weight = 3 }),
