@@ -454,9 +454,9 @@ function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, contain
 		counts.caps += 1
 	end
 	-- marco horizontal entre un pozo más ancho (opts.pit) y la primera pieza (hueco opts.inner), alineado con el suelo de la sala_0
+	local e = plan.entry.pos
 	local pit = opts.pit
 	if pit and pit > opts.inner then
-		local e = plan.entry.pos
 		local bar = (pit + 6 - opts.inner) / 2
 		local whole = pit + 6
 		local frame = Instance.new("Folder")
