@@ -22,7 +22,7 @@ local frame = Instance.new("Frame")
 if useCodex then
 	frame.AnchorPoint = Vector2.new(0, 0)
 	frame.Position = UDim2.fromOffset(16, 16)
-	frame.Size = UDim2.fromOffset(280, 86)
+	frame.Size = UDim2.fromOffset(280, 62) -- solo profundidad y dinero/fallos: lo demás lo muestra la interfaz de Codex
 else
 	frame.AnchorPoint = Vector2.new(0, 1)
 	frame.Position = UDim2.new(0, 16, 1, -16)
@@ -77,12 +77,15 @@ invLabel.TextSize = 14
 invLabel.TextColor3 = Color3.new(1, 1, 1)
 invLabel.Parent = frame
 
+local failures: number? = nil -- cuotas falladas (payload); nil fuera de un nivel con cuota
 local function refreshInfo(hull: number?, hullMax: number?, money: number?)
 	-- El casco ya no se muestra aquí: está en el panel del submarino (SubPanelClient).
 	local moneyText = if money then string.format("$%d  ", money) else ""
 	local lamp = if player:GetAttribute("LampOn") then "ON" else "OFF"
 	if useCodex then
-		invLabel.Text = string.format("%s[F] linterna", moneyText) -- el estado de la linterna lo muestra la interfaz de Codex
+		-- linterna, cuota y objetos los muestra la interfaz de Codex; aquí solo el dinero y las cuotas falladas
+		local fails = if failures then string.format("Cuotas falladas %d/%d", failures, Config.Economy.Quota.MaxFailures) else ""
+		invLabel.Text = moneyText .. fails
 	else
 		invLabel.Text = string.format("%sSlots %d/%d  [F] %s", moneyText, player:GetAttribute("CarryCount") or 0, player:GetAttribute("CarryCapacity") or 0, lamp)
 	end
@@ -161,10 +164,12 @@ updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	clockSetAt = os.clock()
 	if payload.quota then
 		-- con la interfaz de Codex la cuota va en su panel (HudBuceoClient): aquí solo los fallos
+		failures = payload.failures or 0
 		quotaLabel.Text = if useCodex
-			then string.format("Cuotas falladas %d/%d", payload.failures or 0, Config.Economy.Quota.MaxFailures)
+			then ""
 			else string.format("Cuota %d/%d   Fallos %d/%d", payload.deposited or 0, payload.quota, payload.failures or 0, Config.Economy.Quota.MaxFailures)
 	else
+		failures = nil
 		quotaLabel.Text = ""
 	end
 	refreshInfo(lastHull, lastHullMax, lastMoney)
