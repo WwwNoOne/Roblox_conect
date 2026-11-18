@@ -3,12 +3,19 @@
 --   * Vida: Humanoid.Health del jugador (en %).
 --   * Oxígeno: atributos de jugador Oxygen / OxygenMax (OxygenService), en % con el umbral crítico del atributo
 --     UmbralOxigenoCritico (25 %) en rojo.
+--   * Estamina: atributos Stamina / StaminaMax / Exhausted (StaminaService); roja al agotarse.
+--   * Linterna: atributo LampOn ("Encendida" / "Apagada").
 --   * Objetos recolectados: CarryCount / CarryCapacity y CarryGlyphs (iconos por objeto, ver Config.Economy.KitGlyphs).
+--   * Cuota: depositado / cuota del nivel (payload de UpdateHUD); el panel se oculta si el nivel no tiene cuota.
 -- La interfaz trae dos diseños, `PC` y `Movil`; se muestra el que toca según el dispositivo. Los iconos salen de una hoja de sprites
 -- (ImageRectOffset); la correspondencia glifo -> recorte se lee de los propios iconos de ejemplo (atributo `Glifo`), así que si
 -- Codex cambia la hoja basta con que mantenga ese atributo. Sin la interfaz, DiveHud dibuja el HUD antiguo (respaldo).
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
+
+local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
+local updateHud = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpdateHUD") :: RemoteEvent
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -22,6 +29,8 @@ root.Enabled = true -- Codex la deja desactivada en StarterGui para no taparla e
 local CRITICAL_FALLBACK = 25
 local LOW_LIFE = 30
 local RED = Color3.fromRGB(255, 80, 80)
+local GREEN = Color3.fromRGB(120, 230, 140)
+local LAMP_OFF = Color3.fromRGB(140, 150, 156)
 
 -- ===== Hoja de iconos: glifo -> (offset, size) =====
 local glyphs: { [string]: { offset: Vector2, size: Vector2 } } = {}
@@ -47,6 +56,11 @@ type Layout = {
 	frame: Frame,
 	life: Meter?,
 	oxygen: Meter?,
+	stamina: Meter?,
+	lampState: TextLabel?,
+	lampColor: Color3?,
+	quotaPanel: Frame?,
+	quota: Meter?,
 	count: TextLabel?,
 	slots: { Frame },
 }
@@ -87,10 +101,17 @@ local function buildLayout(name: string): Layout?
 		end
 	end
 	local count = path(objects, "EtiquetaYCapacidad", "Ocupacion")
+	local lamp = path(state, "Linterna", "Estado")
+	local quotaPanel = path(objects, "Cuota")
 	return {
 		frame = frame,
 		life = findMeter(state, "Vida"),
 		oxygen = findMeter(state, "Oxigeno"),
+		stamina = findMeter(state, "Estamina"),
+		lampState = if lamp and lamp:IsA("TextLabel") then lamp else nil,
+		lampColor = if lamp and lamp:IsA("TextLabel") then lamp.TextColor3 else nil,
+		quotaPanel = if quotaPanel and quotaPanel:IsA("Frame") then quotaPanel else nil,
+		quota = findMeter(objects, "Cuota"),
 		count = if count and count:IsA("TextLabel") then count else nil,
 		slots = slots,
 	}
@@ -115,6 +136,38 @@ applyDevice()
 UserInputService:GetPropertyChangedSignal("KeyboardEnabled"):Connect(applyDevice)
 UserInputService.LastInputTypeChanged:Connect(applyDevice)
 
+-- ===== Escala en pantallas pequeñas =====
+-- La interfaz está en escala (% de pantalla) y con tamaños de texto máximos pensados para 1080 px de alto: en ventanas pequeñas queda
+-- diminuta. Se agranda hasta MAX_BOOST con un UIScale por panel (anclados a su esquina: no se sale de la pantalla).
+local REF_HEIGHT = 900
+local MAX_BOOST = 1.4
+local camera = workspace.CurrentCamera :: Camera
+local scales: { UIScale } = {}
+for _, l in layouts do
+	for _, panelName in { "EstadoDelBuzo", "ObjetosRecolectados" } do
+		local panel = l.frame:FindFirstChild(panelName)
+		if panel and panel:IsA("GuiObject") then
+			local existing = panel:FindFirstChild("EscalaAuto")
+			if existing and existing:IsA("UIScale") then
+				table.insert(scales, existing)
+			else
+				local created = Instance.new("UIScale")
+				created.Name = "EscalaAuto"
+				created.Parent = panel
+				table.insert(scales, created)
+			end
+		end
+	end
+end
+local function applyScale()
+	local boost = math.clamp(REF_HEIGHT / math.max(camera.ViewportSize.Y, 1), 1, MAX_BOOST)
+	for _, sc in scales do
+		sc.Scale = boost
+	end
+end
+applyScale()
+camera:GetPropertyChangedSignal("ViewportSize"):Connect(applyScale)
+
 -- ===== Actualización =====
 local function setMeter(m: Meter?, ratio: number, critical: boolean)
 	if not m then
@@ -135,6 +188,11 @@ local function refresh()
 	local oxy = if type(o2) == "number" and type(o2Max) == "number" and o2Max > 0 then o2 / o2Max else 1
 	local threshold = root:GetAttribute("UmbralOxigenoCritico")
 	local criticalAt = (if type(threshold) == "number" then threshold else CRITICAL_FALLBACK) / 100
+	-- estamina
+	local st, stMax = player:GetAttribute("Stamina"), player:GetAttribute("StaminaMax")
+	local stamina = if type(st) == "number" and type(stMax) == "number" and stMax > 0 then st / stMax else 1
+	local exhausted = player:GetAttribute("Exhausted") == true
+	local lampOn = player:GetAttribute("LampOn") == true
 	-- objetos
 	local carry = player:GetAttribute("CarryCount")
 	local capacity = player:GetAttribute("CarryCapacity")
@@ -146,6 +204,11 @@ local function refresh()
 	for _, l in layouts do
 		setMeter(l.life, life, life <= LOW_LIFE / 100)
 		setMeter(l.oxygen, oxy, oxy <= criticalAt)
+		setMeter(l.stamina, stamina, exhausted)
+		if l.lampState then
+			l.lampState.Text = if lampOn then "Encendida" else "Apagada"
+			l.lampState.TextColor3 = if lampOn then (l.lampColor or GREEN) else LAMP_OFF
+		end
 		if l.count then
 			l.count.Text = string.format("%d / %d", n, cap)
 		end
@@ -163,7 +226,7 @@ local function refresh()
 end
 
 refresh()
-for _, attr in { "Oxygen", "OxygenMax", "CarryCount", "CarryCapacity", "CarryGlyphs" } do
+for _, attr in { "Oxygen", "OxygenMax", "Stamina", "StaminaMax", "Exhausted", "LampOn", "CarryCount", "CarryCapacity", "CarryGlyphs" } do
 	player:GetAttributeChangedSignal(attr):Connect(refresh)
 end
 
@@ -182,3 +245,20 @@ if player.Character then
 	task.spawn(watchCharacter, player.Character)
 end
 player.CharacterAdded:Connect(watchCharacter)
+
+-- Cuota del nivel (llega con el HUD de partida): depositado / cuota. Cumplida = barra verde.
+updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
+	local quota = payload.quota
+	for _, l in layouts do
+		if l.quotaPanel then
+			l.quotaPanel.Visible = quota ~= nil and quota > 0
+		end
+		if l.quota and quota and quota > 0 then
+			local deposited = payload.deposited or 0
+			local ratio = math.clamp(deposited / quota, 0, 1)
+			l.quota.fill.Size = UDim2.new(ratio, 0, l.quota.fill.Size.Y.Scale, l.quota.fill.Size.Y.Offset)
+			l.quota.text.Text = string.format("%d / %d", deposited, quota)
+			l.quota.fill.BackgroundColor3 = if deposited >= quota then GREEN else l.quota.color
+		end
+	end
+end)

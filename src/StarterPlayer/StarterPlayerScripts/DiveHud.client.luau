@@ -82,7 +82,7 @@ local function refreshInfo(hull: number?, hullMax: number?, money: number?)
 	local moneyText = if money then string.format("$%d  ", money) else ""
 	local lamp = if player:GetAttribute("LampOn") then "ON" else "OFF"
 	if useCodex then
-		invLabel.Text = string.format("%sLinterna [F] %s", moneyText, lamp)
+		invLabel.Text = string.format("%s[F] linterna", moneyText) -- el estado de la linterna lo muestra la interfaz de Codex
 	else
 		invLabel.Text = string.format("%sSlots %d/%d  [F] %s", moneyText, player:GetAttribute("CarryCount") or 0, player:GetAttribute("CarryCapacity") or 0, lamp)
 	end
@@ -160,7 +160,10 @@ updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	clockLeft = payload.levelLeft
 	clockSetAt = os.clock()
 	if payload.quota then
-		quotaLabel.Text = string.format("Cuota %d/%d   Fallos %d/%d", payload.deposited or 0, payload.quota, payload.failures or 0, Config.Economy.Quota.MaxFailures)
+		-- con la interfaz de Codex la cuota va en su panel (HudBuceoClient): aquí solo los fallos
+		quotaLabel.Text = if useCodex
+			then string.format("Cuotas falladas %d/%d", payload.failures or 0, Config.Economy.Quota.MaxFailures)
+			else string.format("Cuota %d/%d   Fallos %d/%d", payload.deposited or 0, payload.quota, payload.failures or 0, Config.Economy.Quota.MaxFailures)
 	else
 		quotaLabel.Text = ""
 	end

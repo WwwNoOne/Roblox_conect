@@ -1,7 +1,8 @@
 --!strict
 -- Sprint (sustituye al dash): mantener Shift (L3 en mando, botón "Correr" en táctil) para nadar más rápido. La estamina es del
--- servidor (StaminaService): aquí solo se avisa de si se mantiene la tecla y se dibuja la barra de estamina (arriba del HUD de
--- buceo). SwimClient aplica la velocidad al leer el atributo Sprinting. Parámetros: Config.Sprint.
+-- servidor (StaminaService): aquí solo se avisa de si se mantiene la tecla y se dibuja una barra de estamina de respaldo (la interfaz
+-- de Codex trae la suya, que dibuja HudBuceoClient) y el efecto de campo de visión. SwimClient aplica la velocidad al leer el atributo
+-- Sprinting. Parámetros: Config.Sprint.
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -77,6 +78,20 @@ local shown = P.StaminaMax
 local baseFov = camera.FieldOfView
 local fovKick = 0
 
+-- ¿La interfaz de Codex trae su propio medidor de estamina? Entonces esta barra de respaldo no se dibuja.
+local codexHasStamina: boolean? = nil
+local function hasCodexStamina(): boolean
+	if codexHasStamina == nil then
+		local hud = player.PlayerGui:FindFirstChild("Abismo_HUD_Buceo")
+		if hud then
+			codexHasStamina = hud:FindFirstChild("Estamina", true) ~= nil
+		else
+			return false
+		end
+	end
+	return codexHasStamina :: boolean
+end
+
 RunService.RenderStepped:Connect(function(dt)
 	local inRun = player:GetAttribute("InRun") == true
 	local stamina = player:GetAttribute("Stamina")
@@ -85,7 +100,7 @@ RunService.RenderStepped:Connect(function(dt)
 	local exhausted = player:GetAttribute("Exhausted") == true
 	local full = type(stamina) == "number" and type(max) == "number" and stamina >= max - 0.5
 	-- solo se ve en partida y cuando no está llena (o se está usando)
-	holder.Visible = inRun and type(stamina) == "number" and (not full or sprinting or held)
+	holder.Visible = inRun and type(stamina) == "number" and (not full or sprinting or held) and not hasCodexStamina()
 	if type(stamina) == "number" and type(max) == "number" then
 		shown += (stamina - shown) * math.min(1, dt * 14)
 		bar.Size = UDim2.fromScale(math.clamp(shown / max, 0, 1), 1)
