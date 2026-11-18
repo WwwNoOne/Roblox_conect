@@ -3,11 +3,14 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
+local WorldRefs = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("WorldRefs"))
+local Sfx = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Sfx"))
 local descentFx = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DescentFx") :: RemoteEvent
 
-local sub = workspace:WaitForChild("Submarine", 30)
+local sub = WorldRefs.WaitSubmarine(30)
 if not sub then
 	warn("[SubmarineService] No hay Workspace.Submarine; compuerta desactivada")
 	return
@@ -23,26 +26,22 @@ local doorClosed = hatch:FindFirstChild("DoorClosed", true) :: Attachment
 
 local hatchOpen = false
 
-local function makePrompt(parent: Attachment, action: string): ProximityPrompt
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = action
-	prompt.ObjectText = "Compuerta"
-	prompt.KeyboardKeyCode = Enum.KeyCode.E
-	prompt.HoldDuration = 0.3
-	prompt.MaxActivationDistance = 8
-	prompt.RequiresLineOfSight = false
-	prompt.Enabled = false
-	prompt.Parent = parent
-	return prompt
-end
-
-local insidePrompt = makePrompt(insideAtt, "Salir")
-local outsidePrompt = makePrompt(outsideAtt, "Entrar")
+-- Un solo botón para entrar y salir: dos botones casi en el mismo sitio se tapaban entre sí y, muy cerca de la puerta,
+-- el que se mostraba era el del lado contrario (no hacía nada). El texto "Entrar"/"Salir" lo pone cada cliente (HatchPromptText).
+local hatchPrompt = Instance.new("ProximityPrompt")
+hatchPrompt.Name = "HatchPrompt"
+hatchPrompt.ActionText = "Compuerta"
+hatchPrompt.ObjectText = "Compuerta"
+hatchPrompt.KeyboardKeyCode = Enum.KeyCode.E
+hatchPrompt.HoldDuration = 0.3
+hatchPrompt.MaxActivationDistance = 12
+hatchPrompt.RequiresLineOfSight = false
+hatchPrompt.Enabled = false
+hatchPrompt.Parent = hatch:FindFirstChild("Frame") or insideAtt
 
 local function setHatch(open: boolean)
 	hatchOpen = open
-	insidePrompt.Enabled = open
-	outsidePrompt.Enabled = open
+	hatchPrompt.Enabled = open
 	-- La puerta permanece cerrada siempre: se entra y se sale solo con los botones (teletransporte).
 	door.CFrame = doorClosed.WorldCFrame
 	door.CanCollide = true
@@ -60,18 +59,39 @@ local function cross(player: Player, to: Attachment)
 		return
 	end
 	root.CFrame = to.WorldCFrame
+	Sfx.Play(if to == entryAtt then Config.Sfx.SubEnter else Config.Sfx.SubExit, to.Parent, Config.Audio.SubVolume, Config.Audio.SubRollOff)
 	root.AssemblyLinearVelocity = Vector3.zero
 end
 
-insidePrompt.Triggered:Connect(function(player: Player)
+hatchPrompt.Triggered:Connect(function(player: Player)
 	if Runs.IsUserInside(player.UserId) then
 		cross(player, exitAtt)
-	end
-end)
-outsidePrompt.Triggered:Connect(function(player: Player)
-	if not Runs.IsUserInside(player.UserId) then
+	else
 		cross(player, entryAtt)
 	end
+end)
+
+-- Botón "Salir" del panel del submarino: mismo efecto que la compuerta, solo desde dentro y en un nivel.
+local requestExit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RequestExit") :: RemoteFunction
+local lastExit: { [Player]: number } = {}
+requestExit.OnServerInvoke = function(player: Player)
+	local now = os.clock()
+	if now - (lastExit[player] or 0) < 0.5 then
+		return { ok = false, err = "TOO_FAST" }
+	end
+	lastExit[player] = now
+	local run = Runs.GetByUser(player.UserId)
+	if not run or run.state ~= "Level" or not hatchOpen then
+		return { ok = false, err = "NOT_LEVEL" }
+	end
+	if not Runs.IsUserInside(player.UserId) then
+		return { ok = false, err = "NOT_INSIDE" }
+	end
+	cross(player, exitAtt)
+	return { ok = true }
+end
+Players.PlayerRemoving:Connect(function(player)
+	lastExit[player] = nil
 end)
 
 Runs.StateChanged:Connect(function(code: string, state: Types.RunState)

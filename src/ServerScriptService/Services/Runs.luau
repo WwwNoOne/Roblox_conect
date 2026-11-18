@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
+local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 
 export type Item = { size: string, value: number }
 
@@ -25,6 +26,7 @@ export type Run = {
 	upgrades: { [string]: number }, -- niveles de mejora del equipo
 	deposited: number, -- valor depositado en el nivel actual (se cobra al cerrarlo)
 	failures: number, -- cuotas falladas
+	advanceDeadline: number?, -- os.clock() en que parte el submarino (cuenta atrás de Avanzar)
 }
 
 export type Result = { ok: boolean, err: string? }
@@ -57,16 +59,65 @@ local ended = Instance.new("BindableEvent")
 Runs.Ended = ended.Event -- (code: string, result: "Won" | "Lost", reason: string)
 
 local function submarine(): Model?
-	local m = workspace:FindFirstChild("Submarine")
-	return if m and m:IsA("Model") then m else nil
+	return WorldRefs.Submarine()
 end
+
+-- ===== Carga de mapas bajo demanda =====
+-- Los mapas (Workspace.Maps.<Nivel>) se guardan en ServerStorage.MapStorage al arrancar el servidor y solo el de la etapa
+-- actual está en el Workspace. En Studio (edición) no se toca nada: solo ocurre al jugar.
+local ServerStorage = game:GetService("ServerStorage")
+local mapStore = ServerStorage:FindFirstChild("MapStorage") or Instance.new("Folder")
+mapStore.Name = "MapStorage"
+mapStore.Parent = ServerStorage
+
+local function mapNames(): { [string]: boolean }
+	local names: { [string]: boolean } = {}
+	for _, def in Config.Run.Stages do
+		names[def.Map] = true
+	end
+	return names
+end
+
+local function setMapLoaded(name: string, loaded: boolean)
+	local maps = workspace:FindFirstChild("Maps")
+	if not maps then
+		return
+	end
+	local from = if loaded then mapStore else maps
+	local to = if loaded then maps else mapStore
+	for _, m in from:GetChildren() do
+		if m.Name == name then
+			m.Parent = to
+		end
+	end
+end
+
+-- Deja en el Workspace solo el mapa `keep` (nil = ninguno, p. ej. en el lobby).
+local function showOnlyMap(keep: string?)
+	if keep then
+		setMapLoaded(keep, true)
+	end
+	for name in mapNames() do
+		if name ~= keep then
+			setMapLoaded(name, false)
+		end
+	end
+end
+
+showOnlyMap(nil)
 
 local function dockOf(stage: number): BasePart?
 	local def = Config.Run.Stages[stage]
 	local maps = workspace:FindFirstChild("Maps")
 	local map = def and maps and maps:FindFirstChild(def.Map)
 	local dock = map and map:FindFirstChild("SubDock", true)
-	return if dock and dock:IsA("BasePart") then dock else nil
+	if dock and dock:IsA("BasePart") then
+		return dock
+	end
+	-- Sin dock en el mapa de la etapa: el submarino aparece en Workspace.Sala_0.SubDock (su pivote = el del submarino).
+	local sala = workspace:FindFirstChild("Sala_0")
+	local salaDock = sala and sala:FindFirstChild("SubDock", true)
+	return if salaDock and salaDock:IsA("BasePart") then salaDock else nil
 end
 
 local function aliveRoot(userId: number): BasePart?
@@ -114,9 +165,15 @@ local function carveCabin()
 	if materials[1][1][1] ~= Enum.Material.Water then
 		return -- sin agua (lobby): nada que vaciar
 	end
-	-- Margen de 4 studs (un voxel) por lado, y 3 más hacia arriba para vaciar también el hueco del techo.
-	local size = zone.Size + Vector3.new(8, 8, 8)
-	local cf = zone.CFrame * CFrame.new(0, 3, 0)
+	-- Bloque alineado a los ejes que cubre la zona aunque el dock esté girado (p. ej. nivel 2, ~1° de giro): un bloque
+	-- rotado se voxeliza mal y dejaba agua en las esquinas inferiores. Margen de 4 studs (un voxel) por lado, más
+	-- 4 por abajo y 3 por arriba para vaciar también las esquinas del casco y el hueco del techo.
+	local half = zone.Size / 2
+	local r = zone.CFrame.RightVector:Abs() * half.X
+		+ zone.CFrame.UpVector:Abs() * half.Y
+		+ zone.CFrame.LookVector:Abs() * half.Z
+	local size = r * 2 + Vector3.new(8, 14, 8)
+	local cf = CFrame.new(c + Vector3.new(0, 2, 0))
 	terrain:FillBlock(cf, size, Enum.Material.Air)
 	carved = { cf = cf, size = size }
 end
@@ -160,6 +217,10 @@ end
 
 -- Mueve submarino y tripulación que está dentro al dock de la parada (si el escenario existe).
 local function moveSubTo(run: Run, zone: number)
+	local def = Config.Run.Stages[zone]
+	if def then
+		showOnlyMap(def.Map) -- carga el mapa de la etapa y descarga los demás
+	end
 	local sub, dock = submarine(), dockOf(zone)
 	if not sub or not dock then
 		return
@@ -198,6 +259,7 @@ function Runs.Start(code: string, members: { number })
 		upgrades = {},
 		deposited = 0,
 		failures = 0,
+		advanceDeadline = nil,
 	}
 	runs[code] = run
 	for _, userId in members do
@@ -282,13 +344,45 @@ local function settle(run: Run)
 	end
 end
 
-function Runs.RequestDescend(userId: number, hostId: number): Result
+local function aliveMembers(run: Run): { number }
+	local list = {}
+	for _, id in run.members do
+		if aliveRoot(id) then
+			table.insert(list, id)
+		end
+	end
+	return list
+end
+
+local function everyoneInside(run: Run): boolean
+	for _, id in aliveMembers(run) do
+		local root = aliveRoot(id)
+		if root and not isInsideSub(root) then
+			return false
+		end
+	end
+	return true
+end
+
+-- Parte hacia la siguiente etapa: cierra el nivel (cuota) y empieza el viaje sellado.
+local function depart(run: Run)
+	run.advanceDeadline = nil
+	if run.state == "Level" then
+		settle(run)
+		if run.ended then
+			return -- la partida terminó por cuotas falladas
+		end
+	end
+	run.travelFrom = run.depth
+	run.travelT = 0
+	setState(run, "Descending")
+end
+
+-- Cualquier miembro puede pedir avanzar. Solo (un único vivo): parte ya. Con más: cuenta atrás para que los demás entren.
+function Runs.RequestDescend(userId: number): Result & { counting: boolean? }
 	local run = Runs.GetByUser(userId)
 	if not run or run.ended then
 		return { ok = false, err = "NO_RUN" }
-	end
-	if userId ~= hostId then
-		return { ok = false, err = "NOT_HOST" }
 	end
 	if run.state ~= "Level" and run.state ~= "Stopover" then
 		return { ok = false, err = "NOT_DOCKED" }
@@ -296,22 +390,19 @@ function Runs.RequestDescend(userId: number, hostId: number): Result
 	if run.zone >= #Config.Run.Stages then
 		return { ok = false, err = "ALREADY_AT_BOTTOM" }
 	end
-	for _, id in run.members do
-		local root = aliveRoot(id)
-		if root and not isInsideSub(root) then
-			return { ok = false, err = "CREW_OUTSIDE" }
-		end
+	if run.advanceDeadline then
+		return { ok = false, err = "ALREADY_COUNTING" }
 	end
-	if run.state == "Level" then
-		settle(run)
-		if run.ended then
-			return { ok = true } -- la partida terminó por cuotas falladas
-		end
+	local root = aliveRoot(userId)
+	if not root or not isInsideSub(root) then
+		return { ok = false, err = "NOT_INSIDE" }
 	end
-	run.travelFrom = run.depth
-	run.travelT = 0
-	setState(run, "Descending")
-	return { ok = true }
+	if #aliveMembers(run) <= 1 or everyoneInside(run) then
+		depart(run)
+		return { ok = true }
+	end
+	run.advanceDeadline = os.clock() + Config.Run.AdvanceCountdown
+	return { ok = true, counting = true }
 end
 
 -- Libera la partida terminada: los miembros dejan de ser espectadores y pueden reaparecer.
@@ -333,6 +424,7 @@ function Runs.Close(code: string)
 		Players.RespawnTime = defaultRespawn
 	end
 	Runs.ReturnHome(run.members)
+	showOnlyMap(nil) -- de vuelta en el lobby no hace falta ningún nivel cargado
 end
 
 -- Devuelve el submarino al lobby; quien estaba dentro viaja con él y quien estaba fuera aparece en la salida.
@@ -421,12 +513,31 @@ function Runs.Step(dt: number)
 				run.depth = target.Depth
 				moveSubTo(run, run.zone)
 				setState(run, if target.Kind == "Parada" then "Stopover" else "Level")
+				-- El casco sufre al llegar a cada etapa (ya no se desgasta con el tiempo).
+				-- (el primer descenso, de la sala al Nivel 1, no daña: el submarino sale entero)
+				if run.zone > 1 then
+					run.hull = math.max(0, run.hull - Config.Run.DescentDamage * armorFactor(run))
+					if run.hull <= 0 then
+						finish(run, "Lost", "Implosion")
+					end
+				end
 			end
-		end
-		if run.state == "Descending" or run.state == "Level" or run.state == "Stopover" then
-			run.hull = math.max(0, run.hull - Runs.PressureDps(run) * armorFactor(run) * dt)
-			if run.hull <= 0 then
-				finish(run, "Lost", "Implosion")
+		elseif run.advanceDeadline and (run.state == "Level" or run.state == "Stopover") then
+			local timedOut = os.clock() >= run.advanceDeadline
+			if timedOut or everyoneInside(run) then
+				if timedOut then
+					-- Quien no llegó a tiempo es subido a bordo para no quedar atrás.
+					local sub = submarine()
+					local entry = sub and sub:FindFirstChild("EntryPoint", true)
+					for _, id in aliveMembers(run) do
+						local root = aliveRoot(id)
+						if root and not isInsideSub(root) and entry and entry:IsA("Attachment") then
+							root.CFrame = entry.WorldCFrame
+							root.AssemblyLinearVelocity = Vector3.zero
+						end
+					end
+				end
+				depart(run)
 			end
 		end
 	end

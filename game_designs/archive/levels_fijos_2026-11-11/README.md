@@ -1,3 +1,5 @@
+> **Archivado (2026-11-15).** Guías de los niveles fijos Level_1/2/3 y la Parada, sustituidos por la generación de cuevas por salas: ver [`../../Generacion_Cuevas.md`](../../Generacion_Cuevas.md). Se conservan como referencia (Level_2.md incluye notas de cangrejos, mandíbulas y kraken; ahora en [`../../Criaturas.md`](../../Criaturas.md)).
+
 # Guías de niveles de Abismo
 
 Guías para modelar el mapa final de cada nivel. Una por mapa: [Nivel 1](Level_1.md), [Nivel 2](Level_2.md), [Nivel 3](Level_3.md) y [Parada](Parada.md). Recorrido: **Nivel 1 → Parada → Nivel 2 → Parada → Nivel 3**.

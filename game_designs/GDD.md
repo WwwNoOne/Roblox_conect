@@ -22,13 +22,15 @@ De 2 a 4 jugadores descienden en un submarino lo más profundo posible, exploran
 * Se repara con dinero común (y, opcional, con kit de reparación manual dentro del sub).
 * Casco = 0 → implosión, fin de la partida (derrota).
 
-### Descenso y estructura del mapa (decisión 2026-11-11)
+> **Actualización 2026-11-15:** la estructura de niveles fijos y paradas de las dos secciones siguientes está **sustituida** por la generación de cuevas por salas (submarino fijo y seco en una sala arriba, sin viaje sellado entre niveles). Ver [`Generacion_Cuevas.md`](Generacion_Cuevas.md). La economía, la cuota y la muerte siguen igual.
+
+### Descenso y estructura del mapa (decisión 2026-11-11) — *sustituida*
 * **Niveles separados**: cada zona es su propio escenario, sin conexión visual entre ellas.
 * **Cabina sellada**: el submarino es una cabina. Para descender se cierra la compuerta (todos dentro), hay crujidos, vibración y fundido a negro, y el servidor lleva el submarino al `SubDock` de la siguiente zona. Los jugadores no ven el exterior durante el viaje.
 * En cada parada el submarino queda acoplado en un nicho/bahía de roca o estructura, para que desde fuera no se aprecie como una caja.
 * Mejora opcional futura: tubo conector entre niveles (híbrido) sin cambiar la lógica, porque cada nivel ya tiene su `SubDock`.
 
-### Niveles y paradas (decisión 2026-11-11)
+### Niveles y paradas (decisión 2026-11-11) — *sustituida*
 Para la primera versión de prueba hay **3 niveles** y un mapa de **parada** compartido (`Parada`). Secuencia: **Nivel 1 → Parada → Nivel 2 → Parada → Nivel 3 (final, baliza)**.
 
 * **Niveles:** el submarino se acopla en el `SubDock` del nivel; la compuerta se abre y los jugadores salen a explorar, recoger tesoros y volver. La presión daña el casco mientras el submarino está en un nivel o viaja.

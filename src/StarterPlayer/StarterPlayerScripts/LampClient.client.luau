@@ -11,7 +11,6 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local toggleLamp = remotes:WaitForChild("ToggleLamp") :: RemoteEvent
 local aimLamp = remotes:WaitForChild("AimLamp") :: RemoteEvent
 local localPlayer = Players.LocalPlayer
-local camera = workspace.CurrentCamera :: Camera
 
 ContextActionService:BindAction("ToggleLamp", function(_name, state)
 	if state == Enum.UserInputState.Begin then
@@ -21,49 +20,61 @@ ContextActionService:BindAction("ToggleLamp", function(_name, state)
 end, true, Enum.KeyCode.F)
 ContextActionService:SetTitle("ToggleLamp", "Luz")
 
-type Beam = { part: Part, light: SpotLight, fill: SpotLight, dir: Vector3 }
-local beams: { [Player]: Beam } = {}
+local LampRig = require(script.Parent:WaitForChild("LampRig"))
 
-local function destroyBeam(player: Player)
-	local b = beams[player]
-	if b then
-		b.part:Destroy()
-		beams[player] = nil
+local LampHotspot = require(script.Parent:WaitForChild("LampHotspot"))
+local hotspot: LampHotspot.Hotspot? = nil
+
+local function getHotspot(character: Model): LampHotspot.Hotspot
+	local h = hotspot
+	if not h or not h.part.Parent then
+		if h then
+			h:Destroy()
+		end
+		local folder = workspace:FindFirstChild("LampRigs") :: Instance
+		h = LampHotspot.new(folder)
+		hotspot = h
+	end
+	local hs = h :: LampHotspot.Hotspot
+	local ignore: { Instance } = { character }
+	for _, name in { "LampRigs", "AmbientFaunaLive" } do
+		local f = workspace:FindFirstChild(name)
+		if f then
+			table.insert(ignore, f)
+		end
+	end
+	hs:SetIgnore(ignore)
+	return hs
+end
+
+local rigs: { [Player]: LampRig.Rig } = {}
+
+local function dropRig(player: Player)
+	local r = rigs[player]
+	if r then
+		r:Destroy()
+		rigs[player] = nil
 	end
 end
 
-local function getBeam(player: Player): Beam
-	local existing = beams[player]
-	if existing then
-		return existing
+local function getRig(player: Player, initialDir: Vector3): LampRig.Rig
+	local r = rigs[player]
+	if not r then
+		r = LampRig.new(initialDir)
+		rigs[player] = r
 	end
-	local part = Instance.new("Part")
-	part.Name = "LampBeam"
-	part.Size = Vector3.new(0.2, 0.2, 0.2)
-	part.Transparency = 1
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.Parent = camera -- contenedor local: no se replica
-	local light = Instance.new("SpotLight")
-	light.Face = Enum.NormalId.Front
-	light.Angle = Config.LampAngle
-	light.Brightness = Config.LampBrightness
-	light.Shadows = false
-	light.Parent = part
-	-- Relleno: cono ancho y corto, tenue, para que el suelo cercano (p. ej. al mirar hacia abajo) no quede a oscuras.
-	local fill = Instance.new("SpotLight")
-	fill.Name = "Fill"
-	fill.Face = Enum.NormalId.Front
-	fill.Angle = Config.LampFillAngle
-	fill.Range = Config.LampFillRange
-	fill.Brightness = Config.LampFillBrightness
-	fill.Shadows = false
-	fill.Parent = part
-	local b: Beam = { part = part, light = light, fill = fill, dir = camera.CFrame.LookVector }
-	beams[player] = b
-	return b
+	r:Validate()
+	return r
+end
+
+-- Posición de origen: LampOrigin (si el modelo lo trae) o la cabeza.
+local function originOf(character: Model): BasePart?
+	local o = character:FindFirstChild("LampOrigin", true)
+	if o and o:IsA("BasePart") then
+		return o
+	end
+	local head = character:FindFirstChild("Head")
+	return if head and head:IsA("BasePart") then head else nil
 end
 
 local aimAccum = 0
@@ -71,28 +82,43 @@ local lastSent = Vector3.zero
 
 -- Después de que la cámara se actualice: si no, la luz usa la dirección del cuadro anterior y "tiembla" al mover la vista.
 RunService:BindToRenderStep("AbismoLamp", Enum.RenderPriority.Camera.Value + 1, function(dt)
+	local camera = workspace.CurrentCamera -- se resuelve cada cuadro: Roblox puede recrearla
+	if not camera then
+		return
+	end
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
-		local head = character and character:FindFirstChild("Head") :: BasePart?
-		if player:GetAttribute("LampOn") and head then
-			local b = getBeam(player)
+		local origin = character and originOf(character)
+		if player:GetAttribute("LampOn") and origin and character then
+			local r = getRig(player, camera.CFrame.LookVector)
 			if player == localPlayer then
-				b.dir = camera.CFrame.LookVector
+				r.dir = camera.CFrame.LookVector
 			else
-				local target = (player:GetAttribute("LampDir") :: Vector3?) or head.CFrame.LookVector
-				b.dir = b.dir:Lerp(target, math.min(1, dt * 12)) -- suaviza los 10 Hz recibidos
+				local target = (player:GetAttribute("LampDir") :: Vector3?) or origin.CFrame.LookVector
+				r.dir = r.dir:Lerp(target, math.min(1, dt * 12)) -- suaviza los 10 Hz recibidos
 			end
-			if b.dir.Magnitude < 0.01 then
-				b.dir = head.CFrame.LookVector
+			if r.dir.Magnitude < 0.01 then
+				r.dir = origin.CFrame.LookVector
 			end
-			local dir = b.dir.Unit
-			local pos = head.Position + dir * Config.LampOriginOffset
-			b.part.CFrame = CFrame.lookAt(pos, pos + dir)
+			local dir = r.dir.Unit
 			local level = (player:GetAttribute("Up_Lamp") :: number?) or 0
-			local range = Config.LampRange + level * Config.Upgrades.Lamp.RangeBonus
-			b.light.Range = range
+			r:Update(origin.Position + dir * Config.LampOriginOffset, dir, Config.LampRange)
+			r:SetUpgrade(level)
+			r:SetEnabled(true)
+			if player == localPlayer then
+				local range = Config.LampRange
+				local hs = getHotspot(character)
+				hs:SetUpgrade(level)
+				hs:Update(origin.Position + dir * Config.LampOriginOffset, dir, math.min(range, 120), dt, r.part:FindFirstChild("Origin") :: Attachment?)
+			end
 		else
-			destroyBeam(player)
+			local r = rigs[player]
+			if r then
+				r:SetEnabled(false)
+			end
+			if player == localPlayer and hotspot then
+				hotspot:Hide()
+			end
 		end
 	end
 
@@ -108,4 +134,9 @@ RunService:BindToRenderStep("AbismoLamp", Enum.RenderPriority.Camera.Value + 1, 
 	end
 end)
 
-Players.PlayerRemoving:Connect(destroyBeam)
+-- Al reaparecer, el rig propio vuelve a nacer apagado y mirando a la cámara (sin arrastrar la dirección vieja).
+localPlayer.CharacterAdded:Connect(function()
+	dropRig(localPlayer)
+	lastSent = Vector3.zero
+end)
+Players.PlayerRemoving:Connect(dropRig)

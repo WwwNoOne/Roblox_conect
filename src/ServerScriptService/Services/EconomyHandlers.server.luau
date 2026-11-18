@@ -8,6 +8,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 local Economy = require(script.Parent:WaitForChild("Economy"))
+local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -45,48 +46,71 @@ local function clearTreasure()
 	treasureFolder:ClearAllChildren()
 end
 
-local function makeTreasure(att: Attachment, size: string)
-	local def = (Config.Economy.Treasure :: any)[size]
+local rng = Random.new()
+
+-- Elige un modelo del tipo (Config.Economy.Treasure[tier].Models) que exista en AbismoAssets; si no, Treasure_<tipo>.
+local function pickTemplate(tier: string, def: any): Model?
+	local names: { string } = table.clone(def.Models or {})
+	while #names > 0 do
+		local i = rng:NextInteger(1, #names)
+		local found = Assets.Find(names[i])
+		if found and found:IsA("Model") then
+			return found
+		end
+		table.remove(names, i)
+	end
+	local fallback = Assets.Find("Treasure_" .. tier)
+	return if fallback and fallback:IsA("Model") then fallback else nil
+end
+
+-- `ground`: punto de apoyo en el suelo. El tesoro se coloca encima, con giro al azar.
+local function makeTreasure(ground: Vector3, tier: string)
+	local def = (Config.Economy.Treasure :: any)[tier]
 	if not def then
 		return
 	end
-	-- Modelos de Codex en ServerStorage.AbismoAssets; si no hay, pieza provisional.
-	local template = Assets.Find("Treasure_" .. size)
-	local root: BasePart
-	local object: Instance
-	if template and template:IsA("Model") then
+	local template = pickTemplate(tier, def)
+	local rootOrNil: BasePart? = nil
+	local objectOrNil: Instance? = nil
+	if template then
 		local clone = template:Clone()
-		local handle = clone.PrimaryPart or clone:FindFirstChild("Handle")
+		local handle = clone.PrimaryPart or clone:FindFirstChild("Handle") or clone:FindFirstChildWhichIsA("BasePart", true)
 		if handle and handle:IsA("BasePart") then
-			clone.PrimaryPart = handle
-			local _, bounds = clone:GetBoundingBox()
-			clone:PivotTo(CFrame.new(att.WorldPosition + Vector3.new(0, bounds.Y / 2 + 0.2, 0)))
+			if def.Scale and def.Scale ~= 1 then
+				clone:ScaleTo(clone:GetScale() * def.Scale)
+			end
 			for _, d in clone:GetDescendants() do
 				if d:IsA("BasePart") then
 					d.Anchored = true
 					d.CanCollide = false
 				end
 			end
-			object = clone
-			root = handle
+			local box, size = clone:GetBoundingBox()
+			local target = ground + Vector3.new(0, size.Y / 2 + 0.15, 0)
+			clone:PivotTo(clone:GetPivot() + (target - box.Position)) -- el centro de la caja queda en el punto objetivo
+			local yaw = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+			clone:PivotTo(CFrame.new(target) * yaw * CFrame.new(-target) * clone:GetPivot())
+			objectOrNil = clone
+			rootOrNil = handle
 		else
 			clone:Destroy()
-			template = nil
 		end
 	end
-	if not template then
+	if not rootOrNil or not objectOrNil then
 		local part = Instance.new("Part") -- provisional
-		part.Name = "Treasure_" .. size
+		part.Name = "Treasure_" .. tier
 		part.Size = def.Size
 		part.Color = def.Color
 		part.Material = Enum.Material.Neon
-		part.CFrame = CFrame.new(att.WorldPosition + Vector3.new(0, def.Size.Y / 2 + 0.2, 0))
-		object = part
-		root = part
+		part.CFrame = CFrame.new(ground + Vector3.new(0, def.Size.Y / 2 + 0.2, 0))
+		objectOrNil = part
+		rootOrNil = part
 	end
+	local object = objectOrNil :: Instance
+	local root = rootOrNil :: BasePart
 	root.Anchored = true
 	root.CanCollide = false
-	object:SetAttribute("Size", size)
+	object:SetAttribute("Size", tier)
 
 	-- Luz propia: sin ella el tesoro es casi invisible en el agua oscura.
 	local glow = Instance.new("PointLight")
@@ -98,7 +122,7 @@ local function makeTreasure(att: Attachment, size: string)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Recoger"
-	prompt.ObjectText = "Tesoro " .. size
+	prompt.ObjectText = "Tesoro " .. tier
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = 0.4
 	prompt.MaxActivationDistance = 8
@@ -108,7 +132,7 @@ local function makeTreasure(att: Attachment, size: string)
 		if not object.Parent then
 			return -- ya recogido por otro jugador
 		end
-		local result = Economy.Pickup(player, size)
+		local result = Economy.Pickup(player, tier)
 		if result.ok then
 			object:Destroy()
 		else
@@ -118,23 +142,147 @@ local function makeTreasure(att: Attachment, size: string)
 	object.Parent = treasureFolder
 end
 
-local function spawnTreasure(mapName: string)
+-- Huecos de un nivel: cada TreasureSpawn (Attachment) y los repartidos por las TreasureZone y plataformas H-<n> (partes planas).
+local function collectSlots(map: Instance): { Vector3 }
+	local slots: { Vector3 } = {}
+	local B = Config.Economy.Balance
+	for _, d in map:GetDescendants() do
+		if d:IsA("Attachment") and d.Name == "TreasureSpawn" then
+			table.insert(slots, d.WorldPosition)
+		elseif d:IsA("BasePart") and (d.Name == "TreasureZone" or string.match(d.Name, "^H%-%d+$")) then
+			local n = math.max(1, math.floor(d.Size.X * d.Size.Z / B.ZoneAreaPerSlot + 0.5))
+			-- Cuadrícula con celdas al azar y algo de variación dentro de cada una: sin tesoros apilados.
+			local sx, sz = d.Size.X, d.Size.Z
+			local cols = math.max(1, math.floor(math.sqrt(n * sx / sz) + 0.5))
+			local rows = math.max(1, math.ceil(n / cols))
+			local cells: { Vector2 } = {}
+			for c = 0, cols - 1 do
+				for r = 0, rows - 1 do
+					table.insert(cells, Vector2.new(c, r))
+				end
+			end
+			for i = #cells, 2, -1 do
+				local j = rng:NextInteger(1, i)
+				cells[i], cells[j] = cells[j], cells[i]
+			end
+			for i = 1, math.min(n, #cells) do
+				local cell = cells[i]
+				local fx = ((cell.X + 0.5 + rng:NextNumber(-0.3, 0.3)) / cols - 0.5) * sx * 0.9
+				local fz = ((cell.Y + 0.5 + rng:NextNumber(-0.3, 0.3)) / rows - 0.5) * sz * 0.9
+				table.insert(slots, d.CFrame:PointToWorldSpace(Vector3.new(fx, d.Size.Y / 2, fz)))
+			end
+		end
+	end
+	return slots
+end
+
+-- Reparte tipos para que el valor total sea >= cuota * margen y no mucho más (Config.Economy.Balance).
+local TIERS = { "Small", "Medium", "Large" }
+
+local function planTreasure(quota: number, run: Runs.Run?, slotCount: number): { string }
+	local E = Config.Economy
+	local B = E.Balance
+	local upgradeLevels = 0
+	if run then
+		for _, lvl in run.upgrades do
+			upgradeLevels += lvl
+		end
+	end
+	local players = if run then #run.members else 1
+	local margin = math.min(B.MaxMargin, B.Margin + B.PerUpgradeLevel * upgradeLevels + B.PerExtraPlayer * math.max(0, players - 1))
+	local target = quota * margin
+	local ceiling = target * B.MaxOver
+	local small = E.Treasure.Small.Value
+
+	local count = math.min(slotCount, math.max(B.MinCount, math.floor(slotCount * B.FillFraction + 0.5)))
+	count = math.max(1, math.min(count, math.floor(ceiling / small)))
+	local plan: { string } = table.create(count, "Small")
+	local total = count * small
+
+	-- Premio gordo (como mucho uno): sustituye a varias piezas pequeñas, así el total sigue siendo "cuota y un poco más".
+	if rng:NextNumber() < B.EpicChance then
+		local epicCount = math.min(slotCount, B.MinCount)
+		local epicTotal = E.Treasure.Epic.Value + (epicCount - 1) * small
+		if epicCount >= 1 and epicTotal <= ceiling then
+			count = epicCount
+			plan = table.create(count, "Small")
+			plan[rng:NextInteger(1, count)] = "Epic"
+			total = epicTotal
+		end
+	end
+
+	-- Sube tipos al azar hasta llegar al objetivo.
+	local function rank(t: string): number
+		return table.find(TIERS, t) or 99
+	end
+	local guard = 0
+	while total < target and guard < 1000 do
+		guard += 1
+		local i = rng:NextInteger(1, count)
+		local r = rank(plan[i])
+		if r < #TIERS then
+			local nextTier = TIERS[r + 1]
+			local gain = E.Treasure[nextTier].Value - E.Treasure[plan[i]].Value
+			-- Si el salto se pasaría mucho del objetivo, usa el ascenso más pequeño (Small -> Medium) para quedar "un poco más".
+			if gain > (target - total) + small * 2 then
+				local smallIdx: number? = nil
+				for k, t in plan do
+					if t == "Small" then
+						smallIdx = k
+						break
+					end
+				end
+				if smallIdx then
+					i, nextTier = smallIdx, TIERS[2]
+					gain = E.Treasure.Medium.Value - small
+				end
+			end
+			if total + gain <= ceiling or total < target * 0.8 then
+				plan[i] = nextTier
+				total += gain
+			end
+		end
+	end
+	-- Si aún falta (pocos huecos en tipos bajos), añade más tesoros pequeños hasta llenar los huecos.
+	while total < target and #plan < slotCount do
+		table.insert(plan, "Small")
+		total += small
+	end
+	return plan
+end
+
+local function spawnTreasure(mapName: string, run: Runs.Run?)
 	clearTreasure()
 	local maps = workspace:FindFirstChild("Maps")
 	local map = maps and maps:FindFirstChild(mapName)
 	if not map then
 		return
 	end
-	for _, d in map:GetDescendants() do
-		if d:IsA("Attachment") and d.Name == "TreasureSpawn" then
-			local size = d:GetAttribute("Size")
-			makeTreasure(d, if type(size) == "string" then size else "Small")
+	local slots = collectSlots(map)
+	if #slots == 0 then
+		return
+	end
+	local stage = run and (Config.Run.Stages :: any)[run.zone]
+	local quota = (stage and stage.Quota) or 0
+	for i = #slots, 2, -1 do
+		local j = rng:NextInteger(1, i)
+		slots[i], slots[j] = slots[j], slots[i]
+	end
+	if quota <= 0 then
+		-- Nivel sin cuota (baliza): sin tesoros de cuota, solo una muestra pequeña.
+		for i = 1, math.min(#slots, Config.Economy.Balance.MinCount) do
+			makeTreasure(slots[i], "Small")
 		end
+		return
+	end
+	local plan = planTreasure(quota, run, #slots)
+	for i, tier in plan do
+		makeTreasure(slots[i], tier)
 	end
 end
 
 -- ===== Paneles del submarino =====
-local sub = workspace:WaitForChild("Submarine", 30)
+local sub = WorldRefs.WaitSubmarine(30)
 local panelPrompts: { { prompt: ProximityPrompt, state: string } } = {}
 if sub then
 	local function panel(stationName: string, action: string, activeIn: string, handler: (Player) -> ())
@@ -195,10 +343,18 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 			end
 		end
 	end
+	if state == "Stopover" then
+		for _, userId in run.members do
+			local p = Players:GetPlayerByUserId(userId)
+			if p then
+				notice(p, "El submarino sufrió daño. ¡Repárenlo y aprovechen para comprar suministros!")
+			end
+		end
+	end
 	if state == "Level" then
 		local def = Config.Run.Stages[run.zone]
 		if def then
-			spawnTreasure(def.Map)
+			spawnTreasure(def.Map, run)
 		end
 	elseif state == "Descending" or state == "Won" or state == "Lost" then
 		clearTreasure()

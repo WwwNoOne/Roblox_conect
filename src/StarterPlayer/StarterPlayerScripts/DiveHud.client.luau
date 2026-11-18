@@ -67,11 +67,10 @@ invLabel.TextColor3 = Color3.new(1, 1, 1)
 invLabel.Parent = frame
 
 local function refreshInfo(hull: number?, hullMax: number?, money: number?)
-	local hullText = if hull and hullMax then string.format("Casco: %d/%d", hull, hullMax) else "Casco: --"
-	local moneyText = if money then string.format("  $%d", money) else ""
+	-- El casco ya no se muestra aquí: está en el panel del submarino (SubPanelClient).
+	local moneyText = if money then string.format("$%d  ", money) else ""
 	invLabel.Text = string.format(
-		"%s%s  Slots %d/%d  [F] %s",
-		hullText,
+		"%sSlots %d/%d  [F] %s",
 		moneyText,
 		player:GetAttribute("CarryCount") or 0,
 		player:GetAttribute("CarryCapacity") or 0,
@@ -101,11 +100,12 @@ quotaLabel.Parent = frame
 local notice = Instance.new("TextLabel")
 notice.AnchorPoint = Vector2.new(0.5, 0)
 notice.Position = UDim2.new(0.5, 0, 0, 24)
-notice.Size = UDim2.fromOffset(320, 32)
+notice.Size = UDim2.fromOffset(560, 48)
+notice.TextWrapped = true
 notice.BackgroundColor3 = Color3.fromRGB(10, 30, 50)
 notice.BackgroundTransparency = 0.25
 notice.Font = Enum.Font.GothamBold
-notice.TextSize = 18
+notice.TextSize = 17
 notice.TextColor3 = Color3.new(1, 1, 1)
 notice.Visible = false
 notice.Parent = gui
@@ -121,7 +121,7 @@ player:GetAttributeChangedSignal("HudNotice"):Connect(function()
 	notice.Visible = true
 	noticeId += 1
 	local mine = noticeId
-	task.delay(2.5, function()
+	task.delay(2.5 + #notice.Text * 0.04, function()
 		if noticeId == mine then
 			notice.Visible = false
 		end

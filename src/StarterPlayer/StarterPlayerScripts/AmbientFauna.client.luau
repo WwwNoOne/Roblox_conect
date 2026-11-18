@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
+local WorldRefs = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("WorldRefs"))
 local A = Config.Ambient
 local player = Players.LocalPlayer
 local templates = ReplicatedStorage:WaitForChild("AmbientFauna", 30)
@@ -104,33 +105,59 @@ type Path = { points: { Vector3 }, cum: { number }, length: number }
 
 -- Puntos de control de una ruta. Normal: todas las partes en orden de nombre. Branching: M-1..M-n (M-1 y el último
 -- siempre, los intermedios al azar) y una salida Exit_n al azar, con un pequeño desplazamiento (Config.Ambient.Branch).
-local function routePoints(routeFolder: Instance, branching: boolean): { Vector3 }
-	local ctrl: { Vector3 } = {}
-	if not branching then
-		local parts: { BasePart } = {}
-		for _, c in routeFolder:GetChildren() do
-			if c:IsA("BasePart") then
-				table.insert(parts, c)
+-- Con StreamingEnabled las partes de la ruta (muy lejos) no existen en el cliente: AmbientRoutesService.server las
+-- publica en ReplicatedStorage.AmbientRoutes.<Nivel>.<Ruta> (Vector3Value). Si no, se intenta con las partes del mapa.
+local function routePositions(map: Instance, routeName: string): { [string]: Vector3 }
+	local out: { [string]: Vector3 } = {}
+	local pub = ReplicatedStorage:FindFirstChild("AmbientRoutes")
+	local folder = pub and pub:FindFirstChild(map.Name)
+	folder = folder and folder:FindFirstChild(routeName)
+	if folder then
+		for _, c in folder:GetChildren() do
+			if c:IsA("Vector3Value") then
+				out[c.Name] = c.Value
 			end
 		end
-		table.sort(parts, function(a, b)
-			return a.Name < b.Name
-		end)
-		for _, p in parts do
-			table.insert(ctrl, p.Position)
+		return out
+	end
+	local routes = map:FindFirstChild("AmbientRoutes")
+	folder = routes and routes:FindFirstChild(routeName)
+	if folder then
+		for _, c in folder:GetChildren() do
+			if c:IsA("BasePart") then
+				out[c.Name] = c.Position
+			end
+		end
+	end
+	return out
+end
+
+local function routePoints(positions: { [string]: Vector3 }, branching: boolean): { Vector3 }
+	local ctrl: { Vector3 } = {}
+	if not branching then
+		local names: { string } = {}
+		for name in positions do
+			table.insert(names, name)
+		end
+		table.sort(names)
+		for _, name in names do
+			table.insert(ctrl, positions[name])
 		end
 		return ctrl
 	end
 	local nodes: { { n: number, pos: Vector3 } } = {}
 	local exits: { Vector3 } = {}
-	for _, c in routeFolder:GetChildren() do
-		if c:IsA("BasePart") then
-			local n = tonumber(string.match(c.Name, "^M%-(%d+)$"))
-			if n then
-				table.insert(nodes, { n = n, pos = c.Position })
-			elseif string.match(c.Name, "^Exit") then
-				table.insert(exits, c.Position)
+	for name, pos in positions do
+		-- M-1, N-3... y letras intermedias: M-A va justo después de M-5 y antes de M-6 (M-5 < M-A < M-6).
+		local num, letter = string.match(name, "^[MNA]%-(%d+)(%a?)$")
+		if num then
+			local n = tonumber(num) :: number
+			if letter ~= "" then
+				n += (string.byte(string.upper(letter)) - 64) / 100
 			end
+			table.insert(nodes, { n = n, pos = pos })
+		elseif string.match(name, "^Exit") then
+			table.insert(exits, pos)
 		end
 	end
 	table.sort(nodes, function(a, b)
@@ -199,7 +226,7 @@ local function sample(path: Path, dist: number): (Vector3, Vector3)
 end
 
 -- ===== Gigantes =====
-type Giant = { model: Model, path: Path, speed: number, dist: number }
+type Giant = { model: Model, path: Path, speed: number, dist: number, template: string }
 type Schedule = { def: { [string]: any }, nextAt: number, active: Giant? }
 
 local giantSchedules: { Schedule } = {}
@@ -227,14 +254,39 @@ local function startMap(map: Instance)
 end
 
 local function spawnGiant(map: Instance, s: Schedule)
-	local routes = map:FindFirstChild("AmbientRoutes")
-	local folder = routes and routes:FindFirstChild(s.def.Route)
-	local template = templates:FindFirstChild(s.def.Template)
-	if not folder or not template or not template:IsA("Model") then
+	local templateName: string? = s.def.Template
+	local speed: number = s.def.Speed
+	if s.def.Pool then
+		-- Ruta compartida: dado de probabilidad y criatura al azar (que no esté ya en otra ruta).
+		if rng:NextNumber() >= (s.def.Chance or 1) then
+			s.nextAt = os.clock() + s.def.Interval
+			return
+		end
+		local free = {}
+		for _, entry in s.def.Pool do
+			local busy = false
+			for _, o in giantSchedules do
+				if o.active and o.active.template == entry.Template then
+					busy = true
+				end
+			end
+			if not busy then
+				table.insert(free, entry)
+			end
+		end
+		if #free == 0 then
+			s.nextAt = os.clock() + s.def.Interval
+			return
+		end
+		local pick = free[rng:NextInteger(1, #free)]
+		templateName, speed = pick.Template, pick.Speed
+	end
+	local template = templateName and templates:FindFirstChild(templateName)
+	if not template or not template:IsA("Model") then
 		s.nextAt = os.clock() + s.def.Interval
 		return
 	end
-	local path = buildPath(routePoints(folder, s.def.Branching == true))
+	local path = buildPath(routePoints(routePositions(map, s.def.Route), s.def.Branching == true))
 	if not path then
 		s.nextAt = os.clock() + s.def.Interval
 		return
@@ -244,7 +296,7 @@ local function spawnGiant(map: Instance, s: Schedule)
 	local pos, dir = sample(path, 0)
 	setCF(model, CFrame.lookAt(pos, pos + dir))
 	playClip(model, "Swim", template)
-	s.active = { model = model, path = path, speed = s.def.Speed, dist = 0 }
+	s.active = { model = model, path = path, speed = speed, dist = 0, template = templateName :: string }
 end
 
 local function stepGiants(map: Instance?, dt: number)
@@ -290,7 +342,7 @@ local function clearFish()
 end
 
 local function insideSub(pos: Vector3): boolean
-	local sub = workspace:FindFirstChild("Submarine")
+	local sub = WorldRefs.Submarine()
 	local zone = sub and sub:FindFirstChild("InteriorZone", true)
 	if zone and zone:IsA("BasePart") then
 		local rel = zone.CFrame:PointToObjectSpace(pos)

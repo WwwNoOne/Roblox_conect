@@ -2,11 +2,28 @@
   "name": "Abismo",
   "tree": {
     "$className": "DataModel",
-    "ReplicatedStorage": { "$className": "ReplicatedStorage", "Shared": { "$path": "src/ReplicatedStorage/Shared" } },
-    "ServerScriptService": { "$className": "ServerScriptService", "Services": { "$path": "src/ServerScriptService/Services" } },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "src/ReplicatedStorage/Shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Services": {
+        "$path": "src/ServerScriptService/Services"
+      }
+    },
     "StarterPlayer": {
       "$className": "StarterPlayer",
-      "StarterPlayerScripts": { "$className": "StarterPlayerScripts", "$path": "src/StarterPlayer/StarterPlayerScripts" }
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$path": "src/StarterPlayer/StarterPlayerScripts"
+      }
+    },
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+      "$path": "src/ReplicatedFirst"
     }
   }
 }

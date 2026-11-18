@@ -2,7 +2,16 @@
 -- Constantes compartidas (GDD: 6 minutos de oxígeno inicial).
 -- Mejoras de la tienda (precios por nivel). Valores de prueba aprobados, no están en el GDD.
 local Upgrades = table.freeze({
-	Lamp = table.freeze({ Name = "Luz potente", Order = 2, Prices = { 150 }, RangeBonus = 30 }),
+	Lamp = table.freeze({
+		Name = "Luz potente",
+		Order = 2,
+		Prices = { 150 },
+		-- Por nivel. No sube el alcance: SpotLight.Range tiene tope real de 120, así que sería invisible.
+		BrightnessBonus = 1.5, -- sumado a LampBrightness
+		AngleBonus = 5, -- grados sumados al cono
+		HotspotScaleBonus = 0.2, -- fracción extra del radio del círculo
+		HotspotBrightnessBonus = 0.5, -- sumado a LampHotspotBrightness
+	}),
 })
 
 -- Aspecto del agua. Se usa Atmosphere (Lighting.Fog NO se aplica dentro de agua de Terrain).
@@ -32,19 +41,27 @@ local Water = table.freeze({
 -- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
 -- Kind "Level": se sale a explorar (compuerta abierta). Kind "Parada": nadie sale; se vende/repara/compra desde dentro.
 -- Crab = true: el nivel tiene al cangrejo guardián.
+-- Kraken = true: el nivel tiene al kraken enemigo (KrakenService).
+-- Mandibula = true: el nivel tiene las Mandíbulas radiales (MandibulaService; cantidad en Config.Mandibula.Count).
 -- Beacon = true: el nivel tiene la baliza (victoria al activarla).
 -- Quota (opcional): valor de tesoros a depositar en ese nivel; el último nivel (baliza) no tiene cuota.
--- Depth en metros (HUD); PressureDps = daño/s al casco en esa etapa (en la parada es 0: refugio seguro).
+-- Depth en metros (HUD); PressureDps ya no se aplica (el casco pierde Run.DescentDamage al llegar a cada etapa).
 local Run = table.freeze({
 	HullMax = 100,
 	StartMoney = 0,
 	BeaconHoldSeconds = 5, -- mantener E para activar la baliza (ProximityPrompt.HoldDuration)
 	EndScreenSeconds = 8, -- tiempo de la pantalla final antes de volver a la sala
 	TravelSeconds = 20, -- duración del viaje entre etapas
+	-- El casco ya no se desgasta con el tiempo: pierde DescentDamage HP al llegar a cada etapa (se reduce con el blindaje).
+	DescentDamage = 20,
+	-- Al pulsar Avanzar con más de un jugador vivo, los demás tienen este tiempo para entrar; con todos dentro se parte antes.
+	AdvanceCountdown = 60,
+	-- Clock (opcional): el reloj del nivel va de Start a End (horas) en Seconds y se queda en End (19 h = atardecer).
+	-- Sin Clock el ciclo día/noche corre libre (Config.DayLengthSeconds).
 	Stages = table.freeze({
-		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 200, PressureDps = 0.1, Quota = 100 }),
+		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 200, PressureDps = 0.1, Quota = 400, Clock = table.freeze({ Start = 14, End = 19, Seconds = 480 }) }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 300, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 400, PressureDps = 0.5, Quota = 200, Crab = true }),
+		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 400, PressureDps = 0.5, Quota = 200, Crab = true, Kraken = true, Mandibula = true, Clock = table.freeze({ Start = 19.3, End = 19.3, Seconds = 1 }) }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 500, PressureDps = 0 }),
 		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 600, PressureDps = 1.2, Beacon = true, Crab = true }),
 	}),
@@ -84,14 +101,246 @@ local Crab = table.freeze({
 	TotalDamage = 20, -- daño total repartido durante el traslado
 	Immunity = 6, -- segundos sin poder ser atrapado tras soltarte
 	RetryDelay = 4, -- pausa del cangrejo tras soltar
+	PlatformCount = 3, -- cangrejos por partida en Level_2: se sortean entre las plataformas H-<n>, uno por plataforma
+})
+
+-- Kraken abisal (KrakenService): enemigo que ronda libre por el nivel; persigue a quien vea fuera del submarino, lo agarra con un tentáculo y lo mata.
+-- Plantilla: AbismoAssets.Creatures.Kraken_Abisal (eje Y del modelo = cuerpo, manto arriba; avanza con los tentáculos por delante).
+-- Los jugadores nadan a 20: la persecución es más lenta para poder esquivarlo (y el dash lo deja atrás).
+local Kraken = table.freeze({
+	Length = 42, -- alto del modelo en studs (el original mide ~100; 0 = tamaño original). Escala 0,6 de los 70 anteriores
+	RoamSpeed = 9, -- studs/s patrullando
+	ChaseSpeed = 16, -- persiguiendo
+	RecoverSpeed = 12, -- alejándose tras golpear
+	TurnRate = 0.9, -- giro suave (mayor = gira más rápido); es una criatura enorme
+	DetectRange = 160, -- studs; con la lámpara encendida se multiplica
+	LampDetectMultiplier = 1.3,
+	LoseRangeMultiplier = 1.5, -- pierde al objetivo más allá de DetectRange * esto
+	GrabReach = 9, -- distancia de la punta (o mitad final) de un tentáculo a la que agarra al jugador
+	GrabSeconds = 2.5, -- tiempo que sostiene al jugador antes de matarlo (se queda quieto mientras tanto)
+	-- Postura (solo visual; se mueve por donde nada): casi siempre erguido con los tentáculos colgando hacia abajo, y de vez en
+	-- cuando horizontal. Nunca con los tentáculos hacia arriba. Inclinación = 0 erguido, 90 horizontal.
+	UprightLeanDeg = 12, -- inclinación hacia delante al patrullar erguido
+	ChaseLeanDeg = 40, -- al perseguir se inclina más hacia su presa
+	HorizontalDeg = 80, -- inclinación en la postura horizontal
+	HorizontalChance = 0.25, -- probabilidad de que la siguiente postura al patrullar sea horizontal
+	PoseMin = 12, -- segundos que dura cada postura
+	PoseMax = 30,
+	TiltSmoothing = 0.7, -- suavizado del cambio de postura (mayor = más rápido)
+	RecoverSeconds = 5, -- se aleja de su presa tras un golpe antes de volver a patrullar
+	ProbeRadius = 15, -- radio de cada esfera de colisión del cuerpo (hay 3 a lo largo del eje: manto, centro y tentáculos)
+	ProbeSpread = 0.35, -- separación de las esferas laterales respecto al centro, como fracción de Length
+	ProbeDistance = 36,
+	ReachDistance = 24, -- distancia para dar un punto de patrulla por alcanzado
+	StuckSeconds = 10, -- sin acercarse al punto este tiempo = elige otro
+	RoamMargin = 40, -- los puntos de patrulla quedan al menos a esto del borde de Bounds
+	FirstDelay = 40, -- segundos desde el inicio del nivel hasta que aparece en Spawn_leviatan
+	-- Animación (cliente, KrakenClient): ondulación de tentáculos, aletas y barbillas con huesos (Bone.Transform).
+	Anim = table.freeze({
+		TentacleDeg = 7, -- giro por hueso de tentáculo (la curva total suma los 8)
+		TentacleTip = 1.6, -- la punta se mueve hasta este tanto más que la base
+		TentaclePhase = 0.7, -- desfase entre huesos (rad)
+		FinDeg = 10,
+		FinPhase = 0.6,
+		BeardDeg = 12,
+		BaseHz = 0.35,
+		HzPerSpeed = 0.03, -- se suma por cada stud/s de velocidad
+		MaxHz = 1.2,
+		Smoothing = 3,
+		MaxDistance = 1500, -- más lejos que esto de la cámara no se anima
+	}),
+	Debug = true, -- imprime los cambios de estado y pone atributos de depuración en el modelo
+})
+
+-- Mandíbula radial (MandibulaService): criatura mediana que ronda todo el mapa, persigue a quien vea fuera del submarino y muerde.
+-- Plantilla: AbismoAssets.Creatures.Mandibula_Radial (cabeza hacia -Z; animaciones Swim y Attack). Más lenta que el nado (20).
+local Mandibula = table.freeze({
+	Count = 3, -- cuántas hay a la vez en el nivel
+	RoamSpeed = 11,
+	ChaseSpeed = 18,
+	RecoverSpeed = 14, -- alejándose tras morder
+	TurnRate = 2.2,
+	DetectRange = 90, -- studs; con la lámpara encendida se multiplica
+	LampDetectMultiplier = 1.4,
+	LoseRangeMultiplier = 1.5,
+	BiteReach = 9, -- distancia de la cabeza al jugador para morder
+	Damage = 20,
+	BiteCooldown = 2, -- segundos sin poder morder de nuevo al mismo jugador
+	Knockback = 40,
+	RecoverSeconds = 2.5,
+	ProbeRadius = 8,
+	ProbeDistance = 30,
+	ReachDistance = 15,
+	StuckSeconds = 8,
+	RoamMargin = 40, -- los puntos de patrulla quedan al menos a esto del borde de Bounds
+	MinSpawnDistance = 250, -- aparece al menos a esto del SubDock
+	Debug = false,
+})
+
+-- Laberinto (MazeGenerator, Level.Mode = "maze"): piezas de pasillo en Workspace.Pasillo.Pasillos (cada una con Conexiones y Escondites).
+local Maze = table.freeze({
+	Count = 28, -- piezas por nivel (sin contar el marco del pozo)
+	MaxLinearRun = 2, -- tramos rectos seguidos (pasillo lineal o pozo recto): el recto y 1 más
+	MaxVertical = 5, -- pozos verticales por nivel (incluida la pieza bajo la sala_0)
+	MaxRooms = 3, -- salas por nivel
+	-- Piezas: Name = Model dentro de Workspace.Pasillo (Pasillos, Pasillos_V) o Workspace.Salas; Kind agrupa las reglas
+	-- ("linear"/"shaft" = rectos, "room" = sala); Weight = probabilidad relativa al elegir.
+	Pieces = table.freeze({
+		table.freeze({ Name = "Pasillo_Lineal", Kind = "linear", Weight = 3 }),
+		table.freeze({ Name = "Pasillo_L", Kind = "elbow", Weight = 3 }),
+		table.freeze({ Name = "Pasillo_T", Kind = "tee", Weight = 2 }),
+		table.freeze({ Name = "Pasillo_Cruz_4", Kind = "cross", Weight = 1 }),
+		table.freeze({ Name = "Pozo_Recto_48", Kind = "shaft", Weight = 1 }),
+		table.freeze({ Name = "Pozo_L", Kind = "shaftL", Weight = 1 }),
+		table.freeze({ Name = "Pozo_T", Kind = "shaftT", Weight = 1 }),
+		table.freeze({ Name = "Pozo_Cruz_4", Kind = "shaftCross", Weight = 1 }),
+		table.freeze({ Name = "Sala_01_70x70x70", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_02_84x72x132", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_03_110x76x90", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_04_92x128x76", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_05_74x170x106", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_06_132x96x148", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_07_156x110x82", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_08_104x145x174", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_09_176x90x200", Kind = "room", Weight = 1 }),
+		table.freeze({ Name = "Sala_10_200x200x158", Kind = "room", Weight = 1 }),
+	}),
+	Inner = 16, -- sección interior libre del pasillo
+	Outer = 20, -- sección exterior (con paredes)
+	Pit = 40, -- lado del pozo de la sala_0 (el marco lo une con la primera pieza)
+	-- Caja de la sala_0 respecto a su SubDock (por encima del suelo del pozo): las piezas no pueden entrar
+	Sala0BoxCenter = Vector3.new(5.4, 18.2, 48.9),
+	Sala0BoxHalf = Vector3.new(41, 18.2, 55),
+})
+
+-- Pez Pelícano Abisal (MonsterService): enemigo que patrulla el laberinto siguiendo la red de pasillos y, al detectarte, corre
+-- hacia ti. Plantilla: Workspace.Creatures.Pez_Pelicano_Abisal (rig de Motor6D con animaciones en AnimSaves). Más rápido que el nado.
+local Monster = table.freeze({
+	TemplateName = "Pez_Pelicano_Abisal",
+	Length = 24, -- largo del modelo en studs (el original mide ~35; cabe en pasillos de 16 de ancho)
+	PatrolSpeed = 10, -- studs/s patrullando
+	ChaseSpeed = 24, -- corriendo hacia el jugador (el nado normal es 20)
+	TurnRate = 7, -- giro suave
+	SightRange = 80, -- vista con línea de visión (la lámpara encendida lo multiplica)
+	LampSightMultiplier = 1.5,
+	HearRange = 14, -- te oye a esta distancia aunque no te vea (no si estás escondido)
+	HiddenRange = 5, -- escondido solo te encuentra si está muy cerca
+	LoseSeconds = 4, -- tras perderte de vista sigue buscando este tiempo antes de volver a patrullar
+	AttackReach = 8, -- distancia de la boca al jugador para morder
+	AttackDamage = 50, -- daño por mordisco
+	AttackCooldown = 2,
+	FirstDelay = 15, -- segundos desde el inicio del nivel hasta que aparece
+	MinSpawnDistance = 90, -- aparece al menos a esta distancia del pozo de la sala_0
+	Debug = true,
+	-- Cuántos enemigos salen por nivel (especies distintas al azar, según Weight) y con qué separación entre apariciones.
+	PerLevel = 2,
+	SpawnStagger = 25, -- segundos entre la aparición de un enemigo y el siguiente
+	-- Especies. Cada una sobrescribe los valores de arriba. Las generadas con ForgeGUI (un solo MeshPart, cabeza hacia -Z)
+	-- llevan ProcAnim = perfil de CreatureAnim: el cliente las anima cortadas en trozos (CreatureAnimator).
+	-- Plantillas en ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
+	Species = table.freeze({
+		table.freeze({ Name = "PezPelicano", TemplateName = "Pez_Pelicano_Abisal", Weight = 1 }),
+		table.freeze({ Name = "Anguila", TemplateName = "Anguila_Abisal", ProcAnim = "Anguila", Weight = 1,
+			Length = 30, PatrolSpeed = 12, ChaseSpeed = 26, TurnRate = 8, AttackDamage = 40, AttackReach = 9,
+			HeadOffset = 13, Roar = "Abismo_Anguila" }),
+		table.freeze({ Name = "Rape", TemplateName = "Rape_Abisal", ProcAnim = "Rape", Weight = 1,
+			Length = 20, PatrolSpeed = 7, ChaseSpeed = 21, TurnRate = 5, SightRange = 110, HearRange = 10, AttackDamage = 60,
+			HeadOffset = 8, Roar = "Abismo_Rape" }),
+		table.freeze({ Name = "Medusa", TemplateName = "Medusa_Abisal", ProcAnim = "Medusa", Weight = 0.8,
+			Length = 22, PatrolSpeed = 5, ChaseSpeed = 14, TurnRate = 3, SightRange = 50, HearRange = 18, AttackReach = 10,
+			AttackDamage = 35, AttackCooldown = 1.2, HeadOffset = 0, Upright = true, Roar = "Abismo_Medusa" }),
+		table.freeze({ Name = "Isopodo", TemplateName = "Isopodo_Gigante", ProcAnim = "Isopodo", Weight = 1,
+			Length = 16, PatrolSpeed = 9, ChaseSpeed = 22, TurnRate = 6, SightRange = 60, HearRange = 22, AttackDamage = 45,
+			HeadOffset = 7, Roar = "Abismo_Isopodo" }),
+		table.freeze({ Name = "Tiburon", TemplateName = "Tiburon_Duende", ProcAnim = "Tiburon", Weight = 1,
+			Length = 26, PatrolSpeed = 13, ChaseSpeed = 28, TurnRate = 6, AttackDamage = 55, AttackCooldown = 2.5,
+			HeadOffset = 11, Roar = "Abismo_Tiburon" }),
+	}),
+})
+
+-- Perfiles de animación procedural (CreatureAnimator.client). Axis/HeadSign: eje largo de la malla y lado de la cabeza;
+-- Amplitude: fracción del largo; Frequency: ciclos/s en reposo (sube al correr); Wavelength: ondas a lo largo del cuerpo;
+-- Power: cuánto se concentra hacia la cola; Rigid: fracción del cuerpo desde la cabeza que no se dobla.
+local CreatureAnim = table.freeze({
+	Anguila = table.freeze({ Axis = "Z", HeadSign = -1, Segments = 6, Mode = "swim", Amplitude = 0.07, Frequency = 0.7, Wavelength = 1.1, Power = 1.2, Rigid = 0.12 }),
+	Rape = table.freeze({ Axis = "Z", HeadSign = -1, Segments = 5, Mode = "swim", Amplitude = 0.06, Frequency = 0.6, Wavelength = 0.6, Power = 2.2, Rigid = 0.4 }),
+	Medusa = table.freeze({ Axis = "Y", HeadSign = 1, Segments = 7, Mode = "jelly", Amplitude = 0.05, Frequency = 0.35, Wavelength = 0.7, Power = 1.5, Rigid = 0.3 }),
+	Isopodo = table.freeze({ Axis = "Z", HeadSign = -1, Segments = 7, Mode = "crawl", Amplitude = 0.012, Frequency = 1.4, Wavelength = 1.5, Power = 1, Rigid = 0 }),
+	Tiburon = table.freeze({ Axis = "Z", HeadSign = -1, Segments = 7, Mode = "swim", Amplitude = 0.05, Frequency = 0.8, Wavelength = 0.8, Power = 2, Rigid = 0.3 }),
+})
+
+
+-- Esconderse (Hiding + HidingHandlers): cada volumen `Escondite` del laberinto (la caja industrial de cada pieza) lleva un
+-- ProximityPrompt. Pulsar E te mete en la caja (quedas quieto e invisible, atributo de jugador Hidden = true) y otra vez E sales
+-- por donde entraste. Los enemigos ignoran a quien está escondido. El oxígeno sigue bajando mientras tanto.
+local Hiding = table.freeze({
+	HoldSeconds = 0.4, -- tiempo que hay que mantener E
+	Distance = 7, -- distancia máxima al centro de la caja para ver el aviso
+	PromptText = "Esconderse / Salir",
+	ObjectText = "Caja industrial",
+	Cooldown = 0.6, -- segundos entre usos del mismo jugador (evita rebotes)
+})
+
+-- Generación del mundo (LevelService + RoomGenerator, ver game_designs/Generacion_Cuevas.md).
+-- Las plantillas están en Workspace (Salas_grandes, Salas_normales, Pasillo) y LevelService las mueve a ServerStorage al arrancar.
+local Level = table.freeze({
+	Mode = "maze", -- "maze" = laberinto de pasillos (MazeGenerator); "rooms" = salas grandes unidas por pasillos largos (RoomGenerator, versión anterior)
+	Seed = nil :: number?, -- nil = aleatoria en cada servidor (se publica en el atributo de Workspace LevelSeed)
+	Smalls = 10, -- salas pequeñas además de la grande
+	Scale = 0.6, -- escala con la que se instancian salas y pasillo (las plantillas no se tocan); 1 = tamaño modelado
+	Corridor = 140, -- largo del pasillo modelado (de puerta a puerta), antes de aplicar Scale
+	BigDoors = 3, -- las primeras salas pequeñas se pegan a la grande
+	VerticalMax = 2, -- pasillos verticales extra (además del de la sala_0)
+	BigName = "Kraken_map", -- plantilla de la sala grande
+	-- Carpetas de Workspace que se apartan a ServerStorage.Plantillas al arrancar (assets de pruebas, suelo de pruebas...) para que no
+	-- estorben ni se carguen en la partida.
+	Stash = { "Assets", "Zona_Prueba", "LeadPipes" },
+	-- Sala_0 (relativo a su SubDock): puerto del pozo y caja aproximada
+	Sala0Port = Vector3.new(2, -9, 74),
+	Sala0Half = Vector3.new(47, 28, 104),
+	-- Grosor de pared y volumen de agua interior de cada tipo de sala
+	BigWall = 8,
+	BigWater = Vector3.new(270, 272, 264),
+	SmallWall = 7,
+	SmallWater = Vector3.new(160, 160, 160),
 })
 
 local Economy = table.freeze({
 	CarrySlots = 4, -- objetos que lleva cada jugador (1 por slot)
+	-- Tipos de tesoro. Models: modelos del Museum Treasures Pack (ServerStorage.AbismoAssets.Treasures.Museum); si no se
+	-- encuentra ninguno se usa Treasure_<Tipo> y, por último, una pieza provisional. Scale: tamaño sobre el modelo original (miden 1-2 studs).
 	Treasure = table.freeze({
-		Small = table.freeze({ Value = 25, Size = Vector3.new(1, 1, 1), Color = Color3.fromRGB(240, 200, 80) }),
-		Medium = table.freeze({ Value = 75, Size = Vector3.new(1.6, 1.6, 1.6), Color = Color3.fromRGB(120, 220, 240) }),
-		Large = table.freeze({ Value = 200, Size = Vector3.new(2.4, 2.4, 2.4), Color = Color3.fromRGB(230, 90, 220) }),
+		Small = table.freeze({
+			Value = 25, Size = Vector3.new(1, 1, 1), Color = Color3.fromRGB(240, 200, 80), Scale = 2.4,
+			Models = table.freeze({ "sh_tresors_Seashell", "sh_tresors_Amber", "sh_tresors_Ammonite", "sh_tresors_Anchor", "sh_tresors_Compass", "sh_tresors_Spyglass", "sh_tresors_Vase", "sh_tresors_Meteorite", "sh_tresors_MoonRock", "sh_tresors_Painting", "sh_tresors_Palette", "sh_tresors_Shield", "sh_tresors_Satellite", "sh_tresors_Rocket", "sh_tresors_Seahorse", "sh_coffre_Coffre_Bronze" }),
+		}),
+		Medium = table.freeze({
+			Value = 75, Size = Vector3.new(1.6, 1.6, 1.6), Color = Color3.fromRGB(120, 220, 240), Scale = 2.6,
+			Models = table.freeze({ "sh_tresors_JadeSerpent", "sh_tresors_JewelBox", "sh_tresors_Scarab", "sh_tresors_Ankh", "sh_tresors_CatIdol", "sh_tresors_Goblet", "sh_tresors_RaptorClaw", "sh_tresors_DinoEgg", "sh_tresors_FrostCrystal", "sh_tresors_SnowflakeGem", "sh_tresors_Trident", "sh_tresors_KnightSword", "sh_tresors_Orb", "sh_tresors_RingedPlanet", "sh_coffre_Coffre_Argent" }),
+		}),
+		Large = table.freeze({
+			Value = 200, Size = Vector3.new(2.4, 2.4, 2.4), Color = Color3.fromRGB(230, 90, 220), Scale = 2.8,
+			Models = table.freeze({ "sh_tresors_GoldenClock", "sh_tresors_GoldenDino", "sh_tresors_GoldenHelm", "sh_tresors_GoldenPyramid", "sh_tresors_Crown", "sh_tresors_Scepter", "sh_tresors_JewelEgg", "sh_tresors_SunDisc", "sh_tresors_DoubloonChest", "sh_coffre_Coffre_Or" }),
+		}),
+		-- Premio gordo: como mucho uno por nivel (Balance.EpicChance).
+		Epic = table.freeze({
+			Value = 500, Size = Vector3.new(3, 3, 3), Color = Color3.fromRGB(150, 255, 210), Scale = 1.8,
+			Models = table.freeze({ "sh_finale_Diamond" }),
+		}),
+	}),
+	-- Reparto de tesoros por nivel (EconomyHandlers.spawnTreasure). Cada TreasureZone (parte plana oculta) ofrece huecos
+	-- (1 por ZoneAreaPerSlot studs²) y cada TreasureSpawn suelto es un hueco. Se llenan los necesarios para que el valor total
+	-- sea siempre >= cuota * margen (y no mucho más), con tipos al azar, y las posiciones cambian en cada partida.
+	Balance = table.freeze({
+		Margin = 1.4, -- el valor repartido es la cuota x esto: la cuota y "un poco más" para cubrir pérdidas y comprar equipo
+		PerUpgradeLevel = 0.05, -- +margen por cada nivel de mejora comprado (equipo más fuerte recoge más; el extra paga más mejoras)
+		PerExtraPlayer = 0.08, -- +margen por jugador adicional a 1 (más manos, más tesoros)
+		MaxMargin = 2.0,
+		MaxOver = 1.6, -- el total repartido no pasa de cuota x margen x esto (evita niveles regalados)
+		FillFraction = 0.35, -- fracción de huecos que se llenan (antes de ajustar al valor objetivo)
+		MinCount = 10, -- mínimo de tesoros por nivel (si hay huecos)
+		ZoneAreaPerSlot = 180, -- studs² de zona por hueco
+		EpicChance = 0.3, -- probabilidad de que un nivel incluya el premio gordo
 	}),
 	-- Cuota por nivel: se deposita en el submarino durante el nivel y se cobra al cerrarlo.
 	Quota = table.freeze({
@@ -121,6 +370,40 @@ local Sfx = table.freeze({
 	Dash = "dash",
 	Bubbles = "Bubbles Small", -- burbujas de la boca (se elige una variante al azar)
 	Stroke = "Movimiento", -- brazada al nadar (SwimClient)
+	-- Submarino (Workspace.sonidos.Efectos_submarino). Prefijos completos para no mezclar p. ej. Avanzar_1 con Avanzar_nivel_...
+	SubEnter = "entrar", -- un jugador entra por la compuerta
+	SubExit = "Salir", -- un jugador sale por la compuerta
+	SubStart = "Iniciar_partida", -- todos a bordo: parte hacia el primer nivel
+	SubAdvance = table.freeze({ "Avanzar_1", "Avanzar_2" }), -- viaje entre nivel y Parada (al azar)
+	SubAdvanceDamaged = "Avanzar_nivel_submarino_muy_danado", -- ese viaje con el casco por debajo de DamagedHullFraction
+	SubImplode = "submarino_implosiona",
+	SubDefeatAlarm = "Alarm_cuando_pierden", -- derrota por implosión (junto con SubImplode)
+	SubDefeatShort = "Alarma_perdieron", -- cualquier otra derrota
+	SubLowHullSiren = "Submarine Alarm Casualty", -- una vez al bajar de LowHullFraction
+	SubArrive = "Cuando_llega_al_siguiente_nivel", -- el submarino llega a un nivel o a la Parada
+	PanelClick = "Abismo_Panel_Click", -- botón del panel del submarino (ForgeGUI)
+	-- Ambiente de las salas de la instalación (ForgeGUI); los usa RoomAmbience.client.
+	FacilityAmbience = "Abismo_Ambiente_Instalacion",
+	PipeGroan = "Abismo_Tuberia_Gemido",
+	-- Sin conectar todavía: adicional_1.
+})
+
+-- Audio de partida: música por contexto (Workspace.sonidos.Musica_background, por nombre) y mezcla de los efectos del submarino.
+local Audio = table.freeze({
+	Music = table.freeze({
+		Lobby = "Lobby", -- fuera de partida
+		Levels = table.freeze({
+			Level_1 = "Nivel(1)",
+			Level_2 = "Nivel(2)",
+			Level_3 = "Pendiente(2)",
+		}),
+		Volume = 0.35,
+		FadeSeconds = 2.5, -- cruce entre pistas; en la Parada y los viajes la música se desvanece
+	}),
+	SubVolume = 0.6,
+	SubRollOff = 160, -- studs: los efectos del submarino se oyen dentro y cerca, no en todo el mapa
+	DamagedHullFraction = 0.3, -- casco <= 30 % usa Avanzar_nivel_submarino_muy_danado
+	LowHullFraction = 0.25, -- casco <= 25 % dispara la sirena
 })
 
 -- Fauna ambiental pacífica (solo cliente, AmbientFauna.client). Las plantillas están en ReplicatedStorage.AmbientFauna
@@ -130,10 +413,24 @@ local Ambient = table.freeze({
 	Giants = table.freeze({
 		Level_1 = table.freeze({
 			-- FirstDelay: segundos desde que el jugador entra al nivel; Interval: pausa entre pasadas.
-			table.freeze({ Template = "Manta_Abisal", Route = "Manta", Branching = true, Speed = 24, FirstDelay = 25, Interval = 170 }),
-			table.freeze({ Template = "Nautilo_Colosal", Route = "Nautilo", Speed = 13, FirstDelay = 210, Interval = 320 }),
+			table.freeze({ Template = "Manta_Abisal", Route = "Manta", Branching = true, Speed = 24, FirstDelay = 20, Interval = 170 }),
+			table.freeze({ Template = "Nautilo_Colosal", Route = "Nautilo", Speed = 13, FirstDelay = 20, Interval = 320 }),
+			-- Ruta compartida A-1..A-n: cada Interval s se tira un dado (Chance); si sale, la recorre una criatura del Pool al azar
+			-- (salvo que esa criatura ya esté nadando por su ruta).
+			table.freeze({
+				Route = "A",
+				Chance = 0.5,
+				FirstDelay = 40,
+				Interval = 60,
+				Pool = table.freeze({
+					table.freeze({ Template = "Manta_Abisal", Speed = 24 }),
+					table.freeze({ Template = "Nautilo_Colosal", Speed = 13 }),
+				}),
+			}),
 		}),
+		Level_2 = table.freeze({}),
 	}),
+	-- Level_2: sin manta ni nautilo (solo peces). Los peces salen en cualquier mapa que tenga Bounds; no hace falta AmbientRoutes.
 	-- Ruta ramificada (Branching): M-1 y el último M-n siempre; cada M intermedio se conserva con probabilidad Keep;
 	-- sale por una Exit_n al azar; todos los puntos (menos el inicio) se desplazan hasta Jitter studs. Así cada pasada cambia.
 	Branch = table.freeze({ Keep = 0.65, Jitter = 35 }),
@@ -153,6 +450,7 @@ return table.freeze({
 	Ambient = Ambient,
 	Dash = Dash,
 	Sfx = Sfx,
+	Audio = Audio,
 	BaseOxygenSeconds = 360,
 	SeaLevelY = 0, -- Y (studs) de la superficie del agua
 	HudUpdateInterval = 0.25, -- 4 Hz, muy por debajo del límite de 20 Hz
@@ -163,20 +461,80 @@ return table.freeze({
 
 	DayLengthSeconds = 600, -- un día completo dura 10 min reales
 	StartClockTime = 14, -- hora inicial (0-24)
-	LampRange = 130, -- alcance del cono (antes 60)
-	LampAngle = 60, -- grados del cono (antes 45)
-	LampBrightness = 6, -- antes 3
+	LampRange = 110, -- alcance del cono; SpotLight.Range tiene tope real de 120
+	LampAngle = 32, -- grados del cono; más cerrado que el círculo para que su borde duro quede tapado por el hotspot
+	LampBrightness = 4,
+	-- Hotspot: círculo de luz proyectado en la superficie iluminada (solo el jugador local, D3 simplificada).
+	LampHotspotImage = "rbxassetid://114691884914775", -- gradiente radial; "" = respaldo de discos Neon
+	LampHotspotHalfAngle = 17, -- grados; radio = distancia * tan(ángulo)
+	LampHotspotMinRadius = 1.5,
+	LampHotspotMaxRadius = 28,
+	LampHotspotFlatTolerance = 0.6, -- studs de desvío tolerado en el borde del círculo antes de reducir su radio
+	LampHotspotFlatToleranceScale = 0.18, -- la tolerancia crece con el radio (radio * esto)
+	LampHotspotFitMinScale = 0.55, -- el ajuste nunca baja del 55 % del radio ideal
+	LampHotspotFitSteps = 5, -- reducciones máximas (x0.8 cada una)
+	LampHotspotOffset = 0.08, -- studs a lo largo de la normal del impacto
+	LampHotspotBrightness = 2,
+	LampHotspotColor = Color3.fromRGB(235, 245, 255),
+	LampHotspotSmoothing = 18, -- mayor = sigue más rápido
+	-- Solo calidad media/alta (QualityTier.Tier >= 2): rebote de luz en el impacto y haz volumétrico con motas.
+	LampBounceRangeScale = 1.4, -- alcance del rebote = radio del círculo * esto
+	LampBounceBrightness = 0.8,
+	-- El haz (Beam) se veía como un rectángulo/trapecio plano al mirar a lo largo del cono: desactivado. Las motas se quedan.
+	LampShaftEnabled = false,
+	LampShaftTransparency = 0.9,
+	LampShaftStartWidth = 0.4,
+	LampMoteRate = 18, -- motas/s en el cono (0 = sin motas)
+	LampHotspotSnapDistance = 25, -- salto mayor que esto = teletransporte, sin suavizar
 	LampFillAngle = 120, -- luz de relleno corta y suave para iluminar el suelo cercano (ponla en 0 brillo para quitarla)
 	LampFillRange = 14,
 	LampFillBrightness = 1.6,
+	-- Calidad baja (QualityTier.IsLow): se apagan las luces locales a más de esta distancia de la cámara y el aura del jugador.
+	LightCullDistance = 170, -- calidad media/alta: luces locales más lejos que esto se apagan (el Nivel 2 tiene ~160 luces)
+	LowQualityLightCullDistance = 100,
+	LowQualityLightCullInterval = 0.5,
 	TreasureGlowRange = 18, -- luz propia de cada tesoro para localizarlo en la oscuridad
 	TreasureGlowBrightness = 2,
 	LampOriginOffset = 0.4, -- studs por delante de la cabeza donde nace la luz (antes 1.2)
 	LampToggleCooldown = 0.25,
+	-- Aura tenue alrededor del jugador (solo la ve su cliente), para no quedar en negro total. Brillo 0 = desactivada.
+	PlayerGlowRange = 16,
+	PlayerGlowBrightness = 0.9,
+	PlayerGlowColor = Color3.fromRGB(110, 170, 220),
+
+	-- Nivel de calidad de efectos visuales (QualityTier, solo cliente). Niveles de Roblox 1-10 -> Tier 1 baja, 2 media, 3 alta.
+	Quality = table.freeze({
+		MediumFrom = 4, -- nivel >= 4 -> media
+		HighFrom = 8, -- nivel >= 8 -> alta
+		TouchMaxLevel = 5, -- en táctil nunca pasa de media
+		AutoStartLevel = 7, -- nivel inicial cuando la calidad gráfica está en Automático
+		SampleSeconds = 3, -- ventana de medición de FPS
+		LowerBelowFps = 40, -- si el FPS medio baja de esto, baja un nivel
+		RaiseAboveFps = 57, -- si se mantiene por encima durante RaiseHoldSeconds, sube un nivel
+		RaiseHoldSeconds = 12,
+		LowerHoldSeconds = 4,
+	}),
+
+	-- Pantalla de carga inicial (ReplicatedFirst/LoadingScreen): negra con un engranaje girando hasta precargar sonidos y mallas.
+	Loading = table.freeze({
+		MinSeconds = 1.5, -- tiempo mínimo en pantalla, para que no parpadee
+		MaxSeconds = 90, -- tope: si algo no carga, se entra igual (incluye la generación del mundo)
+		WorldText = "Generando el mundo...", -- texto mientras el servidor construye el nivel (atributo Workspace.WorldReady)
+		FadeSeconds = 0.6,
+		Text = "Cargando...",
+		TravelText = "Viajando...", -- texto bajo el engranaje durante los viajes entre niveles (DescentFx)
+	}),
 
 	Run = Run,
 	Economy = Economy,
 	Crab = Crab,
+	Kraken = Kraken,
+	Level = Level,
+	Hiding = Hiding,
+	Maze = Maze,
+	Monster = Monster,
+	CreatureAnim = CreatureAnim,
+	Mandibula = Mandibula,
 	Swim = Swim,
 	Upgrades = Upgrades,
 	Water = Water,

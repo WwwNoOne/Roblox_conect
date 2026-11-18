@@ -36,7 +36,7 @@ type Crab = {
 	grabOffset: Vector3,
 }
 
-local crab: Crab? = nil
+local crabs: { Crab } = {}
 
 local function posOf(inst: Instance?): Vector3?
 	if inst and inst:IsA("BasePart") then
@@ -178,43 +178,37 @@ local function collectMarkers(map: Instance, c: { lair: Vector3?, drops: { Vecto
 	end
 end
 
-local function destroyCrab()
-	if crab then
-		if crab.target then
-			local root = playerRoot(crab.target)
-			local humanoid = crab.target.Character and crab.target.Character:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				humanoid.PlatformStand = false
-			end
-			if root then
-				pcall(function()
-					root:SetNetworkOwner(crab.target)
-				end)
-			end
+local function destroyCrab(c: Crab)
+	if c.target then
+		local root = playerRoot(c.target)
+		local humanoid = c.target.Character and c.target.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.PlatformStand = false
 		end
-		crab.model:Destroy()
-		crab = nil
+		if root then
+			pcall(function()
+				root:SetNetworkOwner(c.target)
+			end)
+		end
 	end
+	c.model:Destroy()
 end
 
-local function spawnCrab(code: string, map: Instance)
-	destroyCrab()
-	local template = Assets.Find("Cangrejo")
-	if not template or not template:IsA("Model") then
-		warn("[Crab] Falta AbismoAssets.Creatures.Cangrejo")
-		return
+local function destroyCrabs()
+	for _, c in crabs do
+		destroyCrab(c)
 	end
-	local m = { lair = nil :: Vector3?, drops = {} :: { Vector3 }, guard = nil :: BasePart?, patrol = {} :: { Vector3 }, dock = nil :: Vector3? }
-	collectMarkers(map, m)
-	if not m.lair then
-		warn("[Crab] " .. map.Name .. " no tiene CrabLair ni CreatureSpawn")
-		return
-	end
+	crabs = {}
+end
+
+type Markers = { lair: Vector3?, drops: { Vector3 }, guard: BasePart?, patrol: { Vector3 }, dock: Vector3? }
+
+local function makeCrab(code: string, template: Model, lair: Vector3, m: Markers, onTop: boolean, name: string): Crab?
 	local model = template:Clone()
 	local root = model.PrimaryPart or model:FindFirstChildWhichIsA("MeshPart")
 	if not root then
 		model:Destroy()
-		return
+		return nil
 	end
 	model.PrimaryPart = root
 	for _, d in model:GetDescendants() do
@@ -223,11 +217,12 @@ local function spawnCrab(code: string, map: Instance)
 			d.CanCollide = false
 		end
 	end
-	model:PivotTo(CFrame.new(m.lair))
-	model.Name = "CangrejoGuardian"
+	local pos = if onTop then lair + Vector3.new(0, root.Size.Y / 2, 0) else lair
+	model:PivotTo(CFrame.new(pos))
+	model.Name = name
 	model.Parent = workspace
 	local grab = model:FindFirstChild("GrabPoint", true)
-	crab = {
+	local c: Crab = {
 		code = code,
 		model = model,
 		root = root,
@@ -235,7 +230,7 @@ local function spawnCrab(code: string, map: Instance)
 		timer = 0,
 		scan = 0,
 		target = nil,
-		lair = m.lair,
+		lair = pos,
 		drops = m.drops,
 		guard = m.guard,
 		dock = m.dock,
@@ -248,6 +243,57 @@ local function spawnCrab(code: string, map: Instance)
 		-- GrabPoint (Attachment del modelo) o, si falta, delante de la boca del cangrejo.
 		grabOffset = if grab and grab:IsA("Attachment") then root.CFrame:PointToObjectSpace(grab.WorldPosition) else Vector3.new(0, 0, -(root.Size.Z / 2 + 1)),
 	}
+	table.insert(crabs, c)
+	return c
+end
+
+-- Plataformas H-<n> (Level_2): cada partida se sortean Config.Crab.PlatformCount plataformas y en cada una elegida
+-- aparece un cangrejo que patrulla su plataforma. Las demás plataformas solo llevan tesoros.
+local function platformsOf(map: Instance): { BasePart }
+	local list: { BasePart } = {}
+	for _, d in map:GetDescendants() do -- viven en Maps.<Nivel>.Marcadores
+		if d:IsA("BasePart") and string.match(d.Name, "^H%-%d+$") then
+			table.insert(list, d)
+		end
+	end
+	return list
+end
+
+local function spawnCrab(code: string, map: Instance)
+	destroyCrabs()
+	local template = Assets.Find("Cangrejo")
+	if not template or not template:IsA("Model") then
+		warn("[Crab] Falta AbismoAssets.Creatures.Cangrejo")
+		return
+	end
+	local m: Markers = { lair = nil, drops = {}, guard = nil, patrol = {}, dock = nil }
+	collectMarkers(map, m)
+
+	local platforms = platformsOf(map)
+	if #platforms > 0 then
+		for i = #platforms, 2, -1 do
+			local j = math.random(1, i)
+			platforms[i], platforms[j] = platforms[j], platforms[i]
+		end
+		local count = math.max(1, math.min(#platforms, C.PlatformCount))
+		for i = 1, count do
+			local plat = platforms[i]
+			local top = plat.Position + Vector3.new(0, plat.Size.Y / 2, 0)
+			local patrol: { Vector3 } = {}
+			for _, f in { Vector2.new(-1, -1), Vector2.new(1, -1), Vector2.new(1, 1), Vector2.new(-1, 1) } do
+				table.insert(patrol, top + Vector3.new(f.X * plat.Size.X * 0.3, template:GetExtentsSize().Y / 2, f.Y * plat.Size.Z * 0.3))
+			end
+			-- Sin GuardZone: ve a los jugadores solo cerca de su plataforma (DetectRange).
+			makeCrab(code, template, top, { lair = top, drops = m.drops, guard = nil, patrol = patrol, dock = m.dock }, true, "CangrejoGuardian")
+		end
+		return
+	end
+
+	if not m.lair then
+		warn("[Crab] " .. map.Name .. " no tiene CrabLair ni CreatureSpawn")
+		return
+	end
+	makeCrab(code, template, m.lair, m, false, "CangrejoGuardian")
 end
 
 local function eligible(player: Player, c: Crab): BasePart?
@@ -257,6 +303,9 @@ local function eligible(player: Player, c: Crab): BasePart?
 	end
 	if (player:GetAttribute("CrabImmuneUntil") or 0) > os.clock() then
 		return nil
+	end
+	if player:GetAttribute("Hidden") == true then
+		return nil -- escondido en una caja: no lo ven
 	end
 	local root = playerRoot(player)
 	if not root or Runs.IsUserInside(player.UserId) then
@@ -414,13 +463,13 @@ local function step(c: Crab, dt: number)
 end
 
 RunService.Heartbeat:Connect(function(dt)
-	if crab then
-		local run = Runs.Get(crab.code)
+	for _, c in crabs do
+		local run = Runs.Get(c.code)
 		if not run or run.ended then
-			destroyCrab()
+			destroyCrabs()
 			return
 		end
-		step(crab, dt)
+		step(c, dt)
 	end
 end)
 
@@ -438,9 +487,9 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 				spawnCrab(code, map)
 			end
 		else
-			destroyCrab()
+			destroyCrabs()
 		end
 	elseif state == "Descending" or state == "Stopover" or state == "Won" or state == "Lost" then
-		destroyCrab()
+		destroyCrabs()
 	end
 end)

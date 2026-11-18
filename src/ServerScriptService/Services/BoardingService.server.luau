@@ -9,9 +9,11 @@ local Config = require(Shared:WaitForChild("Config"))
 local Rooms = require(script.Parent:WaitForChild("Rooms"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 
+local WorldRefs = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("WorldRefs"))
+
 local START_DELAY = 2 -- segundos entre el último en entrar y el inicio
 
-local sub = workspace:WaitForChild("Submarine", 30)
+local sub = WorldRefs.WaitSubmarine(30)
 if not sub then
 	warn("[Boarding] No hay Workspace.Submarine")
 	return
@@ -125,6 +127,14 @@ Rooms.Changed:Connect(function(room)
 				p:SetAttribute("Boarded", false)
 			end
 		end
+	end
+end)
+
+-- Durante una partida el botón de abordaje debe estar apagado: comparte tecla con el de la compuerta (HatchPrompt) y,
+-- si sigue activo junto a la puerta, "gana" al estar más cerca y el de la compuerta no responde.
+Runs.StateChanged:Connect(function(_code: string, state: string)
+	if state == "Descending" or state == "Level" or state == "Stopover" then
+		prompt.Enabled = false
 	end
 end)
 

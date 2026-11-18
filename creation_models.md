@@ -82,7 +82,9 @@ El valor y el peso los asigna el script (no van en el modelo).
 | `CreatureSpawn` | Attachment | Origen de una criatura |
 | `Patrol1`…`PatrolN` | Attachment | Ruta de patrulla de criaturas, orden numérico |
 
-### Mapas (`Workspace.Maps`, Folder) — propuesta 2026-11-11
+> **Nota 2026-11-15:** los mapas fijos `Level_1/2/3` y `Parada` ya no existen. Los modelos que se piden ahora son **salas modulares** (sala_0, salas pequeñas, salas de jefe, pasillo, tapón y kit de roca); su estándar está en [`game_designs/Generacion_Cuevas.md`](game_designs/Generacion_Cuevas.md). Las secciones de mapas y de cangrejo siguientes son históricas.
+
+### Mapas (`Workspace.Maps`, Folder) — propuesta 2026-11-11 (histórica)
 Tres niveles de prueba y un mapa de parada. Cada uno es una carpeta/Model con al menos estos dos objetos:
 
 | Mapa | Hijos mínimos |
@@ -168,4 +170,4 @@ ServerStorage.AbismoAssets
 El código busca los modelos **por nombre** en cualquier subcarpeta de `AbismoAssets` e ignora `_Duplicados` (`Assets.luau`). Los tesoros usan `PrimaryPart` o, si no hay, la pieza `Handle`; la baliza usa `Beacon` con `Light` y `PromptAttachment` y se coloca en `BeaconSite`.
 
 ## Guías de niveles (2026-11-11)
-Cada mapa tiene su guía en `game_designs/levels/` (`README.md`, `Level_1.md`, `Level_2.md`, `Level_3.md`, `Parada.md`) con tamaños propuestos, disposición, tesoros y marcadores. Las medidas se pueden ajustar tras probarlas con las cajas de `Workspace.LevelSizeGuides` en Studio.
+Cada mapa tiene su guía en `game_designs/archive/levels_fijos_2026-11-11/` (`README.md`, `Level_1.md`, `Level_2.md`, `Level_3.md`, `Parada.md`) con tamaños propuestos, disposición, tesoros y marcadores. Las medidas se pueden ajustar tras probarlas con las cajas de `Workspace.LevelSizeGuides` en Studio.

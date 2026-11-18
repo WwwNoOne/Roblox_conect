@@ -15,6 +15,6 @@ Trabajar sobre **una copia de pruebas separada** cuando estén listos el interio
 1. Desde el worktree de Claude, ejecutar `rojo build` y `rojo serve`. Conectar el plugin de Rojo a la copia de pruebas y verificar el lugar seleccionado antes de sincronizar.
 2. Mantener el escenario creado en Studio fuera de los contenedores que Rojo controla. Comprobar que los objetos del mapa siguen presentes después de la sincronización.
 3. Probar con **Server & Clients** y dos clientes como mínimo. Usar cuatro para validar espacio interior, compuerta y concurrencia.
-4. Registrar el lugar, commit, cantidad de clientes, resultado y pasos para reproducir fallos en [arranque.md](arranque.md).
+4. Registrar el lugar, commit, cantidad de clientes, resultado y pasos para reproducir fallos en [docs/historial_implementacion.md](docs/historial_implementacion.md).
 
 En Linux, el selector de archivos de Studio bajo Wine mostró los archivos del sistema con la ruta `Z:/home/…`. El archivo en el repositorio conserva su ruta de Linux.

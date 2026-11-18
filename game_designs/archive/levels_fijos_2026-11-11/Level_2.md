@@ -33,3 +33,20 @@
 
 ## Notas de ambiente
 Más oscuro que el Nivel 1. La linterna debe ser útil dentro de las cuevas; zonas con casi nada de luz en `DeepZone`.
+
+## Estado de implementación (2026-11-13)
+- Modelado terminado en Studio (fosa vertical). `Bounds` creado (481 × 659 × 481 en el volumen de la fosa).
+- **Fauna ambiental:** solo peces (los 4 cardúmenes de `Config.Ambient.Fish`); sin manta ni nautilo (`Giants.Level_2 = {}`). Requiere `Bounds`.
+- **Pendiente en Studio:** un único `SubDock` real (hay dos sueltos fuera del mapa), `TreasureSpawn` ×7 con `Size`, `CrabLair`, `GuardZone`, `DeepZone`, `CrabDrop1…2`, `DepthMarker`.
+
+## Plataformas H-2 y zona J-2 (2026-11-14)
+- **H-2** (×21, plataformas de ~19×20, hijas directas de `Maps.Level_2`): todas son huecos de tesoro (como `TreasureZone`). En cada partida se sortean 3 (`Config.Crab.PlatformCount`) y en cada una aparece un cangrejo que patrulla su plataforma. Si el mapa no tiene H-n se usa el `CrabLair` clásico.
+- **J-2** (×1): sin uso por ahora. 
+
+## Kraken abisal (2026-11-14)
+Sustituye al leviatán (eliminado). Enemigo que ronda libre por `Bounds`: aparece en `Spawn_leviatan` a los 40 s, persigue a quien vea fuera del submarino (160 studs; más con la lámpara encendida) y golpea al tocarlo (30 de daño, empujón, 3 s de enfriamiento por jugador); tras golpear se aleja 5 s. Más lento que el nado (16 vs 20) para poder esquivarlo. Plantilla `ServerStorage.AbismoAssets.Creatures.Kraken_Abisal`; parámetros en `Config.Kraken`; lógica en `KrakenService`, animación de huesos en `KrakenClient`.
+
+## Mandíbulas radiales (2026-11-14)
+3 (`Config.Mandibula.Count`) rondan todo el mapa (puntos al azar en `Bounds`, a ≥250 studs del `SubDock` al aparecer). Persiguen a quien vean fuera del submarino (90 studs; más con la lámpara), muerden (20 de daño, empujón, 2 s de enfriamiento) y se alejan 2,5 s. Más lentas que el nado (18 vs 20). Plantilla `AbismoAssets.Creatures.Mandibula_Radial`; lógica en `MandibulaService`.
+
+**Nivel 2 completo:** 3 cangrejos en plataformas H-2, 3 mandíbulas por todo el mapa y el kraken.

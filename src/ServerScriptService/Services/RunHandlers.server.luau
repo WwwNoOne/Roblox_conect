@@ -62,11 +62,18 @@ requestDescend.OnServerInvoke = function(player: Player)
 		return { ok = false, err = "TOO_FAST" }
 	end
 	lastDescend[player] = now
-	local room = Rooms.GetByUser(player.UserId)
-	if not room then
-		return { ok = false, err = "NOT_IN_ROOM" }
+	local result = Runs.RequestDescend(player.UserId)
+	if result.ok and result.counting then
+		local run = Runs.GetByUser(player.UserId)
+		local members = if run then run.members else {}
+		for _, userId in members do
+			local p = Players:GetPlayerByUserId(userId)
+			if p and p ~= player then
+				p:SetAttribute("HudNotice", string.format("%s quiere avanzar: entren al submarino (%d s)|%f", player.DisplayName, Config.Run.AdvanceCountdown, os.clock()))
+			end
+		end
 	end
-	return Runs.RequestDescend(player.UserId, room.host)
+	return result
 end
 Players.PlayerRemoving:Connect(function(player)
 	lastDescend[player] = nil
@@ -93,6 +100,8 @@ while true do
 				payload.quota = stage and stage.Quota
 				payload.deposited = run.deposited
 				payload.failures = run.failures
+				local deadline = run.advanceDeadline
+				payload.advanceIn = if deadline then math.max(0, math.ceil(deadline - os.clock())) else nil
 			end
 			updateHud:FireClient(player, payload)
 		end

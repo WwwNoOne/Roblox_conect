@@ -1,6 +1,10 @@
-# Estado de Abismo
+# Historial de implementación de Abismo (T01–T07 y sistemas)
 
-Actualizado el 11 de noviembre de 2026. El [GDD vigente](game_designs/GDD.md) y el [manifiesto de Claude](creation_models.md) vienen del commit `7f93bf9`. El [plan de desarrollo](docs/superpowers/plans/2026-11-11-abismo.md) es la lista ordenada de tareas. Al cerrar una tarea, actualizar su casilla y registrar la prueba en esta página.
+> **Histórico.** Registro de lo hecho y probado hasta el 2026-11-14 con el diseño de **niveles fijos** (Nivel 1 → Parada → Nivel 2 → Parada → Nivel 3). Ese diseño fue sustituido por la **generación de cuevas por salas** (ver [`game_designs/Generacion_Cuevas.md`](../game_designs/Generacion_Cuevas.md)). El estado vigente y la lista de tareas están en [`ESTADO.md`](../ESTADO.md).
+
+## Estado original (2026-11-11)
+
+Actualizado el 11 de noviembre de 2026. El [GDD vigente](../game_designs/GDD.md) y el [manifiesto de Claude](../creation_models.md) vienen del commit `7f93bf9`. El [plan de desarrollo](superpowers/plans/2026-11-11-abismo.md) es la lista ordenada de tareas. Al cerrar una tarea, actualizar su casilla y registrar la prueba en esta página.
 
 | Estado | Entrega | Responsable |
 | --- | --- | --- |
@@ -17,7 +21,7 @@ Nota de Studio: este lugar ya tiene los scripts de Abismo copiados a mano (sin R
 
 El código base de Rojo y el prototipo anterior están en el worktree de Claude. Studio todavía ejecuta sus sistemas de pesca y guardado individual. La transición a la partida de Abismo comienza en las tareas T01–T03 del plan.
 
-El [mapa de prueba anterior](game_designs/assets/test_map_spec.md) y el [plan histórico](docs/superpowers/plans/2026-11-10-ocean-depth-explorer.md) sirven como referencia del prototipo.
+El [mapa de prueba anterior](../game_designs/assets/test_map_spec.md) y el [plan histórico](superpowers/plans/2026-11-10-ocean-depth-explorer.md) sirven como referencia del prototipo.
 
 ## T04 · Compuerta, oxígeno y descenso sellado (Claude)
 
