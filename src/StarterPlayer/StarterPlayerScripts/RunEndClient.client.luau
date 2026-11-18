@@ -46,6 +46,7 @@ local REASONS: { [string]: string } = {
 	Implosion = "El submarino implosionó por la presión.",
 	QuotaFailed = "Fallaron demasiadas cuotas.",
 	AllDead = "Toda la tripulación murió.",
+	TimeUp = "Se acabó el tiempo: el submarino no llegó a tiempo a la baliza.",
 }
 
 runEnded.OnClientEvent:Connect(function(result: string, reason: string)

@@ -209,7 +209,7 @@ local function hasLineOfSight(m: Monster, target: BasePart): boolean
 	return workspace:Raycast(from, target.Position - from, m.params) == nil
 end
 
--- Mejor jugador detectado: vista (con línea de visión) u oído (más lejos si va rápido); escondido solo se detecta muy cerca.
+-- Mejor jugador detectado: vista (con línea de visión) u oído (más lejos si va corriendo); escondido solo se detecta muy cerca.
 local function detect(m: Monster): (Player?, BasePart?)
 	local best: Player? = nil
 	local bestRoot: BasePart? = nil
@@ -223,7 +223,7 @@ local function detect(m: Monster): (Player?, BasePart?)
 				seen = d <= m.k.HiddenRange
 			else
 				local sight = m.k.SightRange * (if player:GetAttribute("LampOn") then m.k.LampSightMultiplier else 1)
-				local noisy = root.AssemblyLinearVelocity.Magnitude > m.k.NoiseSpeed
+				local noisy = player:GetAttribute("Sprinting") == true -- correr hace ruido
 				local hear = if noisy then m.k.NoiseRange else m.k.HearRange
 				seen = d <= hear or (d <= sight and hasLineOfSight(m, root))
 			end
@@ -296,6 +296,22 @@ local function drive(m: Monster, desiredVel: Vector3, accel: number, dt: number)
 	return blocked
 end
 
+-- Punto del camino a `look` studs por delante de la posición, siguiendo los tramos desde el vértice actual.
+local function carrotPoint(m: Monster, look: number): Vector3
+	local p = m.pos
+	local remaining = look
+	for i = m.idx, #m.path do
+		local seg = m.path[i] - p
+		local d = seg.Magnitude
+		if d >= remaining and d > 1e-3 then
+			return p + seg.Unit * remaining
+		end
+		remaining -= d
+		p = m.path[i]
+	end
+	return m.path[#m.path]
+end
+
 -- Sigue el camino de vértices; recorta esquinas saltando a un punto posterior si hay paso libre. Devuelve true al llegar al final.
 local function follow(m: Monster, speed: number, dt: number, now: number): boolean
 	if #m.path == 0 then
@@ -332,7 +348,14 @@ local function follow(m: Monster, speed: number, dt: number, now: number): boole
 	if m.idx >= #m.path then
 		v = math.min(speed, math.max(4, dist * 2))
 	end
-	drive(m, to.Unit * v, m.k.Accel, dt)
+	-- apunta a un punto por delante en el camino (no al siguiente vértice): las curvas salen suaves en vez de en zigzag
+	local heading = to
+	local look = math.clamp(speed * m.k.Carrot, 6, 16)
+	local c = carrotPoint(m, look)
+	if (c - m.pos).Magnitude > 0.5 and clearBetween(m, m.pos, c, radius) then
+		heading = c - m.pos
+	end
+	drive(m, heading.Unit * v, m.k.Accel, dt)
 	return false
 end
 
@@ -576,7 +599,9 @@ local function step(m: Monster, dt: number)
 			m.repathAt = now + 0.35
 			setPath(m, root.Position)
 		end
-		if follow(m, m.k.ChaseSpeed, dt, now) then
+		-- frenesí: cuanto más rato persigue sin parar, más rápido (hasta +FrenzyBonus)
+		local frenzy = 1 + m.k.FrenzyBonus * math.clamp(m.stateT / m.k.FrenzySeconds, 0, 1)
+		if follow(m, m.k.ChaseSpeed * frenzy, dt, now) then
 			m.path = {}
 		end
 	elseif m.state == "Investigate" then

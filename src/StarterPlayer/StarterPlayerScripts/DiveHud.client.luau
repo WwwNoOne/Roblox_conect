@@ -97,6 +97,22 @@ quotaLabel.TextColor3 = Color3.fromRGB(255, 220, 120)
 quotaLabel.Text = ""
 quotaLabel.Parent = frame
 
+-- Temporizador del nivel (arriba al centro): visible solo mientras corre el tiempo del nivel (payload.levelLeft).
+local clockLabel = Instance.new("TextLabel")
+clockLabel.AnchorPoint = Vector2.new(0.5, 0)
+clockLabel.Position = UDim2.new(0.5, 0, 0, 10)
+clockLabel.Size = UDim2.fromOffset(150, 36)
+clockLabel.BackgroundColor3 = Color3.fromRGB(10, 30, 50)
+clockLabel.BackgroundTransparency = 0.25
+clockLabel.Font = Enum.Font.GothamBold
+clockLabel.TextSize = 22
+clockLabel.TextColor3 = Color3.new(1, 1, 1)
+clockLabel.Visible = false
+clockLabel.Parent = gui
+Instance.new("UICorner").Parent = clockLabel
+local clockLeft: number? = nil -- segundos que quedan según el último HUD; la pantalla lo va descontando entre mensajes
+local clockSetAt = 0
+
 local notice = Instance.new("TextLabel")
 notice.AnchorPoint = Vector2.new(0.5, 0)
 notice.Position = UDim2.new(0.5, 0, 0, 24)
@@ -131,6 +147,8 @@ end)
 updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	lastHull, lastHullMax, lastMoney = payload.hull, payload.hullMax, payload.money
 	runDepth = payload.depth
+	clockLeft = payload.levelLeft
+	clockSetAt = os.clock()
 	if payload.quota then
 		quotaLabel.Text = string.format("Cuota %d/%d   Fallos %d/%d", payload.deposited or 0, payload.quota, payload.failures or 0, Config.Economy.Quota.MaxFailures)
 	else
@@ -145,6 +163,23 @@ updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 end)
 
 RunService.RenderStepped:Connect(function()
+	if clockLeft then
+		local left = math.max(0, clockLeft - (os.clock() - clockSetAt))
+		clockLabel.Visible = true
+		clockLabel.Text = string.format("%02d:%02d", left // 60, left % 60)
+		if left <= 10 then
+			-- últimos segundos: parpadea en rojo
+			clockLabel.TextColor3 = if math.floor(os.clock() * 4) % 2 == 0 then Color3.fromRGB(255, 70, 70) else Color3.new(1, 1, 1)
+		elseif left <= 60 then
+			clockLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
+		elseif left <= 120 then
+			clockLabel.TextColor3 = Color3.fromRGB(255, 210, 90)
+		else
+			clockLabel.TextColor3 = Color3.new(1, 1, 1)
+		end
+	else
+		clockLabel.Visible = false
+	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if root then
 		local depth = runDepth or math.max(0, Config.SeaLevelY - root.Position.Y)

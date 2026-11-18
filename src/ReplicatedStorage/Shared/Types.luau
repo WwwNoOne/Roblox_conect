@@ -15,6 +15,7 @@ export type HudPayload = {
 	quota: number?, -- cuota del nivel actual (o del siguiente, en la Parada)
 	deposited: number?, -- valor depositado en el nivel actual
 	failures: number?, -- cuotas falladas
+	levelLeft: number?, -- segundos que quedan del nivel (temporizador de 10 min); nil fuera de un nivel
 	advanceIn: number?, -- segundos que faltan para partir (cuenta atrás de Avanzar); nil = no hay
 }
 

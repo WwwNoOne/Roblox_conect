@@ -1,6 +1,7 @@
 --!strict
 -- Natación fluida con flotabilidad neutra: aceleración/frenado suaves, un poco más rápida que caminar.
--- Mover (WASD/joystick) nada hacia donde mira la cámara; Espacio sube y Ctrl/C baja.
+-- Mover (WASD/joystick) nada hacia donde mira la cámara; Espacio sube y Ctrl/C baja. Con el atributo Sprinting (StaminaService,
+-- Shift) nada más rápido (Config.Sprint.Speed), también al subir y bajar.
 -- Se desactiva con player:SetAttribute("NeutralBuoyancy", false).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local S = Config.Swim
+local SP = Config.Sprint
 local Sfx = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Sfx"))
 local nextStroke = 0
 
@@ -20,7 +22,7 @@ local function approach(current: number, target: number, rate: number, dt: numbe
 end
 
 RunService.Heartbeat:Connect(function(dt)
-	if player:GetAttribute("NeutralBuoyancy") == false or player:GetAttribute("Dashing") == true then
+	if player:GetAttribute("NeutralBuoyancy") == false then
 		return
 	end
 	local character = player.Character
@@ -30,12 +32,14 @@ RunService.Heartbeat:Connect(function(dt)
 		return
 	end
 	if humanoid:GetState() ~= Enum.HumanoidStateType.Swimming then
-		if humanoid.WalkSpeed == S.Speed then
+		if humanoid.WalkSpeed == S.Speed or humanoid.WalkSpeed == SP.Speed then
 			humanoid.WalkSpeed = S.WalkSpeed
 		end
 		return
 	end
-	humanoid.WalkSpeed = S.Speed
+	local sprinting = player:GetAttribute("Sprinting") == true
+	humanoid.WalkSpeed = if sprinting then SP.Speed else S.Speed
+	local boost = if sprinting then SP.Speed / S.Speed else 1
 
 	local v = root.AssemblyLinearVelocity
 	local descending = UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.C)
@@ -44,16 +48,16 @@ RunService.Heartbeat:Connect(function(dt)
 
 	-- Sonido de brazada mientras se nada de verdad (no al flotar quieto).
 	if (moving or ascending or descending) and v.Magnitude > 4 and os.clock() >= nextStroke then
-		nextStroke = os.clock() + S.StrokeSeconds
+		nextStroke = os.clock() + S.StrokeSeconds / boost
 		Sfx.Play(Config.Sfx.Stroke, nil, S.StrokeVolume)
 	end
 
 	if descending then
 		holdY = nil
-		v = Vector3.new(v.X, approach(v.Y, -S.VerticalSpeed, S.VerticalAccel, dt), v.Z)
+		v = Vector3.new(v.X, approach(v.Y, -S.VerticalSpeed * boost, S.VerticalAccel, dt), v.Z)
 	elseif ascending then
 		holdY = nil
-		v = Vector3.new(v.X, approach(v.Y, S.VerticalSpeed, S.VerticalAccel, dt), v.Z)
+		v = Vector3.new(v.X, approach(v.Y, S.VerticalSpeed * boost, S.VerticalAccel, dt), v.Z)
 	elseif not moving then
 		-- Sin órdenes: planea en horizontal y MANTIENE la altura. El motor empuja hacia arriba en cada paso de
 		-- física, así que no basta con poner la velocidad vertical a 0: se corrige la posición hacia holdY.

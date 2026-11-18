@@ -50,6 +50,10 @@ local Run = table.freeze({
 	BeaconHoldSeconds = 5, -- mantener E para activar la baliza (ProximityPrompt.HoldDuration)
 	EndScreenSeconds = 8, -- tiempo de la pantalla final antes de volver a la sala
 	TravelSeconds = 20, -- duración del viaje entre etapas
+	-- Temporizador de cada nivel (solo en Kind "Level"): al llegar a 0 el submarino parte solo (la tripulación que sigue fuera es
+	-- subida a bordo, se cierra la cuota como si hubieran pulsado Avanzar) y en el último nivel la partida se pierde por tiempo.
+	LevelSeconds = 600, -- 10 minutos
+	LevelWarnings = { 120, 60, 30, 10 }, -- avisos (segundos restantes)
 	-- El casco ya no se desgasta con el tiempo: pierde DescentDamage HP al llegar a cada etapa (se reduce con el blindaje).
 	DescentDamage = 20,
 	-- Al pulsar Avanzar con más de un jugador vivo, los demás tienen este tiempo para entrar; con todos dentro se parte antes.
@@ -86,7 +90,7 @@ local Swim = table.freeze({
 
 -- Kraken abisal (KrakenService): enemigo que ronda libre por el nivel; persigue a quien vea fuera del submarino, lo agarra con un tentáculo y lo mata.
 -- Plantilla: AbismoAssets.Creatures.Kraken_Abisal (eje Y del modelo = cuerpo, manto arriba; avanza con los tentáculos por delante).
--- Los jugadores nadan a 20: la persecución es más lenta para poder esquivarlo (y el dash lo deja atrás).
+-- Los jugadores nadan a 20: la persecución es más lenta para poder esquivarlo (y el sprint lo deja atrás).
 local Kraken = table.freeze({
 	Length = 42, -- alto del modelo en studs (el original mide ~100; 0 = tamaño original). Escala 0,6 de los 70 anteriores
 	RoamSpeed = 9, -- studs/s patrullando
@@ -171,22 +175,24 @@ local Maze = table.freeze({
 -- Enemigos agresivos del laberinto (MonsterService). Patrullan por la red de pasillos; al detectarte te persiguen (anticipándose a tu
 -- movimiento), te encaran (Windup), se lanzan (Lunge, daña a quien toque su cuerpo) y se recuperan (Recover). Si te pierden rastrean
 -- la zona (Search) y avisan a los demás. Los valores de abajo son los de partida; cada especie sobrescribe los suyos.
--- Los jugadores nadan a 20 (dash más): ChaseSpeed ~24-28 los alcanza en recto, pero el zarpazo se esquiva girando o escondiéndose.
+-- Los jugadores nadan a 20 y corren a 34 (Sprint): la persecución (26-29) los alcanza nadando, pero no corriendo; el zarpazo se esquiva girando, corriendo o escondiéndose.
 local Monster = table.freeze({
 	Length = 24, -- largo del modelo en studs (cabe en pasillos de 16 de ancho)
 	BodyRadius = 3, -- radio de la esfera de colisión contra paredes (pasillo interior 16)
 	WaypointRadius = 3, -- distancia a la que da por alcanzado un punto del camino
-	PatrolSpeed = 10, -- studs/s patrullando
-	ChaseSpeed = 24, -- persiguiendo
-	Accel = 30, -- studs/s² al acelerar
-	Brake = 45, -- studs/s² al frenar
-	TurnRate = 7, -- giro suave (mayor = gira más rápido)
+	PatrolSpeed = 14, -- studs/s patrullando
+	ChaseSpeed = 26, -- persiguiendo (el sprint del jugador es 34, el nado 20)
+	FrenzyBonus = 0.08, -- +8% de velocidad tras FrenzySeconds persiguiendo sin parar
+	FrenzySeconds = 6,
+	Accel = 55, -- studs/s² al acelerar
+	Brake = 70, -- studs/s² al frenar
+	TurnRate = 10, -- giro suave (mayor = gira más rápido)
+	Carrot = 0.35, -- punto de mira del camino: velocidad x esto, en studs por delante (curvas suaves en vez de zigzag)
 	-- Detección
 	SightRange = 80, -- vista con línea de visión (la lámpara encendida lo multiplica)
 	LampSightMultiplier = 1.5,
 	HearRange = 14, -- te oye a esta distancia aunque no te vea (no si estás escondido)
-	NoiseSpeed = 26, -- si vas más rápido que esto (dash) haces ruido...
-	NoiseRange = 40, -- ...y te oye desde esta distancia
+	NoiseRange = 32, -- si vas corriendo (Sprint) haces ruido y te oye desde esta distancia aunque no te vea
 	HiddenRange = 5, -- escondido solo te encuentra si está muy cerca
 	LoseSeconds = 4, -- tras perderte de vista sigue persiguiendo tu rastro este tiempo antes de rastrear
 	SearchSeconds = 10, -- rastrea la zona del último punto visto este tiempo antes de volver a patrullar
@@ -195,13 +201,13 @@ local Monster = table.freeze({
 	LeadSeconds = 0.45, -- anticipación máxima sobre tu velocidad
 	-- Ataque (zarpazo en tres fases)
 	AttackStart = 16, -- empieza el zarpazo cuando tu distancia a su cabeza baja de esto (y te ve)
-	WindupSeconds = 0.35, -- te encara y se frena: tu aviso para esquivar
+	WindupSeconds = 0.3, -- te encara y se frena: tu aviso para esquivar
 	LungeSpeed = 48, -- velocidad de la embestida
 	LungeSeconds = 0.4, -- duración máxima de la embestida
 	HitRadius = 7, -- distancia de su cuerpo (cola-cabeza) a tu centro a la que te daña durante la embestida
 	AttackDamage = 50, -- daño por golpe
-	RecoverSeconds = 0.9, -- queda lento tras la embestida
-	AttackCooldown = 1.2, -- mínimo entre zarpazos
+	RecoverSeconds = 0.7, -- queda lento tras la embestida
+	AttackCooldown = 1.0, -- mínimo entre zarpazos
 	HitGap = 0.8, -- un jugador no recibe daño de enemigos más seguido que esto
 	StuckSeconds = 1.5, -- sin avanzar este tiempo = recalcula el camino
 	FirstDelay = 15, -- segundos desde el inicio del nivel hasta que aparece
@@ -214,21 +220,21 @@ local Monster = table.freeze({
 	-- anima cortadas en trozos (CreatureAnimator). Plantillas en ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
 	Species = table.freeze({
 		table.freeze({ Name = "Anguila", TemplateName = "Anguila_Abisal", ProcAnim = "Anguila", Weight = 1,
-			Length = 30, PatrolSpeed = 12, ChaseSpeed = 26, TurnRate = 8, AttackDamage = 40, AttackStart = 18, LungeSpeed = 52,
+			Length = 30, PatrolSpeed = 15, ChaseSpeed = 28, TurnRate = 11, AttackDamage = 40, AttackStart = 18, LungeSpeed = 52,
 			HeadOffset = 13, Roar = "Abismo_Anguila" }),
 		table.freeze({ Name = "Rape", TemplateName = "Rape_Abisal", ProcAnim = "Rape", Weight = 1,
-			Length = 20, PatrolSpeed = 7, ChaseSpeed = 22, TurnRate = 5, SightRange = 110, HearRange = 10, AttackDamage = 60,
+			Length = 20, PatrolSpeed = 10, ChaseSpeed = 25, TurnRate = 8, SightRange = 110, HearRange = 10, AttackDamage = 60,
 			AttackStart = 14, WindupSeconds = 0.5, LungeSpeed = 44, HeadOffset = 8, Roar = "Abismo_Rape" }),
 		table.freeze({ Name = "Medusa", TemplateName = "Medusa_Abisal", ProcAnim = "Medusa", Weight = 0.8,
-			Length = 22, PatrolSpeed = 5, ChaseSpeed = 15, TurnRate = 3, SightRange = 50, HearRange = 18, AttackStart = 14,
+			Length = 22, PatrolSpeed = 8, ChaseSpeed = 20, TurnRate = 5, SightRange = 50, HearRange = 18, AttackStart = 14,
 			WindupSeconds = 0.4, LungeSpeed = 30, AttackDamage = 35, AttackCooldown = 1.0, HitRadius = 9, HeadOffset = 0,
 			Upright = true, Roar = "Abismo_Medusa" }),
 		table.freeze({ Name = "Isopodo", TemplateName = "Isopodo_Gigante", ProcAnim = "Isopodo", Weight = 1,
-			Length = 16, PatrolSpeed = 9, ChaseSpeed = 23, TurnRate = 8, Accel = 40, SightRange = 60, HearRange = 22,
+			Length = 16, PatrolSpeed = 13, ChaseSpeed = 27, TurnRate = 12, Accel = 75, SightRange = 60, HearRange = 22,
 			AttackDamage = 45, AttackStart = 12, WindupSeconds = 0.25, LungeSpeed = 46, LungeSeconds = 0.35, HeadOffset = 7,
 			Roar = "Abismo_Isopodo" }),
 		table.freeze({ Name = "Tiburon", TemplateName = "Tiburon_Duende", ProcAnim = "Tiburon", Weight = 1,
-			Length = 26, PatrolSpeed = 13, ChaseSpeed = 28, TurnRate = 6, AttackDamage = 55, AttackStart = 18, LungeSpeed = 56,
+			Length = 26, PatrolSpeed = 16, ChaseSpeed = 29, TurnRate = 9, AttackDamage = 55, AttackStart = 18, LungeSpeed = 56,
 			AttackCooldown = 1.6, HeadOffset = 11, Roar = "Abismo_Tiburon" }),
 	}),
 })
@@ -333,17 +339,36 @@ local Economy = table.freeze({
 	}),
 })
 
--- Dash (DashClient): impulso hacia donde mira la cámara, solo nadando.
-local Dash = table.freeze({
-	Key = Enum.KeyCode.Q,
-	Cooldown = 15, -- segundos
-	Speed = 100, -- velocidad inicial (baja linealmente a 0); ~30 studs de recorrido
-	Duration = 0.6,
+-- Sprint (SprintClient + StaminaService): mantener Shift (botón "Correr" en táctil) para nadar más rápido gastando estamina.
+-- La estamina es del servidor (atributos de jugador Stamina/StaminaMax/Sprinting/Exhausted). Si se vacía, no se puede correr hasta
+-- recuperar ExhaustedUntil. Correr hace ruido: los enemigos te oyen desde Monster.NoiseRange. Sustituye al dash (eliminado).
+-- Tensión buscada: correr (34) supera la persecución de los enemigos (26-29), pero solo ~7 s: hay que romper la línea de visión
+-- y salir de su oído antes de quedarse sin aire.
+local Sprint = table.freeze({
+	Key = Enum.KeyCode.LeftShift,
+	PadKey = Enum.KeyCode.ButtonL3,
+	Speed = 34, -- WalkSpeed al correr nadando (el nado normal es Swim.Speed = 20)
+	StaminaMax = 100,
+	DrainPerSecond = 15, -- ~6,7 s de carrera continua
+	RegenPerSecond = 12, -- recarga al no correr (~8 s de vacío a lleno)
+	RegenDelay = 1.2, -- segundos sin correr antes de empezar a recuperar
+	ExhaustedUntil = 30, -- tras vaciarse no se puede correr hasta llegar a esta estamina
+	MinSpeed = 6, -- hay que moverse (studs/s) para gastar estamina
+	StepSeconds = 0.1, -- paso de simulación del servidor
+	FovKick = 8, -- grados extra de campo de visión al correr (0 = desactivado)
+})
+
+
+-- Indicador del submarino (SubmarineMarker.client): rombo con la distancia, o flecha al borde de la pantalla si está fuera de vista.
+local SubMarker = table.freeze({
+	Color = Color3.fromRGB(255, 220, 120),
+	HideWithin = 30, -- studs: se oculta al estar cerca del submarino
+	HeightOffset = 8, -- el rombo se dibuja unos studs por encima del centro del submarino
+	Margin = 48, -- píxeles de separación respecto al borde de la pantalla
 })
 
 -- Prefijos de nombre (sin distinguir mayúsculas) de los sonidos en Workspace.sonidos. Ver Shared/Sfx.
 local Sfx = table.freeze({
-	Dash = "dash",
 	Bubbles = "Bubbles Small", -- burbujas de la boca (se elige una variante al azar)
 	Stroke = "Movimiento", -- brazada al nadar (SwimClient)
 	-- Submarino (Workspace.sonidos.Efectos_submarino). Prefijos completos para no mezclar p. ej. Avanzar_1 con Avanzar_nivel_...
@@ -424,7 +449,8 @@ local Ambient = table.freeze({
 
 return table.freeze({
 	Ambient = Ambient,
-	Dash = Dash,
+	Sprint = Sprint,
+	SubMarker = SubMarker,
 	Sfx = Sfx,
 	Audio = Audio,
 	BaseOxygenSeconds = 360,

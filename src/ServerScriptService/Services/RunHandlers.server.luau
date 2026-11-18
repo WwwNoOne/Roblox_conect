@@ -79,6 +79,26 @@ Players.PlayerRemoving:Connect(function(player)
 	lastDescend[player] = nil
 end)
 
+-- Avisos del temporizador del nivel (Config.Run.LevelWarnings): una vez por umbral y nivel, a todos los miembros.
+local warned: { [string]: boolean } = {}
+local function warnTimer(run: Runs.Run, left: number)
+	for _, threshold in Config.Run.LevelWarnings do
+		local key = string.format("%s:%d:%d", run.code, run.zone, threshold)
+		if left <= threshold and not warned[key] then
+			warned[key] = true
+			local text = if threshold >= 60
+				then string.format("Quedan %d min para que el submarino parta", threshold // 60)
+				else string.format("¡Quedan %d s! Vuelvan al submarino", threshold)
+			for _, userId in run.members do
+				local p = Players:GetPlayerByUserId(userId)
+				if p then
+					p:SetAttribute("HudNotice", string.format("%s|%f", text, os.clock()))
+				end
+			end
+		end
+	end
+end
+
 -- Bucle de simulación + HUD (4 Hz, límite del proyecto 20 Hz).
 while true do
 	local dt = task.wait(Config.HudUpdateInterval)
@@ -102,6 +122,11 @@ while true do
 				payload.failures = run.failures
 				local deadline = run.advanceDeadline
 				payload.advanceIn = if deadline then math.max(0, math.ceil(deadline - os.clock())) else nil
+				local left = Runs.LevelTimeLeft(run)
+				payload.levelLeft = if left then math.ceil(left) else nil
+				if left then
+					warnTimer(run, left)
+				end
 			end
 			updateHud:FireClient(player, payload)
 		end

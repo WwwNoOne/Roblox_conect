@@ -27,6 +27,7 @@ export type Run = {
 	deposited: number, -- valor depositado en el nivel actual (se cobra al cerrarlo)
 	failures: number, -- cuotas falladas
 	advanceDeadline: number?, -- os.clock() en que parte el submarino (cuenta atrás de Avanzar)
+	levelDeadline: number?, -- os.clock() en que se acaba el tiempo del nivel (Config.Run.LevelSeconds); nil fuera de un nivel
 }
 
 export type Result = { ok: boolean, err: string? }
@@ -260,6 +261,7 @@ function Runs.Start(code: string, members: { number })
 		deposited = 0,
 		failures = 0,
 		advanceDeadline = nil,
+		levelDeadline = nil,
 	}
 	runs[code] = run
 	for _, userId in members do
@@ -367,6 +369,7 @@ end
 -- Parte hacia la siguiente etapa: cierra el nivel (cuota) y empieza el viaje sellado.
 local function depart(run: Run)
 	run.advanceDeadline = nil
+	run.levelDeadline = nil
 	if run.state == "Level" then
 		settle(run)
 		if run.ended then
@@ -476,6 +479,19 @@ function Runs.RemoveUser(userId: number)
 	end
 end
 
+-- Sube a bordo (junto a la entrada) a quien sigue fuera del submarino.
+local function boardStragglers(run: Run)
+	local sub = submarine()
+	local entry = sub and sub:FindFirstChild("EntryPoint", true)
+	for _, id in aliveMembers(run) do
+		local root = aliveRoot(id)
+		if root and not isInsideSub(root) and entry and entry:IsA("Attachment") then
+			root.CFrame = entry.WorldCFrame
+			root.AssemblyLinearVelocity = Vector3.zero
+		end
+	end
+end
+
 function Runs.Step(dt: number)
 	for _, run in runs do
 		if run.ended then
@@ -513,6 +529,7 @@ function Runs.Step(dt: number)
 				run.depth = target.Depth
 				moveSubTo(run, run.zone)
 				setState(run, if target.Kind == "Parada" then "Stopover" else "Level")
+				run.levelDeadline = if target.Kind == "Parada" then nil else os.clock() + Config.Run.LevelSeconds
 				-- El casco sufre al llegar a cada etapa (ya no se desgasta con el tiempo).
 				-- (el primer descenso, de la sala al Nivel 1, no daña: el submarino sale entero)
 				if run.zone > 1 then
@@ -527,16 +544,18 @@ function Runs.Step(dt: number)
 			if timedOut or everyoneInside(run) then
 				if timedOut then
 					-- Quien no llegó a tiempo es subido a bordo para no quedar atrás.
-					local sub = submarine()
-					local entry = sub and sub:FindFirstChild("EntryPoint", true)
-					for _, id in aliveMembers(run) do
-						local root = aliveRoot(id)
-						if root and not isInsideSub(root) and entry and entry:IsA("Attachment") then
-							root.CFrame = entry.WorldCFrame
-							root.AssemblyLinearVelocity = Vector3.zero
-						end
-					end
+					boardStragglers(run)
 				end
+				depart(run)
+			end
+		end
+		-- Se acabó el tiempo del nivel: el submarino parte solo (cuota incluida) y en el último nivel se pierde la partida.
+		if not run.ended and run.state == "Level" and run.levelDeadline and os.clock() >= run.levelDeadline then
+			run.levelDeadline = nil
+			if run.zone >= #Config.Run.Stages then
+				finish(run, "Lost", "TimeUp")
+			else
+				boardStragglers(run)
 				depart(run)
 			end
 		end
@@ -544,6 +563,12 @@ function Runs.Step(dt: number)
 end
 
 -- T05/T06 usan estos para dinero y final.
+-- Segundos que quedan del nivel (nil si no hay temporizador activo).
+function Runs.LevelTimeLeft(run: Run): number?
+	local d = run.levelDeadline
+	return if d and run.state == "Level" then math.max(0, d - os.clock()) else nil
+end
+
 function Runs.OxygenMax(userId: number): number
 	local run = Runs.GetByUser(userId)
 	local level = run and run.upgrades.Oxygen or 0
