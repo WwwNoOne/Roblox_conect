@@ -18,6 +18,10 @@ Siguiente bloque, **todo visual**: niebla/ambiente por sala (ver C6), más decor
 - **ForgeGUI:** quedan ~6.700 créditos (un modelo `standard` cuesta ~4.700). Los 3 sonidos fallidos no se reintentan sin decisión del usuario. Registro en `forgegui-project.json`.
 - **No verificado:** partida completa con los monstruos y las salas nuevas; `Lobby.Part` en (-648, 145, -331) sin identificar; place sin guardar en Studio; código con diseño viejo (C1, C2, C4 de abajo).
 
+## 0.3 Decoración de salas: pasa a Codex (2026-11-18)
+Los modelos de ForgeGUI no encajan con el estilo visual del juego, así que **se retiró la `Decoracion` de las 10 salas** de `Workspace.Salas` (quedan solo las cáscaras, con sus huecos de 16 × 16). Respaldos en `ServerStorage`: `Respaldo_Decoracion_v1` (primera versión aleatoria) y `Respaldo_Decoracion_v2_ForgeGUI` (temas y grupos). **Codex decora las salas**; no volver a ejecutar `assets_build/forgegui/decorar_salas.luau` salvo que se vuelva a usar el kit (`Kit_Instalacion`). Sin la decoración desaparecen también las lámparas `LamparaInstalacion` (la luz de las salas es la del jugador y la niebla). A la espera de que se confirme que Codex terminó.
+- **Sala_0 con agujero de 16 × 16** (medido con rayos): centro (563,6, 14, 36,9) = `SubDock` + (2,6, −8, 72,9); `Config.Level.Sala0Port` ya lo usa, sin marco de pozo. La sala_0 conecta siempre primero con un tramo vertical de pasillo (`Pozo_*`), nunca con una sala.
+
 ## 1. Dónde estamos (resumen)
 El juego pasó de **3 niveles fijos + paradas** a un **modo infinito de cuevas generadas con salas modulares** (11 salas + sala_0 con el submarino, unidas por pasillos de 140 × 60 × 60, con semilla). Los niveles viejos y el agua de Terrain se **eliminaron** de Studio; se conservaron los assets de decoración, la fauna (peces) y el lobby.
 

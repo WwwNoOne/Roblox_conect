@@ -207,7 +207,7 @@ local Maze = table.freeze({
 	}),
 	Inner = 16, -- sección interior libre del pasillo
 	Outer = 20, -- sección exterior (con paredes)
-	Pit = 40, -- lado del pozo de la sala_0 (el marco lo une con la primera pieza)
+	-- Pit (opcional): lado de un pozo más ancho que el pasillo; la sala_0 actual tiene un agujero de 16 × 16 y no lo necesita
 	-- Caja de la sala_0 respecto a su SubDock (por encima del suelo del pozo): las piezas no pueden entrar
 	Sala0BoxCenter = Vector3.new(5.4, 18.2, 48.9),
 	Sala0BoxHalf = Vector3.new(41, 18.2, 55),
@@ -296,7 +296,8 @@ local Level = table.freeze({
 	-- estorben ni se carguen en la partida.
 	Stash = { "Assets", "Zona_Prueba", "LeadPipes" },
 	-- Sala_0 (relativo a su SubDock): puerto del pozo y caja aproximada
-	Sala0Port = Vector3.new(2, -9, 74),
+	-- medido con rayos (2026-11-18): agujero de ~17 × 16 en el suelo (Y = 14), centro (563,5, 36,9); el puerto queda en la cara inferior del suelo
+	Sala0Port = Vector3.new(2.5, -9, 72.9),
 	Sala0Half = Vector3.new(47, 28, 104),
 	-- Grosor de pared y volumen de agua interior de cada tipo de sala
 	BigWall = 8,

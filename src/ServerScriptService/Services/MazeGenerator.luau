@@ -230,8 +230,9 @@ local function planOnce(seed: number, defs: { PieceDef }, entryPos: Vector3, opt
 		local allowed = run <= maxRun
 			and not (def.vertical and verticals >= maxVertical)
 			and not (def.kind == "room" and rooms >= maxRooms)
-			-- la primera pieza (bajo el pozo) no puede ser un pasillo lineal horizontal: quedaría vertical y sin salida
-			and not (fp.node == 0 and def.kind == "linear")
+			-- la sala_0 siempre se conecta primero a un pasillo: bajo su agujero solo va un tramo vertical (nunca una sala) y no
+			-- un pasillo lineal horizontal (quedaría vertical y sin salida)
+			and not (fp.node == 0 and (def.kind == "linear" or def.kind == "room"))
 			and not (fp.node == 0 and entryNeedsTecho and not hasPort(def, Vector3.yAxis))
 		if allowed then
 			-- bajo el pozo: si la pieza ya tiene puerto hacia arriba (pozos, salas) solo gira sobre el eje vertical
@@ -416,8 +417,9 @@ end
 
 -- Construye el laberinto en `container`. templates: nombre de plantilla -> Model.
 -- opts.water: rellena de agua todo el volumen del laberinto hasta la altura del pozo (y = entry.y); opts.inner/outer: sección del
--- pasillo (16 y 20) para el marco que une el pozo de la sala_0 con la primera pieza.
-function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, container: Instance, opts: { water: boolean, inner: number, outer: number, pit: number })
+-- pasillo (16 y 20). opts.pit (opcional): lado de un pozo más ancho que el pasillo; si se da, se pone un marco que lo une con la
+-- primera pieza. Con el agujero de 16 × 16 de la sala_0 (2026-11-18) no hace falta marco.
+function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, container: Instance, opts: { water: boolean, inner: number, outer: number, pit: number? })
 	local counts = { pieces = 0, caps = 0 }
 	for _, n in plan.nodes do
 		local template = templates[n.def.name]
@@ -435,16 +437,19 @@ function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, contain
 		part("Tapon", size, CFrame.lookAt(c.pos + c.dir * 1, c.pos + c.dir * 2, up), dark, container)
 		counts.caps += 1
 	end
-	-- marco horizontal entre el pozo (opts.pit) y la primera pieza (hueco opts.inner), alineado con el suelo de la sala_0
-	local e = plan.entry.pos
-	local bar = (opts.pit + 6 - opts.inner) / 2
-	local whole = opts.pit + 6
-	local frame = Instance.new("Folder")
-	frame.Name = "MarcoDelPozo"
-	frame.Parent = container
-	for _, sgn in { -1, 1 } do
-		part("Barra", Vector3.new(bar, 1, whole), CFrame.new(e + Vector3.new(sgn * (opts.inner / 2 + bar / 2), 0.5, 0)), dark, frame)
-		part("Barra", Vector3.new(opts.inner, 1, bar), CFrame.new(e + Vector3.new(0, 0.5, sgn * (opts.inner / 2 + bar / 2))), dark, frame)
+	-- marco horizontal entre un pozo más ancho (opts.pit) y la primera pieza (hueco opts.inner), alineado con el suelo de la sala_0
+	local pit = opts.pit
+	if pit and pit > opts.inner then
+		local e = plan.entry.pos
+		local bar = (pit + 6 - opts.inner) / 2
+		local whole = pit + 6
+		local frame = Instance.new("Folder")
+		frame.Name = "MarcoDelPozo"
+		frame.Parent = container
+		for _, sgn in { -1, 1 } do
+			part("Barra", Vector3.new(bar, 1, whole), CFrame.new(e + Vector3.new(sgn * (opts.inner / 2 + bar / 2), 0.5, 0)), dark, frame)
+			part("Barra", Vector3.new(opts.inner, 1, bar), CFrame.new(e + Vector3.new(0, 0.5, sgn * (opts.inner / 2 + bar / 2))), dark, frame)
+		end
 	end
 	-- Bounds del laberinto (para criaturas y comprobaciones)
 	local bounds = Instance.new("Part")

@@ -96,7 +96,7 @@ local function generateMaze(dock: BasePart, stash: Instance)
 		container.Name = "NivelGenerado"
 		container.Parent = workspace
 		local started = os.clock()
-		local counts = Maze.Build(plan, templates, container, { water = true, inner = M.Inner, outer = M.Outer, pit = M.Pit })
+		local counts = Maze.Build(plan, templates, container, { water = true, inner = M.Inner, outer = M.Outer })
 		LevelState.plan = plan
 		LevelState.nav = Maze.NavGraph(plan)
 		LevelState.container = container
