@@ -1,5 +1,5 @@
 --!strict
--- Busca modelos de Codex en ServerStorage.AbismoAssets (Treasures/, Props/, Creatures/...).
+-- Busca modelos de Codex en ServerStorage.AbismoAssets (Kit_Objetos_De_Recoleccion/, Props/, Creatures/...).
 -- Ignora la carpeta _Duplicados (copias sueltas pendientes de borrar).
 local ServerStorage = game:GetService("ServerStorage")
 

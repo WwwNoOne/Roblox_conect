@@ -1,5 +1,5 @@
 --!strict
--- Conecta Economy con el mundo: tesoros en los TreasureSpawn del nivel, paneles del submarino y remotos.
+-- Conecta Economy con el mundo: objetos de recolección sobre el laberinto generado, paneles del submarino y remotos.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,6 +10,7 @@ local Runs = require(script.Parent:WaitForChild("Runs"))
 local Economy = require(script.Parent:WaitForChild("Economy"))
 local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
+local LevelState = require(script.Parent:WaitForChild("LevelState"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local shopOpen = remotes:WaitForChild("ShopOpen") :: RemoteEvent
@@ -48,30 +49,39 @@ end
 
 local rng = Random.new()
 
--- Elige un modelo del tipo (Config.Economy.Treasure[tier].Models) que exista en AbismoAssets; si no, Treasure_<tipo>.
-local function pickTemplate(tier: string, def: any): Model?
-	local names: { string } = table.clone(def.Models or {})
-	while #names > 0 do
-		local i = rng:NextInteger(1, #names)
-		local found = Assets.Find(names[i])
-		if found and found:IsA("Model") then
-			return found
+-- Objetos del kit de recolección (AbismoAssets.<Config.Economy.Kit>) por clase, según su atributo ClaseSugerida.
+local function kitModels(tier: string): { Model }
+	local kit = Assets.Find(Config.Economy.Kit)
+	local list: { Model } = {}
+	if kit then
+		for _, d in kit:GetDescendants() do
+			if d:IsA("Model") and d:GetAttribute("ClaseSugerida") == tier then
+				table.insert(list, d)
+			end
 		end
-		table.remove(names, i)
 	end
-	local fallback = Assets.Find("Treasure_" .. tier)
-	return if fallback and fallback:IsA("Model") then fallback else nil
+	return list
 end
 
--- `ground`: punto de apoyo en el suelo. El tesoro se coloca encima, con giro al azar.
+local function pickTemplate(tier: string): Model?
+	local list = kitModels(tier)
+	return if #list > 0 then list[rng:NextInteger(1, #list)] else nil
+end
+
+local function prettyName(name: string): string
+	return (string.gsub(name, "_", " "))
+end
+
+-- `ground`: punto de apoyo en el suelo. El objeto se coloca encima, con giro al azar.
 local function makeTreasure(ground: Vector3, tier: string)
 	local def = (Config.Economy.Treasure :: any)[tier]
 	if not def then
 		return
 	end
-	local template = pickTemplate(tier, def)
+	local template = pickTemplate(tier)
 	local rootOrNil: BasePart? = nil
 	local objectOrNil: Instance? = nil
+	local label = "Objeto " .. tier
 	if template then
 		local clone = template:Clone()
 		local handle = clone.PrimaryPart or clone:FindFirstChild("Handle") or clone:FindFirstChildWhichIsA("BasePart", true)
@@ -86,19 +96,20 @@ local function makeTreasure(ground: Vector3, tier: string)
 				end
 			end
 			local box, size = clone:GetBoundingBox()
-			local target = ground + Vector3.new(0, size.Y / 2 + 0.15, 0)
+			local target = ground + Vector3.new(0, size.Y / 2 + 0.1, 0)
 			clone:PivotTo(clone:GetPivot() + (target - box.Position)) -- el centro de la caja queda en el punto objetivo
 			local yaw = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
 			clone:PivotTo(CFrame.new(target) * yaw * CFrame.new(-target) * clone:GetPivot())
 			objectOrNil = clone
 			rootOrNil = handle
+			label = prettyName(template.Name)
 		else
 			clone:Destroy()
 		end
 	end
 	if not rootOrNil or not objectOrNil then
-		local part = Instance.new("Part") -- provisional
-		part.Name = "Treasure_" .. tier
+		local part = Instance.new("Part") -- provisional (sin kit)
+		part.Name = "Objeto_" .. tier
 		part.Size = def.Size
 		part.Color = def.Color
 		part.Material = Enum.Material.Neon
@@ -111,8 +122,9 @@ local function makeTreasure(ground: Vector3, tier: string)
 	root.Anchored = true
 	root.CanCollide = false
 	object:SetAttribute("Size", tier)
+	object:SetAttribute("Value", def.Value)
 
-	-- Luz propia: sin ella el tesoro es casi invisible en el agua oscura.
+	-- Luz propia: sin ella el objeto es casi invisible en el agua oscura.
 	local glow = Instance.new("PointLight")
 	glow.Color = def.Color
 	glow.Range = Config.TreasureGlowRange
@@ -122,7 +134,7 @@ local function makeTreasure(ground: Vector3, tier: string)
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "Recoger"
-	prompt.ObjectText = "Tesoro " .. tier
+	prompt.ObjectText = string.format("%s  ($%d)", label, def.Value)
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = 0.4
 	prompt.MaxActivationDistance = 8
@@ -142,34 +154,70 @@ local function makeTreasure(ground: Vector3, tier: string)
 	object.Parent = treasureFolder
 end
 
--- Huecos de un nivel: cada TreasureSpawn (Attachment) y los repartidos por las TreasureZone y plataformas H-<n> (partes planas).
-local function collectSlots(map: Instance): { Vector3 }
+-- Huecos de un nivel: puntos de suelo al azar dentro de las piezas del laberinto generado (más en las salas) y los TreasureSpawn
+-- (Attachment) que haya colocado a mano en las piezas. Cada hueco es el punto de suelo donde se apoya el objeto.
+local function collectSlots(): { Vector3 }
 	local slots: { Vector3 } = {}
 	local B = Config.Economy.Balance
-	for _, d in map:GetDescendants() do
+	local container = LevelState.container
+	local plan = LevelState.plan
+	if not container or not plan or #plan.nodes == 0 then
+		return slots
+	end
+	for _, d in container:GetDescendants() do
 		if d:IsA("Attachment") and d.Name == "TreasureSpawn" then
 			table.insert(slots, d.WorldPosition)
-		elseif d:IsA("BasePart") and (d.Name == "TreasureZone" or string.match(d.Name, "^H%-%d+$")) then
-			local n = math.max(1, math.floor(d.Size.X * d.Size.Z / B.ZoneAreaPerSlot + 0.5))
-			-- Cuadrícula con celdas al azar y algo de variación dentro de cada una: sin tesoros apilados.
-			local sx, sz = d.Size.X, d.Size.Z
-			local cols = math.max(1, math.floor(math.sqrt(n * sx / sz) + 0.5))
-			local rows = math.max(1, math.ceil(n / cols))
-			local cells: { Vector2 } = {}
-			for c = 0, cols - 1 do
-				for r = 0, rows - 1 do
-					table.insert(cells, Vector2.new(c, r))
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { container }
+	params.RespectCanCollide = true
+	params.IgnoreWater = true
+	local overlap = OverlapParams.new()
+	overlap.FilterType = Enum.RaycastFilterType.Include
+	overlap.FilterDescendantsInstances = { container }
+	overlap.RespectCanCollide = true
+	-- piezas con peso: las salas atraen más huecos que los tramos de pasillo
+	local nodes: { any } = {}
+	local total = 0
+	for _, node in plan.nodes do
+		local w = if node.def.kind == "room" then B.RoomWeight else 1
+		total += w
+		table.insert(nodes, { node = node, w = w })
+	end
+	local entry = LevelState.entry
+	local attempts = 0
+	while #slots < B.SlotCandidates and attempts < B.SlotAttempts do
+		attempts += 1
+		local r = rng:NextNumber() * total
+		local pick: any = nodes[1].node
+		for _, n in nodes do
+			r -= n.w
+			if r <= 0 then
+				pick = n.node
+				break
+			end
+		end
+		local c: Vector3, h: Vector3 = pick.center, pick.half
+		local margin = if pick.def.kind == "room" then B.EdgeMargin else 3
+		local hx, hy, hz = math.max(h.X - margin, 1), math.max(h.Y - 2, 1), math.max(h.Z - margin, 1)
+		local start = c + Vector3.new(rng:NextNumber(-hx, hx), rng:NextNumber(-hy, hy), rng:NextNumber(-hz, hz))
+		if #workspace:GetPartBoundsInRadius(start, B.ClearRadius, overlap) == 0 then
+			local hit = workspace:Raycast(start, Vector3.new(0, -(2 * h.Y + 4), 0), params)
+			if hit and hit.Normal.Y > 0.7 and hit.Position.Y >= c.Y - h.Y - 1 then
+				local ok = not entry or (hit.Position - entry).Magnitude >= B.SlotMinEntryDistance
+				if ok then
+					for _, s in slots do
+						if (s - hit.Position).Magnitude < B.SlotSpacing then
+							ok = false
+							break
+						end
+					end
 				end
-			end
-			for i = #cells, 2, -1 do
-				local j = rng:NextInteger(1, i)
-				cells[i], cells[j] = cells[j], cells[i]
-			end
-			for i = 1, math.min(n, #cells) do
-				local cell = cells[i]
-				local fx = ((cell.X + 0.5 + rng:NextNumber(-0.3, 0.3)) / cols - 0.5) * sx * 0.9
-				local fz = ((cell.Y + 0.5 + rng:NextNumber(-0.3, 0.3)) / rows - 0.5) * sz * 0.9
-				table.insert(slots, d.CFrame:PointToWorldSpace(Vector3.new(fx, d.Size.Y / 2, fz)))
+				if ok then
+					table.insert(slots, hit.Position)
+				end
 			end
 		end
 	end
@@ -198,18 +246,6 @@ local function planTreasure(quota: number, run: Runs.Run?, slotCount: number): {
 	count = math.max(1, math.min(count, math.floor(ceiling / small)))
 	local plan: { string } = table.create(count, "Small")
 	local total = count * small
-
-	-- Premio gordo (como mucho uno): sustituye a varias piezas pequeñas, así el total sigue siendo "cuota y un poco más".
-	if rng:NextNumber() < B.EpicChance then
-		local epicCount = math.min(slotCount, B.MinCount)
-		local epicTotal = E.Treasure.Epic.Value + (epicCount - 1) * small
-		if epicCount >= 1 and epicTotal <= ceiling then
-			count = epicCount
-			plan = table.create(count, "Small")
-			plan[rng:NextInteger(1, count)] = "Epic"
-			total = epicTotal
-		end
-	end
 
 	-- Sube tipos al azar hasta llegar al objetivo.
 	local function rank(t: string): number
@@ -251,15 +287,11 @@ local function planTreasure(quota: number, run: Runs.Run?, slotCount: number): {
 	return plan
 end
 
-local function spawnTreasure(mapName: string, run: Runs.Run?)
+local function spawnTreasure(run: Runs.Run?)
 	clearTreasure()
-	local maps = workspace:FindFirstChild("Maps")
-	local map = maps and maps:FindFirstChild(mapName)
-	if not map then
-		return
-	end
-	local slots = collectSlots(map)
+	local slots = collectSlots()
 	if #slots == 0 then
+		warn("[Economy] No hay huecos para los objetos de recolección (laberinto sin generar o sin suelo libre)")
 		return
 	end
 	local stage = run and (Config.Run.Stages :: any)[run.zone]
@@ -269,7 +301,7 @@ local function spawnTreasure(mapName: string, run: Runs.Run?)
 		slots[i], slots[j] = slots[j], slots[i]
 	end
 	if quota <= 0 then
-		-- Nivel sin cuota (baliza): sin tesoros de cuota, solo una muestra pequeña.
+		-- Nivel sin cuota (baliza): sin objetos de cuota, solo una muestra pequeña.
 		for i = 1, math.min(#slots, Config.Economy.Balance.MinCount) do
 			makeTreasure(slots[i], "Small")
 		end
@@ -279,6 +311,7 @@ local function spawnTreasure(mapName: string, run: Runs.Run?)
 	for i, tier in plan do
 		makeTreasure(slots[i], tier)
 	end
+	print(string.format("[Economy] %d objetos de recolección repartidos (cuota %d, %d huecos)", #plan, quota, #slots))
 end
 
 -- ===== Paneles del submarino =====
@@ -352,10 +385,7 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 		end
 	end
 	if state == "Level" then
-		local def = Config.Run.Stages[run.zone]
-		if def then
-			spawnTreasure(def.Map, run)
-		end
+		spawnTreasure(run)
 	elseif state == "Descending" or state == "Won" or state == "Lost" then
 		clearTreasure()
 	end

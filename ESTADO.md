@@ -34,6 +34,12 @@ Los modelos de ForgeGUI no encajan con el estilo visual del juego, así que **se
 - **Indicador del submarino** (`SubmarineMarker`, `Config.SubMarker`): rombo con la distancia sobre el submarino o flecha al borde de la pantalla si está fuera de vista; se oculta a menos de 30 studs. Solo en niveles.
 - Verificado: el juego arranca sin errores y la estamina se publica. **Sin probar jugando:** sensación del sprint/enemigos, el fin por tiempo (forzar `LevelSeconds` pequeño para probarlo).
 
+## 0.6 Objetos de recolección (2026-11-18)
+- **Kit nuevo de Codex** (`ServerStorage.AbismoAssets.Kit_Objetos_De_Recoleccion`, 10 modelos con `Handle` y atributo `ClaseSugerida`): Small = expediente, informe, bitácora, cartucho ($25); Medium = disco duro, multímetro, manómetro, carrete de cable ($75); Large = válvula, maletín de calibración ($200). El código los lee por `ClaseSugerida`, así que añadir modelos al kit basta (sin tocar código).
+- **Eliminado lo antiguo:** el pack de museo, `Treasure_Small/Medium/Large`, `Kit_Tesoros_Minerales`, el tipo Epic y las zonas `TreasureZone`/`H-<n>` (respaldo en `ServerStorage.Respaldo_Tesoros_Antiguos`, se puede borrar).
+- **Arreglo importante:** los tesoros se colocaban en `Workspace.Maps.<Nivel>`, que ya no existe, así que **no aparecía ninguno**. Ahora `EconomyHandlers.collectSlots` busca huecos de suelo con rayos dentro de las piezas del laberinto generado (más en salas, `Balance.RoomWeight`; lejos del pozo, separados, no dentro de geometría) y acepta `TreasureSpawn` (Attachment) puestos a mano en una pieza. Reparto por cuota y margen como antes (`Config.Economy.Balance`). Prueba en Play: 17 objetos, valor 600 para cuota 400.
+- Cada objeto lleva luz propia y un prompt "Recoger" con nombre y valor; escala `Treasure.<clase>.Scale` = 1,4 sobre el kit (ajustable).
+
 ## 1. Dónde estamos (resumen)
 El juego pasó de **3 niveles fijos + paradas** a un **modo infinito de cuevas generadas con salas modulares** (11 salas + sala_0 con el submarino, unidas por pasillos de 140 × 60 × 60, con semilla). Los niveles viejos y el agua de Terrain se **eliminaron** de Studio; se conservaron los assets de decoración, la fauna (peces) y el lobby.
 

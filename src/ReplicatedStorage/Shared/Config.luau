@@ -289,30 +289,18 @@ local Level = table.freeze({
 
 local Economy = table.freeze({
 	CarrySlots = 4, -- objetos que lleva cada jugador (1 por slot)
-	-- Tipos de tesoro. Models: modelos del Museum Treasures Pack (ServerStorage.AbismoAssets.Treasures.Museum); si no se
-	-- encuentra ninguno se usa Treasure_<Tipo> y, por último, una pieza provisional. Scale: tamaño sobre el modelo original (miden 1-2 studs).
+	-- Objetos de recolección (para la cuota). Kit = carpeta de AbismoAssets con los modelos de Codex; cada Model lleva el atributo
+	-- ClaseSugerida ("Small" | "Medium" | "Large") que decide su valor. Scale: tamaño sobre el modelo del kit (miden 3-5 studs);
+	-- Color: luz propia para localizarlos en la oscuridad. Sin modelos del kit se usa una pieza provisional.
+	Kit = "Kit_Objetos_De_Recoleccion",
 	Treasure = table.freeze({
-		Small = table.freeze({
-			Value = 25, Size = Vector3.new(1, 1, 1), Color = Color3.fromRGB(240, 200, 80), Scale = 2.4,
-			Models = table.freeze({ "sh_tresors_Seashell", "sh_tresors_Amber", "sh_tresors_Ammonite", "sh_tresors_Anchor", "sh_tresors_Compass", "sh_tresors_Spyglass", "sh_tresors_Vase", "sh_tresors_Meteorite", "sh_tresors_MoonRock", "sh_tresors_Painting", "sh_tresors_Palette", "sh_tresors_Shield", "sh_tresors_Satellite", "sh_tresors_Rocket", "sh_tresors_Seahorse", "sh_coffre_Coffre_Bronze" }),
-		}),
-		Medium = table.freeze({
-			Value = 75, Size = Vector3.new(1.6, 1.6, 1.6), Color = Color3.fromRGB(120, 220, 240), Scale = 2.6,
-			Models = table.freeze({ "sh_tresors_JadeSerpent", "sh_tresors_JewelBox", "sh_tresors_Scarab", "sh_tresors_Ankh", "sh_tresors_CatIdol", "sh_tresors_Goblet", "sh_tresors_RaptorClaw", "sh_tresors_DinoEgg", "sh_tresors_FrostCrystal", "sh_tresors_SnowflakeGem", "sh_tresors_Trident", "sh_tresors_KnightSword", "sh_tresors_Orb", "sh_tresors_RingedPlanet", "sh_coffre_Coffre_Argent" }),
-		}),
-		Large = table.freeze({
-			Value = 200, Size = Vector3.new(2.4, 2.4, 2.4), Color = Color3.fromRGB(230, 90, 220), Scale = 2.8,
-			Models = table.freeze({ "sh_tresors_GoldenClock", "sh_tresors_GoldenDino", "sh_tresors_GoldenHelm", "sh_tresors_GoldenPyramid", "sh_tresors_Crown", "sh_tresors_Scepter", "sh_tresors_JewelEgg", "sh_tresors_SunDisc", "sh_tresors_DoubloonChest", "sh_coffre_Coffre_Or" }),
-		}),
-		-- Premio gordo: como mucho uno por nivel (Balance.EpicChance).
-		Epic = table.freeze({
-			Value = 500, Size = Vector3.new(3, 3, 3), Color = Color3.fromRGB(150, 255, 210), Scale = 1.8,
-			Models = table.freeze({ "sh_finale_Diamond" }),
-		}),
+		Small = table.freeze({ Value = 25, Size = Vector3.new(2, 1, 2), Color = Color3.fromRGB(240, 200, 80), Scale = 1.4 }),
+		Medium = table.freeze({ Value = 75, Size = Vector3.new(3, 1.5, 3), Color = Color3.fromRGB(120, 220, 240), Scale = 1.4 }),
+		Large = table.freeze({ Value = 200, Size = Vector3.new(4, 2.5, 4), Color = Color3.fromRGB(230, 90, 220), Scale = 1.4 }),
 	}),
-	-- Reparto de tesoros por nivel (EconomyHandlers.spawnTreasure). Cada TreasureZone (parte plana oculta) ofrece huecos
-	-- (1 por ZoneAreaPerSlot studs²) y cada TreasureSpawn suelto es un hueco. Se llenan los necesarios para que el valor total
-	-- sea siempre >= cuota * margen (y no mucho más), con tipos al azar, y las posiciones cambian en cada partida.
+	-- Reparto por nivel (EconomyHandlers.spawnTreasure). Se buscan huecos en el suelo de las piezas del laberinto generado (más en las
+	-- salas que en los pasillos) y cada TreasureSpawn (Attachment) colocado a mano en una pieza cuenta como hueco. Se llenan los
+	-- necesarios para que el valor total sea >= cuota * margen (y no mucho más); las posiciones cambian en cada partida.
 	Balance = table.freeze({
 		Margin = 1.4, -- el valor repartido es la cuota x esto: la cuota y "un poco más" para cubrir pérdidas y comprar equipo
 		PerUpgradeLevel = 0.05, -- +margen por cada nivel de mejora comprado (equipo más fuerte recoge más; el extra paga más mejoras)
@@ -321,8 +309,13 @@ local Economy = table.freeze({
 		MaxOver = 1.6, -- el total repartido no pasa de cuota x margen x esto (evita niveles regalados)
 		FillFraction = 0.35, -- fracción de huecos que se llenan (antes de ajustar al valor objetivo)
 		MinCount = 10, -- mínimo de tesoros por nivel (si hay huecos)
-		ZoneAreaPerSlot = 180, -- studs² de zona por hueco
-		EpicChance = 0.3, -- probabilidad de que un nivel incluya el premio gordo
+		SlotCandidates = 48, -- huecos que se buscan por nivel
+		SlotAttempts = 900, -- intentos máximos de búsqueda
+		SlotSpacing = 16, -- separación mínima entre huecos
+		SlotMinEntryDistance = 60, -- no a menos de esto del pozo de la sala_0 (el primer tramo queda libre)
+		RoomWeight = 8, -- una sala atrae tantas veces más huecos que un tramo de pasillo (~la mitad acaba en salas)
+		EdgeMargin = 9, -- se queda a esta distancia de las paredes de una sala (los pasillos usan menos)
+		ClearRadius = 1.6, -- radio libre exigido en el punto de partida del rayo (no dentro de geometría)
 	}),
 	-- Cuota por nivel: se deposita en el submarino durante el nivel y se cobra al cerrarlo.
 	Quota = table.freeze({
