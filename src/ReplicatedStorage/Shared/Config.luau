@@ -40,9 +40,7 @@ local Water = table.freeze({
 -- Partida (T03). TODOS son valores de prueba a calibrar en T08.
 -- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
 -- Kind "Level": se sale a explorar (compuerta abierta). Kind "Parada": nadie sale; se vende/repara/compra desde dentro.
--- Crab = true: el nivel tiene al cangrejo guardián.
 -- Kraken = true: el nivel tiene al kraken enemigo (KrakenService).
--- Mandibula = true: el nivel tiene las Mandíbulas radiales (MandibulaService; cantidad en Config.Mandibula.Count).
 -- Beacon = true: el nivel tiene la baliza (victoria al activarla).
 -- Quota (opcional): valor de tesoros a depositar en ese nivel; el último nivel (baliza) no tiene cuota.
 -- Depth en metros (HUD); PressureDps ya no se aplica (el casco pierde Run.DescentDamage al llegar a cada etapa).
@@ -61,14 +59,13 @@ local Run = table.freeze({
 	Stages = table.freeze({
 		table.freeze({ Kind = "Level", Map = "Level_1", Depth = 200, PressureDps = 0.1, Quota = 400, Clock = table.freeze({ Start = 14, End = 19, Seconds = 480 }) }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 300, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 400, PressureDps = 0.5, Quota = 200, Crab = true, Kraken = true, Mandibula = true, Clock = table.freeze({ Start = 19.3, End = 19.3, Seconds = 1 }) }),
+		table.freeze({ Kind = "Level", Map = "Level_2", Depth = 400, PressureDps = 0.5, Quota = 200, Kraken = true, Clock = table.freeze({ Start = 19.3, End = 19.3, Seconds = 1 }) }),
 		table.freeze({ Kind = "Parada", Map = "Parada", Depth = 500, PressureDps = 0 }),
-		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 600, PressureDps = 1.2, Beacon = true, Crab = true }),
+		table.freeze({ Kind = "Level", Map = "Level_3", Depth = 600, PressureDps = 1.2, Beacon = true }),
 	}),
 })
 
 -- Economía de partida (T05). Valores de prueba a calibrar en T08.
--- Cangrejo guardián (T07). Valores de prueba: velocidades < nado del jugador (16) para poder huir.
 -- Natación (cliente). Valores de prueba: Speed ligeramente mayor que la caminata (16) para que no se sienta lento.
 local Swim = table.freeze({
 	Speed = 20, -- WalkSpeed mientras se nada
@@ -85,23 +82,6 @@ local Swim = table.freeze({
 	StrokeVolume = 0.35,
 	BubbleMinSeconds = 3,
 	BubbleMaxSeconds = 6,
-})
-
-local Crab = table.freeze({
-	Speed = 12, -- persecución (antes 10; el nado subió a 20)
-	WanderSpeed = 4,
-	ReturnSpeed = 12,
-	DetectRange = 45, -- studs; con la lámpara encendida se multiplica
-	LampDetectMultiplier = 1.5,
-	AlertSeconds = 1.0, -- animación Sorprender antes de perseguir
-	GrabReach = 6, -- distancia horizontal para atrapar
-	CarrySpeed = 14,
-	CarryMinSeconds = 3,
-	CarryMaxSeconds = 8,
-	TotalDamage = 20, -- daño total repartido durante el traslado
-	Immunity = 6, -- segundos sin poder ser atrapado tras soltarte
-	RetryDelay = 4, -- pausa del cangrejo tras soltar
-	PlatformCount = 3, -- cangrejos por partida en Level_2: se sortean entre las plataformas H-<n>, uno por plataforma
 })
 
 -- Kraken abisal (KrakenService): enemigo que ronda libre por el nivel; persigue a quien vea fuera del submarino, lo agarra con un tentáculo y lo mata.
@@ -152,31 +132,6 @@ local Kraken = table.freeze({
 	Debug = true, -- imprime los cambios de estado y pone atributos de depuración en el modelo
 })
 
--- Mandíbula radial (MandibulaService): criatura mediana que ronda todo el mapa, persigue a quien vea fuera del submarino y muerde.
--- Plantilla: AbismoAssets.Creatures.Mandibula_Radial (cabeza hacia -Z; animaciones Swim y Attack). Más lenta que el nado (20).
-local Mandibula = table.freeze({
-	Count = 3, -- cuántas hay a la vez en el nivel
-	RoamSpeed = 11,
-	ChaseSpeed = 18,
-	RecoverSpeed = 14, -- alejándose tras morder
-	TurnRate = 2.2,
-	DetectRange = 90, -- studs; con la lámpara encendida se multiplica
-	LampDetectMultiplier = 1.4,
-	LoseRangeMultiplier = 1.5,
-	BiteReach = 9, -- distancia de la cabeza al jugador para morder
-	Damage = 20,
-	BiteCooldown = 2, -- segundos sin poder morder de nuevo al mismo jugador
-	Knockback = 40,
-	RecoverSeconds = 2.5,
-	ProbeRadius = 8,
-	ProbeDistance = 30,
-	ReachDistance = 15,
-	StuckSeconds = 8,
-	RoamMargin = 40, -- los puntos de patrulla quedan al menos a esto del borde de Bounds
-	MinSpawnDistance = 250, -- aparece al menos a esto del SubDock
-	Debug = false,
-})
-
 -- Laberinto (MazeGenerator, Level.Mode = "maze"): piezas de pasillo en Workspace.Pasillo.Pasillos (cada una con Conexiones y Escondites).
 local Maze = table.freeze({
 	Count = 28, -- piezas por nivel (sin contar el marco del pozo)
@@ -213,48 +168,68 @@ local Maze = table.freeze({
 	Sala0BoxHalf = Vector3.new(41, 18.2, 55),
 })
 
--- Pez Pelícano Abisal (MonsterService): enemigo que patrulla el laberinto siguiendo la red de pasillos y, al detectarte, corre
--- hacia ti. Plantilla: Workspace.Creatures.Pez_Pelicano_Abisal (rig de Motor6D con animaciones en AnimSaves). Más rápido que el nado.
+-- Enemigos agresivos del laberinto (MonsterService). Patrullan por la red de pasillos; al detectarte te persiguen (anticipándose a tu
+-- movimiento), te encaran (Windup), se lanzan (Lunge, daña a quien toque su cuerpo) y se recuperan (Recover). Si te pierden rastrean
+-- la zona (Search) y avisan a los demás. Los valores de abajo son los de partida; cada especie sobrescribe los suyos.
+-- Los jugadores nadan a 20 (dash más): ChaseSpeed ~24-28 los alcanza en recto, pero el zarpazo se esquiva girando o escondiéndose.
 local Monster = table.freeze({
-	TemplateName = "Pez_Pelicano_Abisal",
-	Length = 24, -- largo del modelo en studs (el original mide ~35; cabe en pasillos de 16 de ancho)
+	Length = 24, -- largo del modelo en studs (cabe en pasillos de 16 de ancho)
+	BodyRadius = 3, -- radio de la esfera de colisión contra paredes (pasillo interior 16)
+	WaypointRadius = 3, -- distancia a la que da por alcanzado un punto del camino
 	PatrolSpeed = 10, -- studs/s patrullando
-	ChaseSpeed = 24, -- corriendo hacia el jugador (el nado normal es 20)
-	TurnRate = 7, -- giro suave
+	ChaseSpeed = 24, -- persiguiendo
+	Accel = 30, -- studs/s² al acelerar
+	Brake = 45, -- studs/s² al frenar
+	TurnRate = 7, -- giro suave (mayor = gira más rápido)
+	-- Detección
 	SightRange = 80, -- vista con línea de visión (la lámpara encendida lo multiplica)
 	LampSightMultiplier = 1.5,
 	HearRange = 14, -- te oye a esta distancia aunque no te vea (no si estás escondido)
+	NoiseSpeed = 26, -- si vas más rápido que esto (dash) haces ruido...
+	NoiseRange = 40, -- ...y te oye desde esta distancia
 	HiddenRange = 5, -- escondido solo te encuentra si está muy cerca
-	LoseSeconds = 4, -- tras perderte de vista sigue buscando este tiempo antes de volver a patrullar
-	AttackReach = 8, -- distancia de la boca al jugador para morder
-	AttackDamage = 50, -- daño por mordisco
-	AttackCooldown = 2,
+	LoseSeconds = 4, -- tras perderte de vista sigue persiguiendo tu rastro este tiempo antes de rastrear
+	SearchSeconds = 10, -- rastrea la zona del último punto visto este tiempo antes de volver a patrullar
+	LingerRadius = 45, -- radio de esa zona
+	AlertRadius = 160, -- avisa de dónde te vio a los demás enemigos a esta distancia
+	LeadSeconds = 0.45, -- anticipación máxima sobre tu velocidad
+	-- Ataque (zarpazo en tres fases)
+	AttackStart = 16, -- empieza el zarpazo cuando tu distancia a su cabeza baja de esto (y te ve)
+	WindupSeconds = 0.35, -- te encara y se frena: tu aviso para esquivar
+	LungeSpeed = 48, -- velocidad de la embestida
+	LungeSeconds = 0.4, -- duración máxima de la embestida
+	HitRadius = 7, -- distancia de su cuerpo (cola-cabeza) a tu centro a la que te daña durante la embestida
+	AttackDamage = 50, -- daño por golpe
+	RecoverSeconds = 0.9, -- queda lento tras la embestida
+	AttackCooldown = 1.2, -- mínimo entre zarpazos
+	HitGap = 0.8, -- un jugador no recibe daño de enemigos más seguido que esto
+	StuckSeconds = 1.5, -- sin avanzar este tiempo = recalcula el camino
 	FirstDelay = 15, -- segundos desde el inicio del nivel hasta que aparece
 	MinSpawnDistance = 90, -- aparece al menos a esta distancia del pozo de la sala_0
 	Debug = true,
 	-- Cuántos enemigos salen por nivel (especies distintas al azar, según Weight) y con qué separación entre apariciones.
 	PerLevel = 2,
 	SpawnStagger = 25, -- segundos entre la aparición de un enemigo y el siguiente
-	-- Especies. Cada una sobrescribe los valores de arriba. Las generadas con ForgeGUI (un solo MeshPart, cabeza hacia -Z)
-	-- llevan ProcAnim = perfil de CreatureAnim: el cliente las anima cortadas en trozos (CreatureAnimator).
-	-- Plantillas en ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
+	-- Especies (generadas con ForgeGUI: un solo MeshPart, cabeza hacia -Z). Llevan ProcAnim = perfil de CreatureAnim: el cliente las
+	-- anima cortadas en trozos (CreatureAnimator). Plantillas en ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
 	Species = table.freeze({
-		table.freeze({ Name = "PezPelicano", TemplateName = "Pez_Pelicano_Abisal", Weight = 1 }),
 		table.freeze({ Name = "Anguila", TemplateName = "Anguila_Abisal", ProcAnim = "Anguila", Weight = 1,
-			Length = 30, PatrolSpeed = 12, ChaseSpeed = 26, TurnRate = 8, AttackDamage = 40, AttackReach = 9,
+			Length = 30, PatrolSpeed = 12, ChaseSpeed = 26, TurnRate = 8, AttackDamage = 40, AttackStart = 18, LungeSpeed = 52,
 			HeadOffset = 13, Roar = "Abismo_Anguila" }),
 		table.freeze({ Name = "Rape", TemplateName = "Rape_Abisal", ProcAnim = "Rape", Weight = 1,
-			Length = 20, PatrolSpeed = 7, ChaseSpeed = 21, TurnRate = 5, SightRange = 110, HearRange = 10, AttackDamage = 60,
-			HeadOffset = 8, Roar = "Abismo_Rape" }),
+			Length = 20, PatrolSpeed = 7, ChaseSpeed = 22, TurnRate = 5, SightRange = 110, HearRange = 10, AttackDamage = 60,
+			AttackStart = 14, WindupSeconds = 0.5, LungeSpeed = 44, HeadOffset = 8, Roar = "Abismo_Rape" }),
 		table.freeze({ Name = "Medusa", TemplateName = "Medusa_Abisal", ProcAnim = "Medusa", Weight = 0.8,
-			Length = 22, PatrolSpeed = 5, ChaseSpeed = 14, TurnRate = 3, SightRange = 50, HearRange = 18, AttackReach = 10,
-			AttackDamage = 35, AttackCooldown = 1.2, HeadOffset = 0, Upright = true, Roar = "Abismo_Medusa" }),
+			Length = 22, PatrolSpeed = 5, ChaseSpeed = 15, TurnRate = 3, SightRange = 50, HearRange = 18, AttackStart = 14,
+			WindupSeconds = 0.4, LungeSpeed = 30, AttackDamage = 35, AttackCooldown = 1.0, HitRadius = 9, HeadOffset = 0,
+			Upright = true, Roar = "Abismo_Medusa" }),
 		table.freeze({ Name = "Isopodo", TemplateName = "Isopodo_Gigante", ProcAnim = "Isopodo", Weight = 1,
-			Length = 16, PatrolSpeed = 9, ChaseSpeed = 22, TurnRate = 6, SightRange = 60, HearRange = 22, AttackDamage = 45,
-			HeadOffset = 7, Roar = "Abismo_Isopodo" }),
+			Length = 16, PatrolSpeed = 9, ChaseSpeed = 23, TurnRate = 8, Accel = 40, SightRange = 60, HearRange = 22,
+			AttackDamage = 45, AttackStart = 12, WindupSeconds = 0.25, LungeSpeed = 46, LungeSeconds = 0.35, HeadOffset = 7,
+			Roar = "Abismo_Isopodo" }),
 		table.freeze({ Name = "Tiburon", TemplateName = "Tiburon_Duende", ProcAnim = "Tiburon", Weight = 1,
-			Length = 26, PatrolSpeed = 13, ChaseSpeed = 28, TurnRate = 6, AttackDamage = 55, AttackCooldown = 2.5,
-			HeadOffset = 11, Roar = "Abismo_Tiburon" }),
+			Length = 26, PatrolSpeed = 13, ChaseSpeed = 28, TurnRate = 6, AttackDamage = 55, AttackStart = 18, LungeSpeed = 56,
+			AttackCooldown = 1.6, HeadOffset = 11, Roar = "Abismo_Tiburon" }),
 	}),
 })
 
@@ -528,14 +503,12 @@ return table.freeze({
 
 	Run = Run,
 	Economy = Economy,
-	Crab = Crab,
 	Kraken = Kraken,
 	Level = Level,
 	Hiding = Hiding,
 	Maze = Maze,
 	Monster = Monster,
 	CreatureAnim = CreatureAnim,
-	Mandibula = Mandibula,
 	Swim = Swim,
 	Upgrades = Upgrades,
 	Water = Water,

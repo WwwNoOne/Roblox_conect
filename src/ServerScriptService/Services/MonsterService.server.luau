@@ -1,37 +1,41 @@
 --!strict
--- Enemigos agresivos del laberinto (Pez Pelícano y las especies de Config.Monster.Species; salen Config.Monster.PerLevel por nivel). Patrulla siguiendo la red de pasillos (LevelState.nav, que genera
--- MazeGenerator.NavGraph) y, en cuanto te detecta (vista con línea de visión, oído a corta distancia), corre hacia ti por la red y
--- muerde. No ve a quien está escondido (atributo Hidden) salvo muy cerca, ni a quien está dentro del submarino o fuera del laberinto.
--- Se mueve de forma cinemática (sin colisión): el cuerpo es rígido y puede cortar esquinas. Parámetros: Config.Monster.
--- Plantilla: Workspace.Creatures.Pez_Pelicano_Abisal (LevelService la mueve a ServerStorage.Plantillas.Creatures al arrancar).
+-- Enemigos agresivos del laberinto (especies de Config.Monster.Species; salen Config.Monster.PerLevel por nivel). Patrullan siguiendo
+-- la red de pasillos (LevelState.nav, que genera MazeGenerator.NavGraph) y, en cuanto te detectan (vista con línea de visión, oído),
+-- te persiguen, te cortan el paso adelantándose a tu movimiento y te atacan con un zarpazo en tres fases: preparación (se frena y te
+-- encara, avisando), embestida (se lanza con velocidad extra y daña a quien toque su cuerpo) y recuperación (queda vulnerable un
+-- instante). Si te pierden, rastrean la zona del último punto visto antes de volver a patrullar, y avisan a los otros enemigos cercanos.
+-- No ven a quien está escondido (atributo Hidden) salvo muy cerca, ni a quien está dentro del submarino o fuera del laberinto.
+-- Se mueven con velocidad y aceleración propias y chocan contra las paredes del laberinto (esferas de colisión): se deslizan en vez
+-- de atravesarlas. Parámetros: Config.Monster. Plantillas: ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
-local KeyframeSequenceProvider = game:GetService("KeyframeSequenceProvider")
+local CollectionService = game:GetService("CollectionService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
+local Sfx = require(Shared:WaitForChild("Sfx"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
 local LevelState = require(script.Parent:WaitForChild("LevelState"))
 
 local K = Config.Monster
 local rng = Random.new()
-local CollectionService = game:GetService("CollectionService")
-local Sfx = require(Shared:WaitForChild("Sfx"))
 
+-- Hidden (aún no sale) | Patrol | Investigate (va a donde oyó/vio a alguien) | Chase | Windup | Lunge | Recover | Search
 type Monster = {
 	k: any, -- parámetros de la especie (Config.Monster con lo de Config.Monster.Species[i] encima)
 	dead: boolean,
 	model: Model,
 	root: BasePart,
-	state: string, -- Hidden | Patrol | Chase | Search
-	armed: boolean,
-	timer: number,
+	state: string,
+	stateT: number, -- segundos que lleva en el estado actual
+	timer: number, -- cuenta atrás de aparición
 	pos: Vector3,
-	dir: Vector3,
+	vel: Vector3,
+	dir: Vector3, -- hacia dónde mira (la cabeza apunta a -Z del pivote)
 	path: { Vector3 },
 	idx: number,
 	target: Player?,
@@ -39,14 +43,19 @@ type Monster = {
 	lostAt: number,
 	scanAt: number,
 	repathAt: number,
-	attackAt: number,
+	lookAt: number, -- próximo recorte de camino
+	attackAt: number, -- no ataca antes de este instante
+	lunDir: Vector3,
+	hitDone: boolean,
+	searchUntil: number,
+	stuckPos: Vector3,
+	stuckAt: number,
 	code: string,
-	tracks: { [string]: AnimationTrack? },
-	anim: string?,
-	params: RaycastParams,
+	params: RaycastParams, -- solo el laberinto: línea de visión y colisión
 }
 
 local actives: { Monster } = {}
+local lastHit: { [Player]: number } = {}
 
 local function dbg(msg: string)
 	if K.Debug then
@@ -68,62 +77,6 @@ local function findTemplate(name: string): Model?
 	end
 	local a = Assets.Find(name)
 	return if a and a:IsA("Model") then a else nil
-end
-
--- ===== Animaciones (KeyframeSequences guardadas en AnimSaves) =====
-local function loadTrack(m: Monster, name: string): AnimationTrack?
-	if m.tracks[name] ~= nil then
-		return m.tracks[name]
-	end
-	local saves = m.model:FindFirstChild("AnimSaves") or m.model:FindFirstChild("Animaciones")
-	local src = saves and saves:FindFirstChild(name)
-	local controller = m.model:FindFirstChildOfClass("AnimationController")
-	local animator = controller and controller:FindFirstChildOfClass("Animator")
-	if not src or not src:IsA("KeyframeSequence") or not animator then
-		m.tracks[name] = false :: any
-		return nil
-	end
-	-- Solo vale en Studio; en el juego real hay que publicar la animación y poner su id en el atributo AnimationId.
-	local id = src:GetAttribute("AnimationId")
-	if type(id) ~= "string" or id == "" then
-		local ok, reg = pcall(function()
-			return KeyframeSequenceProvider:RegisterKeyframeSequence(src)
-		end)
-		if not ok then
-			m.tracks[name] = false :: any
-			return nil
-		end
-		id = reg
-	end
-	local anim = Instance.new("Animation")
-	anim.AnimationId = id :: string
-	local ok, track = pcall(function()
-		return animator:LoadAnimation(anim)
-	end)
-	if ok and track then
-		m.tracks[name] = track
-		return track
-	end
-	m.tracks[name] = false :: any
-	return nil
-end
-
-local function play(m: Monster, name: string, looped: boolean)
-	if m.anim == name then
-		return
-	end
-	local track = loadTrack(m, name)
-	if not track then
-		return
-	end
-	for other, t in m.tracks do
-		if t and other ~= name and t.IsPlaying and other:sub(1, 6) ~= "Ataque" then
-			t:Stop(0.2)
-		end
-	end
-	track.Looped = looped
-	track:Play(0.2)
-	m.anim = name
 end
 
 -- ===== Red de navegación =====
@@ -185,6 +138,7 @@ local function setPath(m: Monster, targetPos: Vector3)
 	if not nav then
 		return
 	end
+	-- desde el vértice más cercano por delante (si ya hay camino y el actual sigue siendo bueno no cambia de sentido)
 	local from = nearestVertex(nav, m.pos, m.dir)
 	local to = nearestVertex(nav, targetPos, nil)
 	m.path = shortestPath(nav, from, to)
@@ -227,16 +181,35 @@ local function eligibleRoot(player: Player, m: Monster): BasePart?
 end
 
 local function headPos(m: Monster): Vector3
-	return m.pos + m.dir * (m.k.HeadOffset or 4)
+	return m.pos + m.dir * (m.k.HeadOffset or m.k.Length * 0.45)
 end
 
+-- Distancia de un punto al cuerpo del monstruo (segmento cola-cabeza).
+local function bodyDistance(m: Monster, point: Vector3): number
+	local head = headPos(m)
+	local tail = m.pos - m.dir * (m.k.Length * 0.45)
+	local seg = head - tail
+	local t = math.clamp((point - tail):Dot(seg) / math.max(seg:Dot(seg), 1e-3), 0, 1)
+	return (point - (tail + seg * t)).Magnitude
+end
+
+-- Hay paso libre (para un cuerpo de radio `radius`) entre dos puntos del laberinto.
+local function clearBetween(m: Monster, a: Vector3, b: Vector3, radius: number): boolean
+	local d = b - a
+	if d.Magnitude < 0.5 then
+		return true
+	end
+	return workspace:Spherecast(a, radius, d, m.params) == nil
+end
+
+-- Línea de visión de la cabeza al jugador: el filtro solo incluye el laberinto, así que ni el propio personaje ni otros
+-- monstruos tapan la vista.
 local function hasLineOfSight(m: Monster, target: BasePart): boolean
 	local from = headPos(m)
-	local result = workspace:Raycast(from, target.Position - from, m.params)
-	return result == nil
+	return workspace:Raycast(from, target.Position - from, m.params) == nil
 end
 
--- Mejor jugador detectado: vista (con línea de visión) u oído; escondido solo se detecta muy cerca.
+-- Mejor jugador detectado: vista (con línea de visión) u oído (más lejos si va rápido); escondido solo se detecta muy cerca.
 local function detect(m: Monster): (Player?, BasePart?)
 	local best: Player? = nil
 	local bestRoot: BasePart? = nil
@@ -250,7 +223,9 @@ local function detect(m: Monster): (Player?, BasePart?)
 				seen = d <= m.k.HiddenRange
 			else
 				local sight = m.k.SightRange * (if player:GetAttribute("LampOn") then m.k.LampSightMultiplier else 1)
-				seen = d <= m.k.HearRange or (d <= sight and hasLineOfSight(m, root))
+				local noisy = root.AssemblyLinearVelocity.Magnitude > m.k.NoiseSpeed
+				local hear = if noisy then m.k.NoiseRange else m.k.HearRange
+				seen = d <= hear or (d <= sight and hasLineOfSight(m, root))
 			end
 			if seen and d < bestDist then
 				best, bestRoot, bestDist = player, root, d
@@ -276,37 +251,89 @@ local function place(m: Monster)
 	m.model:PivotTo(CFrame.lookAt(m.pos, m.pos + m.dir, up)) -- la cabeza apunta a -Z del pivote
 end
 
--- Avanza hacia el siguiente punto del camino; devuelve true si llegó al final.
-local function follow(m: Monster, speed: number, dt: number): boolean
-	local target = m.path[m.idx]
-	if not target then
-		return true
+local function turnToward(m: Monster, desired: Vector3, rate: number, dt: number)
+	if desired.Magnitude < 0.01 then
+		return
 	end
-	local to = target - m.pos
-	local dist = to.Magnitude
-	if dist < 1.2 then
-		m.idx += 1
-		return m.idx > #m.path
-	end
-	local desired = to.Unit
-	m.dir = m.dir:Lerp(desired, 1 - math.exp(-m.k.TurnRate * dt))
-	if m.dir.Magnitude < 0.01 then
-		m.dir = desired
-	end
-	m.dir = m.dir.Unit
-	m.pos += m.dir * math.min(dist, speed * dt)
-	place(m)
-	return false
+	local d = m.dir:Lerp(desired.Unit, 1 - math.exp(-rate * dt))
+	m.dir = if d.Magnitude < 0.01 then desired.Unit else d.Unit
 end
 
-local function chooseAnim(m: Monster, base: string)
-	if m.dir.Y > 0.6 then
-		play(m, "Nado_Vertical_Ascenso", true)
-	elseif m.dir.Y < -0.6 then
-		play(m, "Nado_Vertical_Descenso", true)
-	else
-		play(m, base, true)
+-- Mueve con colisión contra el laberinto: si la esfera del cuerpo choca, se desliza por la pared. Devuelve true si chocó.
+local function advance(m: Monster, dt: number): boolean
+	local delta = m.vel * dt
+	local dist = delta.Magnitude
+	if dist < 1e-4 then
+		return false
 	end
+	local blocked = false
+	local hit = workspace:Spherecast(m.pos, m.k.BodyRadius, delta.Unit * (dist + 0.4), m.params)
+	if hit then
+		blocked = true
+		local n = hit.Normal
+		m.vel -= n * m.vel:Dot(n) -- se desliza
+		delta = m.vel * dt
+		-- si seguía metido en la pared, sale despacio
+		if hit.Distance < 0.05 then
+			delta += n * math.min(dt * 6, 0.4)
+		end
+	end
+	m.pos += delta
+	return blocked
+end
+
+-- Acelera hacia `desiredVel` y avanza.
+local function drive(m: Monster, desiredVel: Vector3, accel: number, dt: number): boolean
+	local diff = desiredVel - m.vel
+	local mag = diff.Magnitude
+	local maxStep = accel * dt
+	m.vel = if mag <= maxStep then desiredVel else m.vel + diff * (maxStep / mag)
+	local blocked = advance(m, dt)
+	if m.vel.Magnitude > 1.5 then
+		turnToward(m, m.vel, m.k.TurnRate, dt)
+	end
+	place(m)
+	return blocked
+end
+
+-- Sigue el camino de vértices; recorta esquinas saltando a un punto posterior si hay paso libre. Devuelve true al llegar al final.
+local function follow(m: Monster, speed: number, dt: number, now: number): boolean
+	if #m.path == 0 then
+		return true
+	end
+	local radius = m.k.BodyRadius * 0.9
+	if now >= m.lookAt then
+		m.lookAt = now + 0.12
+		for j = math.min(#m.path, m.idx + 3), m.idx + 1, -1 do
+			if clearBetween(m, m.pos, m.path[j], radius) then
+				m.idx = j
+				break
+			end
+		end
+	end
+	local target = m.path[m.idx]
+	local to = target - m.pos
+	local dist = to.Magnitude
+	if dist < m.k.WaypointRadius then
+		if m.idx >= #m.path then
+			drive(m, Vector3.zero, m.k.Brake, dt)
+			return true
+		end
+		m.idx += 1
+		target = m.path[m.idx]
+		to = target - m.pos
+		dist = to.Magnitude
+		if dist < 0.01 then
+			return false
+		end
+	end
+	-- frena al acercarse al último punto para no pasarse
+	local v = speed
+	if m.idx >= #m.path then
+		v = math.min(speed, math.max(4, dist * 2))
+	end
+	drive(m, to.Unit * v, m.k.Accel, dt)
+	return false
 end
 
 local function pickPatrolTarget(m: Monster)
@@ -324,35 +351,120 @@ local function pickPatrolTarget(m: Monster)
 	setPath(m, nav.points[rng:NextInteger(1, #nav.points)])
 end
 
-local function attack(m: Monster, player: Player, root: BasePart, now: number)
-	m.attackAt = now + m.k.AttackCooldown
-	local dy = root.Position.Y - m.pos.Y
-	local name = if dy > 3 then "Ataque_Vertical_Ascenso" elseif dy < -3 then "Ataque_Vertical_Descenso" else "Ataque_Horizontal"
-	local track = loadTrack(m, name)
-	if track then
-		track.Looped = false
-		track:Play(0.1)
+-- Punto al azar de la red cerca de `around` (rastreo tras perder al jugador).
+local function pickNear(m: Monster, around: Vector3)
+	local nav = LevelState.nav
+	if not nav then
+		return
 	end
-	task.delay(0.45, function()
-		if m.dead or not m.model.Parent then
-			return
+	local near = {}
+	for _, p in nav.points do
+		if (p - around).Magnitude <= m.k.LingerRadius then
+			table.insert(near, p)
 		end
-		local r = eligibleRoot(player, m)
-		if r and (r.Position - headPos(m)).Magnitude <= m.k.AttackReach * 1.6 and player:GetAttribute("Hidden") ~= true then
-			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-			if humanoid then
-				humanoid:TakeDamage(m.k.AttackDamage)
-			end
-		end
-	end)
+	end
+	if #near == 0 then
+		pickPatrolTarget(m)
+		return
+	end
+	setPath(m, near[rng:NextInteger(1, #near)])
 end
 
-local function step(m: Monster, dt: number)
+-- ===== Ataque =====
+local function damagePlayer(player: Player, amount: number)
 	local now = os.clock()
-	if m.state == "Hidden" then
-		if not m.armed then
+	if (lastHit[player] or 0) + K.HitGap > now then
+		return
+	end
+	lastHit[player] = now
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid:TakeDamage(amount)
+	end
+end
+
+local function setState(m: Monster, state: string)
+	m.state = state
+	m.stateT = 0
+	m.model:SetAttribute("Estado", state)
+	m.model:SetAttribute("Atacando", state == "Windup" or state == "Lunge")
+end
+
+local function isAggressive(state: string): boolean
+	return state == "Chase" or state == "Windup" or state == "Lunge" or state == "Recover"
+end
+
+-- Avisa a los demás enemigos cercanos del último punto donde se vio a alguien.
+local function alertOthers(m: Monster, pos: Vector3)
+	for _, o in actives do
+		if o ~= m and not o.dead and (o.state == "Patrol" or o.state == "Search") and (o.pos - m.pos).Magnitude <= m.k.AlertRadius then
+			o.lastSeen = pos
+			setState(o, "Investigate")
+			setPath(o, pos)
+			dbg(o.model.Name .. " acude al aviso")
+		end
+	end
+end
+
+-- Fases del zarpazo. Windup: se frena y te encara. Lunge: se lanza y daña a quien toque su cuerpo. Recover: queda lento.
+local function attackStep(m: Monster, dt: number, now: number)
+	m.stateT += dt
+	local player = m.target
+	local root = player and eligibleRoot(player, m)
+	if m.state == "Windup" then
+		if not player or not root then
+			setState(m, "Search")
+			m.searchUntil = now + m.k.SearchSeconds
 			return
 		end
+		local aim = root.Position - headPos(m)
+		turnToward(m, aim, m.k.TurnRate * 3, dt)
+		drive(m, m.dir * m.k.ChaseSpeed * 0.2, m.k.Brake, dt)
+		if m.stateT >= m.k.WindupSeconds then
+			m.lunDir = if aim.Magnitude > 0.1 then aim.Unit else m.dir
+			m.hitDone = false
+			setState(m, "Lunge")
+		end
+	elseif m.state == "Lunge" then
+		if root then
+			-- ligera persecución durante el lanzamiento (no esquivable al instante)
+			local want = root.Position - headPos(m)
+			if want.Magnitude > 0.1 then
+				m.lunDir = m.lunDir:Lerp(want.Unit, math.min(1, dt * 3)).Unit
+			end
+		end
+		turnToward(m, m.lunDir, m.k.TurnRate * 2, dt)
+		m.vel = m.lunDir * m.k.LungeSpeed
+		local blocked = advance(m, dt)
+		place(m)
+		-- daño a quien toque el cuerpo (una vez por embestida)
+		if not m.hitDone then
+			for _, p in Players:GetPlayers() do
+				local r = eligibleRoot(p, m)
+				if r and p:GetAttribute("Hidden") ~= true and bodyDistance(m, r.Position) <= m.k.HitRadius then
+					damagePlayer(p, m.k.AttackDamage)
+					m.hitDone = true
+				end
+			end
+		end
+		if m.stateT >= m.k.LungeSeconds or blocked or m.hitDone then
+			m.attackAt = now + m.k.AttackCooldown
+			setState(m, "Recover")
+		end
+	else -- Recover
+		drive(m, m.dir * m.k.ChaseSpeed * 0.25, m.k.Brake, dt)
+		if m.stateT >= m.k.RecoverSeconds then
+			m.lostAt = now
+			setState(m, "Chase")
+		end
+	end
+end
+
+-- ===== Lógica principal =====
+local function step(m: Monster, dt: number)
+	local now = os.clock()
+	m.stateT += if m.state == "Windup" or m.state == "Lunge" or m.state == "Recover" then 0 else dt
+	if m.state == "Hidden" then
 		m.timer -= dt
 		if m.timer <= 0 then
 			local nav = LevelState.nav
@@ -370,12 +482,19 @@ local function step(m: Monster, dt: number)
 				end
 			end
 			m.pos = spawn
+			m.vel = Vector3.zero
 			m.dir = Vector3.new(1, 0, 0)
+			m.stuckPos, m.stuckAt = spawn, now
 			place(m)
-			m.state = "Patrol"
+			setState(m, "Patrol")
 			pickPatrolTarget(m)
-			dbg("aparece en patrulla")
+			dbg(m.model.Name .. " aparece en patrulla")
 		end
+		return
+	end
+
+	if m.state == "Windup" or m.state == "Lunge" or m.state == "Recover" then
+		attackStep(m, dt, now)
 		return
 	end
 
@@ -385,60 +504,97 @@ local function step(m: Monster, dt: number)
 		local player, root = detect(m)
 		if player and root then
 			if m.state ~= "Chase" then
-				dbg("detecta a " .. player.Name .. ": corre hacia el")
+				dbg(m.model.Name .. " detecta a " .. player.Name)
+				alertOthers(m, root.Position)
+				setState(m, "Chase")
+				m.attackAt = math.max(m.attackAt, now + 0.3)
+				if m.k.Roar then
+					Sfx.Play(m.k.Roar, m.root, 1, 160) -- rugido al detectarte
+				end
 			end
-			m.state, m.target, m.lastSeen, m.lostAt = "Chase", player, root.Position, now
+			m.target, m.lastSeen, m.lostAt = player, root.Position, now
 		elseif m.state == "Chase" and now - m.lostAt > m.k.LoseSeconds then
-			m.state = "Search"
+			setState(m, "Search")
 			m.target = nil
+			m.searchUntil = now + m.k.SearchSeconds
 			if m.lastSeen then
 				setPath(m, m.lastSeen)
 			end
-			dbg("pierde el rastro: busca")
+			dbg(m.model.Name .. " pierde el rastro: rastrea")
 		end
+	end
+
+	-- se atasca: sin avanzar este tiempo = recalcula el camino
+	if now - m.stuckAt >= m.k.StuckSeconds then
+		if (m.pos - m.stuckPos).Magnitude < 2 then
+			if m.state == "Patrol" or m.state == "Search" then
+				pickPatrolTarget(m)
+			end
+			m.repathAt = 0
+			m.vel = Vector3.zero
+		end
+		m.stuckPos, m.stuckAt = m.pos, now
 	end
 
 	if m.state == "Chase" then
 		local player = m.target
 		local root = player and eligibleRoot(player, m)
 		if not player or not root then
-			m.state = "Search"
+			setState(m, "Search")
 			m.target = nil
+			m.searchUntil = now + m.k.SearchSeconds
 			return
 		end
-		if now - m.lostAt < 0.3 or hasLineOfSight(m, root) then
-			m.lastSeen = root.Position
-			m.lostAt = if hasLineOfSight(m, root) or (root.Position - m.pos).Magnitude <= m.k.HearRange then now else m.lostAt
-		end
 		local head = headPos(m)
-		local dist = (root.Position - head).Magnitude
-		if dist <= m.k.AttackReach and now >= m.attackAt and player:GetAttribute("Hidden") ~= true then
-			attack(m, player, root, now)
+		local sees = hasLineOfSight(m, root)
+		if sees then
+			m.lastSeen = root.Position
+			m.lostAt = now
+		elseif (root.Position - m.pos).Magnitude <= m.k.HearRange then
+			m.lostAt = now
 		end
-		if hasLineOfSight(m, root) and dist < 40 then
-			-- a la vista y cerca: va directo hacia el jugador
-			m.path = { root.Position }
+		local dist = (root.Position - head).Magnitude
+		-- ¿a tiro? Prepara el zarpazo (solo con paso libre hasta el jugador y fuera del enfriamiento)
+		if sees and dist <= m.k.AttackStart and now >= m.attackAt and player:GetAttribute("Hidden") ~= true then
+			setState(m, "Windup")
+			return
+		end
+		-- se anticipa: apunta a donde estará el jugador, no a donde está
+		local aim = root.Position
+		if sees then
+			local lead = math.min(dist / math.max(m.k.ChaseSpeed, 1), m.k.LeadSeconds)
+			aim = root.Position + root.AssemblyLinearVelocity * lead
+			if not clearBetween(m, m.pos, aim, m.k.BodyRadius * 0.9) then
+				aim = root.Position
+			end
+		end
+		if sees and clearBetween(m, m.pos, aim, m.k.BodyRadius * 0.9) then
+			-- a la vista: va directo
+			m.path = { aim }
 			m.idx = 1
 		elseif now >= m.repathAt then
 			m.repathAt = now + 0.35
 			setPath(m, root.Position)
 		end
-		chooseAnim(m, "Nado_Horizontal")
-		follow(m, m.k.ChaseSpeed, dt)
+		if follow(m, m.k.ChaseSpeed, dt, now) then
+			m.path = {}
+		end
+	elseif m.state == "Investigate" then
+		if follow(m, m.k.ChaseSpeed * 0.75, dt, now) then
+			setState(m, "Search")
+			m.searchUntil = now + m.k.SearchSeconds
+		end
 	elseif m.state == "Search" then
-		chooseAnim(m, "Nado_Horizontal")
-		if follow(m, m.k.PatrolSpeed * 1.6, dt) then
-			m.state = "Patrol"
+		if now >= m.searchUntil then
+			setState(m, "Patrol")
 			pickPatrolTarget(m)
+		elseif follow(m, m.k.PatrolSpeed * 1.5, dt, now) then
+			pickNear(m, m.lastSeen or m.pos)
 		end
 	else
-		chooseAnim(m, "Patrullaje")
-		if follow(m, m.k.PatrolSpeed, dt) then
+		if follow(m, m.k.PatrolSpeed, dt, now) then
 			pickPatrolTarget(m)
 		end
-	end
-	if K.Debug then
-		m.model:SetAttribute("Estado", m.state)
 	end
 end
 
@@ -521,7 +677,7 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 	if k.Length > 0 and longest > 0 then
 		model:ScaleTo(model:GetScale() * k.Length / longest)
 	end
-	-- La raíz anclada mueve todo el rig; el resto queda sin anclar para que las animaciones (Motor6D) se apliquen.
+	-- La raíz anclada mueve todo el modelo; sin colisión propia (la colisión con el laberinto la calcula el servicio).
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = false
@@ -539,8 +695,8 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 		CollectionService:AddTag(model, "ProcCreature")
 	end
 	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { model }
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { LevelState.container :: Instance }
 	params.RespectCanCollide = true
 	params.IgnoreWater = true
 	local hidden = Vector3.new(0, -2000, 0)
@@ -554,9 +710,10 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 		model = model,
 		root = root :: BasePart,
 		state = "Hidden",
-		armed = true,
+		stateT = 0,
 		timer = k.FirstDelay + delay,
 		pos = hidden,
+		vel = Vector3.zero,
 		dir = Vector3.new(1, 0, 0),
 		path = {},
 		idx = 1,
@@ -565,16 +722,22 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 		lostAt = 0,
 		scanAt = 0,
 		repathAt = 0,
+		lookAt = 0,
 		attackAt = 0,
-		tracks = {},
-		anim = nil,
+		lunDir = Vector3.xAxis,
+		hitDone = false,
+		searchUntil = 0,
+		stuckPos = hidden,
+		stuckAt = 0,
 		params = params,
 	}
+	m.model:SetAttribute("Estado", "Hidden")
 	dbg("preparado " .. k.Name .. " (aparece en " .. math.floor(m.timer) .. " s)")
 	return m
 end
 
 RunService.Heartbeat:Connect(function(dt)
+	dt = math.min(dt, 0.1)
 	for i = #actives, 1, -1 do
 		local m = actives[i]
 		local run = Runs.Get(m.code)
@@ -583,13 +746,13 @@ RunService.Heartbeat:Connect(function(dt)
 			m.model:Destroy()
 			table.remove(actives, i)
 		else
-			local wasChasing = m.state == "Chase"
 			step(m, dt)
-			if m.state == "Chase" and not wasChasing and m.k.Roar then
-				Sfx.Play(m.k.Roar, m.root, 1, 160) -- rugido al detectarte
-			end
 		end
 	end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+	lastHit[player] = nil
 end)
 
 Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
