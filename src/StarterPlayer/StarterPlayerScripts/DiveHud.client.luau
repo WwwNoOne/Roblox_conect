@@ -1,5 +1,7 @@
 --!strict
--- HUD de buceo: profundidad (calculada localmente) y barra de oxígeno (del servidor).
+-- HUD de buceo: profundidad (calculada localmente), dinero, linterna, cuota, reloj del nivel y avisos. La vida, el oxígeno y los objetos
+-- recolectados los dibuja la interfaz de Codex (StarterGui.Abismo_HUD_Buceo, ver HudBuceoClient); si no existe, este script pinta
+-- además la barra de oxígeno y las ranuras (respaldo).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -13,11 +15,19 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "DiveHud"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
+-- ¿Está la interfaz de Codex? Entonces aquí solo va el panel compacto de datos (arriba a la izquierda).
+local useCodex = player.PlayerGui:WaitForChild("Abismo_HUD_Buceo", 8) ~= nil
 
 local frame = Instance.new("Frame")
-frame.AnchorPoint = Vector2.new(0, 1)
-frame.Position = UDim2.new(0, 16, 1, -16)
-frame.Size = UDim2.fromOffset(300, 120)
+if useCodex then
+	frame.AnchorPoint = Vector2.new(0, 0)
+	frame.Position = UDim2.fromOffset(16, 16)
+	frame.Size = UDim2.fromOffset(280, 86)
+else
+	frame.AnchorPoint = Vector2.new(0, 1)
+	frame.Position = UDim2.new(0, 16, 1, -16)
+	frame.Size = UDim2.fromOffset(300, 120)
+end
 frame.BackgroundColor3 = Color3.fromRGB(10, 30, 50)
 frame.BackgroundTransparency = 0.25
 frame.Parent = gui
@@ -38,6 +48,7 @@ local barBg = Instance.new("Frame")
 barBg.Position = UDim2.fromOffset(8, 40)
 barBg.Size = UDim2.new(1, -16, 0, 20)
 barBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+barBg.Visible = not useCodex
 barBg.Parent = frame
 Instance.new("UICorner").Parent = barBg
 
@@ -58,7 +69,7 @@ o2Label.Parent = barBg
 
 local invLabel = Instance.new("TextLabel")
 invLabel.BackgroundTransparency = 1
-invLabel.Position = UDim2.fromOffset(8, 66)
+invLabel.Position = UDim2.fromOffset(8, if useCodex then 32 else 66)
 invLabel.Size = UDim2.new(1, -16, 0, 22)
 invLabel.TextXAlignment = Enum.TextXAlignment.Left
 invLabel.Font = Enum.Font.GothamMedium
@@ -69,13 +80,12 @@ invLabel.Parent = frame
 local function refreshInfo(hull: number?, hullMax: number?, money: number?)
 	-- El casco ya no se muestra aquí: está en el panel del submarino (SubPanelClient).
 	local moneyText = if money then string.format("$%d  ", money) else ""
-	invLabel.Text = string.format(
-		"%sSlots %d/%d  [F] %s",
-		moneyText,
-		player:GetAttribute("CarryCount") or 0,
-		player:GetAttribute("CarryCapacity") or 0,
-		if player:GetAttribute("LampOn") then "ON" else "OFF"
-	)
+	local lamp = if player:GetAttribute("LampOn") then "ON" else "OFF"
+	if useCodex then
+		invLabel.Text = string.format("%sLinterna [F] %s", moneyText, lamp)
+	else
+		invLabel.Text = string.format("%sSlots %d/%d  [F] %s", moneyText, player:GetAttribute("CarryCount") or 0, player:GetAttribute("CarryCapacity") or 0, lamp)
+	end
 end
 refreshInfo(nil, nil, nil)
 local lastHull: number?, lastHullMax: number?, lastMoney: number? = nil, nil, nil
@@ -88,7 +98,7 @@ end
 
 local quotaLabel = Instance.new("TextLabel")
 quotaLabel.BackgroundTransparency = 1
-quotaLabel.Position = UDim2.fromOffset(8, 90)
+quotaLabel.Position = UDim2.fromOffset(8, if useCodex then 56 else 90)
 quotaLabel.Size = UDim2.new(1, -16, 0, 22)
 quotaLabel.TextXAlignment = Enum.TextXAlignment.Left
 quotaLabel.Font = Enum.Font.GothamMedium

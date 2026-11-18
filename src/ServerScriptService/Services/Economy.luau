@@ -16,6 +16,12 @@ local Economy = {}
 local function syncCarry(player: Player, run: Runs.Run?)
 	local list = run and run.carried[player.UserId]
 	player:SetAttribute("CarryCount", if list then #list else 0)
+	-- iconos de las ranuras ocupadas, separados por comas, en orden de recogida (los lee el HUD)
+	local glyphs: { string } = {}
+	for _, item in list or {} do
+		table.insert(glyphs, item.glyph or Config.Economy.DefaultGlyph)
+	end
+	player:SetAttribute("CarryGlyphs", table.concat(glyphs, ","))
 	player:SetAttribute("CarryCapacity", Config.Economy.CarrySlots)
 end
 
@@ -24,7 +30,7 @@ local function aliveInside(player: Player): boolean
 	return humanoid ~= nil and humanoid.Health > 0 and Runs.IsUserInside(player.UserId)
 end
 
-function Economy.Pickup(player: Player, size: string): Result
+function Economy.Pickup(player: Player, size: string, glyph: string?): Result
 	local run = Runs.GetByUser(player.UserId)
 	local def = (Config.Economy.Treasure :: any)[size]
 	if not run or run.ended or run.state ~= "Level" or not def then
@@ -39,7 +45,7 @@ function Economy.Pickup(player: Player, size: string): Result
 		return { ok = false, err = "INVENTORY_FULL" }
 	end
 	run.carried[player.UserId] = list
-	table.insert(list, { size = size, value = def.Value })
+	table.insert(list, { size = size, value = def.Value, glyph = glyph })
 	syncCarry(player, run)
 	return { ok = true }
 end

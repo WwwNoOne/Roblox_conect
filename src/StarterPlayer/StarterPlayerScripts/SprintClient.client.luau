@@ -40,9 +40,11 @@ gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local holder = Instance.new("Frame")
+-- Justo encima del panel de vida/oxígeno de la interfaz de Codex (Abismo_HUD_Buceo: x 2,3 %, borde superior ~86 % de la pantalla),
+-- con su mismo ancho (14 %). En móvil ese panel va arriba, así que aquí queda libre.
 holder.AnchorPoint = Vector2.new(0, 1)
-holder.Position = UDim2.new(0, 16, 1, -144) -- justo encima del panel de buceo (alto 120 + margen)
-holder.Size = UDim2.fromOffset(300, 18)
+holder.Position = UDim2.new(0.0229, 0, 0.85, 0)
+holder.Size = UDim2.new(0.1406, 0, 0, 18)
 holder.BackgroundColor3 = Color3.fromRGB(10, 30, 50)
 holder.BackgroundTransparency = 0.25
 holder.Visible = false

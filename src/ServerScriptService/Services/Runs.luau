@@ -9,7 +9,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 
-export type Item = { size: string, value: number }
+export type Item = { size: string, value: number, glyph: string? } -- glyph: icono de la ranura del HUD
 
 export type Run = {
 	code: string,

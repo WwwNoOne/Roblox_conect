@@ -293,6 +293,9 @@ local Economy = table.freeze({
 	-- ClaseSugerida ("Small" | "Medium" | "Large") que decide su valor. Scale: tamaño sobre el modelo del kit (miden 3-5 studs);
 	-- Color: luz propia para localizarlos en la oscuridad. Sin modelos del kit se usa una pieza provisional.
 	Kit = "Kit_Objetos_De_Recoleccion",
+	-- Icono de la ranura del HUD (Abismo_HUD_Buceo) según la carpeta del kit de la que sale el objeto; DefaultGlyph si no está.
+	KitGlyphs = table.freeze({ Documentos = "report", Almacenamiento_De_Datos = "disk", Equipo_De_Fabrica = "gauge" }),
+	DefaultGlyph = "gauge",
 	Treasure = table.freeze({
 		Small = table.freeze({ Value = 25, Size = Vector3.new(2, 1, 2), Color = Color3.fromRGB(240, 200, 80), Scale = 1.4 }),
 		Medium = table.freeze({ Value = 75, Size = Vector3.new(3, 1.5, 3), Color = Color3.fromRGB(120, 220, 240), Scale = 1.4 }),

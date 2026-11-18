@@ -40,6 +40,12 @@ Los modelos de ForgeGUI no encajan con el estilo visual del juego, así que **se
 - **Arreglo importante:** los tesoros se colocaban en `Workspace.Maps.<Nivel>`, que ya no existe, así que **no aparecía ninguno**. Ahora `EconomyHandlers.collectSlots` busca huecos de suelo con rayos dentro de las piezas del laberinto generado (más en salas, `Balance.RoomWeight`; lejos del pozo, separados, no dentro de geometría) y acepta `TreasureSpawn` (Attachment) puestos a mano en una pieza. Reparto por cuota y margen como antes (`Config.Economy.Balance`). Prueba en Play: 17 objetos, valor 600 para cuota 400.
 - Cada objeto lleva luz propia y un prompt "Recoger" con nombre y valor; escala `Treasure.<clase>.Scale` = 1,4 sobre el kit (ajustable).
 
+## 0.7 Interfaz de Codex integrada (2026-11-18)
+- **`StarterGui.Abismo_HUD_Buceo`** (solo existe en Studio; export en `assets_build/exports/HUD_Buceo_Abismo/` del árbol principal, sin versionar): dos diseños (`PC` y `Movil`) con **Vida**, **Oxígeno** y **Objetos recolectados** (ranuras con iconos de una hoja de sprites). Viene con datos de ejemplo y `Enabled = false`.
+- **`HudBuceoClient`** la conecta a los datos reales: vida = Humanoid, oxígeno = atributos `Oxygen/OxygenMax` (rojo bajo `UmbralOxigenoCritico` = 25 %; vida roja bajo 30 %), ranuras = `CarryCount/CarryCapacity` + `CarryGlyphs` (icono por objeto: documentos → `report`, almacenamiento → `disk`, equipo → `gauge`, ver `Config.Economy.KitGlyphs`). Elige `Movil` si hay táctil y no teclado. La hoja de iconos se lee de los propios iconos de ejemplo (atributo `Glifo`), así que si Codex la cambia no hay que tocar código.
+- **`DiveHud`** pasa a un panel compacto arriba a la izquierda (profundidad, dinero, linterna, cuota); sin la interfaz de Codex vuelve a pintar el HUD antiguo (respaldo). La barra de estamina queda justo encima del panel de vida/oxígeno.
+- Verificado en Play: la interfaz se ve con datos reales (vida 22 % en rojo, 3/4 objetos con sus iconos). **Pendiente:** probar el diseño `Movil` en un dispositivo/emulador y que Codex confirme los tamaños de texto (en una ventana de 1365 × 768 los textos salen pequeños).
+
 ## 1. Dónde estamos (resumen)
 El juego pasó de **3 niveles fijos + paradas** a un **modo infinito de cuevas generadas con salas modulares** (11 salas + sala_0 con el submarino, unidas por pasillos de 140 × 60 × 60, con semilla). Los niveles viejos y el agua de Terrain se **eliminaron** de Studio; se conservaron los assets de decoración, la fauna (peces) y el lobby.
 

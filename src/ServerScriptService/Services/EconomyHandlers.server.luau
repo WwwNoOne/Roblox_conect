@@ -82,6 +82,7 @@ local function makeTreasure(ground: Vector3, tier: string)
 	local rootOrNil: BasePart? = nil
 	local objectOrNil: Instance? = nil
 	local label = "Objeto " .. tier
+	local glyph: string = Config.Economy.DefaultGlyph
 	if template then
 		local clone = template:Clone()
 		local handle = clone.PrimaryPart or clone:FindFirstChild("Handle") or clone:FindFirstChildWhichIsA("BasePart", true)
@@ -103,6 +104,8 @@ local function makeTreasure(ground: Vector3, tier: string)
 			objectOrNil = clone
 			rootOrNil = handle
 			label = prettyName(template.Name)
+			local group = template.Parent
+			glyph = (group and (Config.Economy.KitGlyphs :: any)[group.Name]) or glyph
 		else
 			clone:Destroy()
 		end
@@ -144,7 +147,7 @@ local function makeTreasure(ground: Vector3, tier: string)
 		if not object.Parent then
 			return -- ya recogido por otro jugador
 		end
-		local result = Economy.Pickup(player, tier)
+		local result = Economy.Pickup(player, tier, glyph)
 		if result.ok then
 			object:Destroy()
 		else
