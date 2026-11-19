@@ -4,7 +4,9 @@
 -- te persiguen, te cortan el paso adelantándose a tu movimiento y te atacan con un zarpazo en tres fases: preparación (se frena y te
 -- encara, avisando), embestida (se lanza con velocidad extra y daña a quien toque su cuerpo) y recuperación (queda vulnerable un
 -- instante). Si te pierden, rastrean la zona del último punto visto antes de volver a patrullar, y avisan a los otros enemigos cercanos.
--- No ven a quien está escondido (atributo Hidden) salvo muy cerca, ni a quien está dentro del submarino o fuera del laberinto.
+-- No ven a quien está escondido (atributo Hidden) salvo pegados a su caja: si se quedan ahí olisqueando DiscoverSeconds lo descubren (lo sacan
+-- de la caja); si no, pierden el rastro a los HiddenLoseSeconds, rastrean la zona y se marchan lejos. Tampoco ven a quien está dentro del
+-- submarino o fuera del laberinto.
 -- Se mueven con velocidad y aceleración propias y chocan contra las paredes del laberinto (esferas de colisión): se deslizan en vez
 -- de atravesarlas. Parámetros: Config.Monster. Plantillas: ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
 local Players = game:GetService("Players")
@@ -20,6 +22,9 @@ local Sfx = require(Shared:WaitForChild("Sfx"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
 local LevelState = require(script.Parent:WaitForChild("LevelState"))
+local Hiding = require(script.Parent:WaitForChild("Hiding"))
+
+local playerHit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PlayerHit") :: RemoteEvent
 
 local K = Config.Monster
 local rng = Random.new()
@@ -48,6 +53,7 @@ type Monster = {
 	lunDir: Vector3,
 	hitDone: boolean,
 	searchUntil: number,
+	sniffT: number, -- segundos pegado a la caja donde se esconde el jugador (al llegar a DiscoverSeconds lo descubre)
 	stuckPos: Vector3,
 	stuckAt: number,
 	code: string,
@@ -359,14 +365,16 @@ local function follow(m: Monster, speed: number, dt: number, now: number): boole
 	return false
 end
 
-local function pickPatrolTarget(m: Monster)
+-- Nuevo destino de patrulla: lejos del monstruo y, si se da `avoid`, también lejos de ese punto (p. ej. la caja donde se escondió el
+-- jugador: así el enemigo se marcha de verdad en vez de volver al mismo sitio).
+local function pickPatrolTarget(m: Monster, avoid: Vector3?)
 	local nav = LevelState.nav
 	if not nav then
 		return
 	end
-	for _ = 1, 12 do
+	for _ = 1, 20 do
 		local p = nav.points[rng:NextInteger(1, #nav.points)]
-		if (p - m.pos).Magnitude > 60 then
+		if (p - m.pos).Magnitude > 60 and (not avoid or (p - avoid).Magnitude >= m.k.AvoidRadius) then
 			setPath(m, p)
 			return
 		end
@@ -403,6 +411,7 @@ local function damagePlayer(player: Player, amount: number)
 	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid:TakeDamage(amount)
+		playerHit:FireClient(player, amount) -- impacto y temblor de cámara (CameraFxClient)
 	end
 end
 
@@ -435,9 +444,13 @@ local function attackStep(m: Monster, dt: number, now: number)
 	local player = m.target
 	local root = player and eligibleRoot(player, m)
 	if m.state == "Windup" then
-		if not player or not root then
+		if not player or not root or player:GetAttribute("Hidden") == true then
+			-- se perdió al objetivo (o se escondió a tiempo): a rastrear donde estaba
 			setState(m, "Search")
 			m.searchUntil = now + m.k.SearchSeconds
+			if m.lastSeen then
+				setPath(m, m.lastSeen)
+			end
 			return
 		end
 		local aim = root.Position - headPos(m)
@@ -536,7 +549,7 @@ local function step(m: Monster, dt: number)
 				end
 			end
 			m.target, m.lastSeen, m.lostAt = player, root.Position, now
-		elseif m.state == "Chase" and now - m.lostAt > m.k.LoseSeconds then
+		elseif m.state == "Chase" and now - m.lostAt > (if m.target and m.target:GetAttribute("Hidden") == true then m.k.HiddenLoseSeconds else m.k.LoseSeconds) then
 			setState(m, "Search")
 			m.target = nil
 			m.searchUntil = now + m.k.SearchSeconds
@@ -569,16 +582,35 @@ local function step(m: Monster, dt: number)
 			return
 		end
 		local head = headPos(m)
-		local sees = hasLineOfSight(m, root)
-		if sees then
-			m.lastSeen = root.Position
-			m.lostAt = now
-		elseif (root.Position - m.pos).Magnitude <= m.k.HearRange then
-			m.lostAt = now
+		local hiding = player:GetAttribute("Hidden") == true
+		local away = (root.Position - m.pos).Magnitude
+		local sees = not hiding and hasLineOfSight(m, root)
+		if hiding then
+			-- escondido: solo lo delata estar pegado a la caja. Si el enemigo se queda ahí olisqueando, termina por descubrirlo
+			-- (lo saca de la caja); si no, se le acaba el rastro (HiddenLoseSeconds) y se marcha.
+			if away <= m.k.HiddenRange then
+				m.lostAt = now
+				m.sniffT += dt
+				if m.sniffT >= m.k.DiscoverSeconds then
+					m.sniffT = 0
+					Hiding.Release(player)
+					player:SetAttribute("HudNotice", "¡Te encontró!|" .. tostring(os.clock()))
+				end
+			else
+				m.sniffT = math.max(0, m.sniffT - dt)
+			end
+		else
+			m.sniffT = 0
+			if sees then
+				m.lastSeen = root.Position
+				m.lostAt = now
+			elseif away <= m.k.HearRange then
+				m.lostAt = now
+			end
 		end
 		local dist = (root.Position - head).Magnitude
 		-- ¿a tiro? Prepara el zarpazo (solo con paso libre hasta el jugador y fuera del enfriamiento)
-		if sees and dist <= m.k.AttackStart and now >= m.attackAt and player:GetAttribute("Hidden") ~= true then
+		if sees and dist <= m.k.AttackStart and now >= m.attackAt then
 			setState(m, "Windup")
 			return
 		end
@@ -612,8 +644,8 @@ local function step(m: Monster, dt: number)
 	elseif m.state == "Search" then
 		if now >= m.searchUntil then
 			setState(m, "Patrol")
-			pickPatrolTarget(m)
-		elseif follow(m, m.k.PatrolSpeed * 1.5, dt, now) then
+			pickPatrolTarget(m, m.lastSeen) -- se marcha lejos de donde perdió al jugador
+		elseif follow(m, m.k.PatrolSpeed * m.k.SearchSpeedMul, dt, now) then
 			pickNear(m, m.lastSeen or m.pos)
 		end
 	else
@@ -752,6 +784,7 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 		lunDir = Vector3.xAxis,
 		hitDone = false,
 		searchUntil = 0,
+		sniffT = 0,
 		stuckPos = hidden,
 		stuckAt = 0,
 		params = params,

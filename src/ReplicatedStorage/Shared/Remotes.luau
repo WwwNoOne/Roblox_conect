@@ -20,6 +20,7 @@ Remotes.List = table.freeze({
 	DepositTreasure = "Function", -- () -> { ok: boolean, earned: number? (valor depositado), err: string? }
 	DescentFx = "Event", -- servidor -> cliente: (phase: "Start" | "End") efecto de cabina sellada
 	RunEnded = "Event", -- servidor -> cliente: (result: "Won" | "Lost", reason: string)
+	PlayerHit = "Event", -- servidor -> cliente: (damage: number) un enemigo te golpeó (impacto y temblor de cámara)
 	SetSprint = "Event", -- cliente -> servidor: (held: boolean) mantiene/suelta el sprint; la estamina es del servidor
 	-- Equipo (reutilizado del prototipo)
 	ToggleLamp = "Event",

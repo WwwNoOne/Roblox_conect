@@ -193,10 +193,14 @@ local Monster = table.freeze({
 	LampSightMultiplier = 1.5,
 	HearRange = 14, -- te oye a esta distancia aunque no te vea (no si estás escondido)
 	NoiseRange = 32, -- si vas corriendo (Sprint) haces ruido y te oye desde esta distancia aunque no te vea
-	HiddenRange = 5, -- escondido solo te encuentra si está muy cerca
+	HiddenRange = 5, -- escondido solo te encuentra si está pegado a tu caja...
+	DiscoverSeconds = 2.5, -- ...y si se queda así este tiempo te descubre (te saca de la caja)
+	HiddenLoseSeconds = 1.5, -- si te escondes y no está pegado, pierde el rastro a los pocos segundos y rastrea donde te vio por última vez
 	LoseSeconds = 4, -- tras perderte de vista sigue persiguiendo tu rastro este tiempo antes de rastrear
 	SearchSeconds = 10, -- rastrea la zona del último punto visto este tiempo antes de volver a patrullar
 	LingerRadius = 45, -- radio de esa zona
+	SearchSpeedMul = 1.2, -- velocidad de rastreo (x PatrolSpeed): lento y amenazante
+	AvoidRadius = 90, -- tras rastrear, la nueva patrulla va a un punto al menos así de lejos del último punto visto
 	AlertRadius = 160, -- avisa de dónde te vio a los demás enemigos a esta distancia
 	LeadSeconds = 0.45, -- anticipación máxima sobre tu velocidad
 	-- Ataque (zarpazo en tres fases)
@@ -355,6 +359,28 @@ local Sprint = table.freeze({
 })
 
 
+-- Impacto y temblor de cámara (CameraFxClient). Impacto: sacudida corta + destello rojo cuando un enemigo te golpea (remoto PlayerHit).
+-- Tensión: temblor leve y continuo que crece cuando un enemigo te persigue o te rastrea cerca, y un pulso al empezar su zarpazo.
+-- Los ángulos son radianes de giro de la cámara (0,01 rad ~ 0,6 grados).
+local CameraFx = table.freeze({
+	ImpactSeconds = 0.55,
+	ImpactAngle = 0.075, -- para un golpe de ImpactRefDamage; se escala con el daño recibido (0,6x a 1,5x)
+	ImpactRefDamage = 50,
+	ImpactFrequency = 24, -- oscilaciones/s
+	FlashColor = Color3.fromRGB(190, 20, 20),
+	FlashTransparency = 0.55, -- transparencia inicial del destello (0 = opaco); se desvanece sola
+	FlashSeconds = 0.45,
+	TensionRange = 70, -- studs: un enemigo agresivo más cerca que esto empieza a hacer temblar la cámara
+	TensionAngle = 0.0045, -- temblor máximo continuo (enemigo pegado a ti en persecución)
+	TensionFrequency = 7,
+	TensionSmoothing = 3, -- suavizado al subir/bajar la tensión
+	SearchWeight = 0.5, -- peso de un enemigo que rastrea (Search/Investigate) respecto a uno que persigue
+	PatrolWeight = 0.2, -- y de uno que patrulla a menos de PatrolRange
+	PatrolRange = 28,
+	WindupPulseAngle = 0.014, -- pulso al empezar su zarpazo (Windup)
+	WindupPulseSeconds = 0.3,
+})
+
 -- Indicador del submarino (SubmarineMarker.client): rombo con la distancia, o flecha al borde de la pantalla si está fuera de vista.
 local SubMarker = table.freeze({
 	Color = Color3.fromRGB(255, 220, 120),
@@ -365,6 +391,7 @@ local SubMarker = table.freeze({
 
 -- Prefijos de nombre (sin distinguir mayúsculas) de los sonidos en Workspace.sonidos. Ver Shared/Sfx.
 local Sfx = table.freeze({
+	Impact = "Impacto", -- sonido del golpe de un enemigo (añadir un Sound cuyo nombre empiece por esto a Workspace.sonidos; opcional)
 	Bubbles = "Bubbles Small", -- burbujas de la boca (se elige una variante al azar)
 	Stroke = "Movimiento", -- brazada al nadar (SwimClient)
 	-- Submarino (Workspace.sonidos.Efectos_submarino). Prefijos completos para no mezclar p. ej. Avanzar_1 con Avanzar_nivel_...
@@ -447,6 +474,7 @@ return table.freeze({
 	Ambient = Ambient,
 	Sprint = Sprint,
 	SubMarker = SubMarker,
+	CameraFx = CameraFx,
 	Sfx = Sfx,
 	Audio = Audio,
 	BaseOxygenSeconds = 360,
