@@ -359,6 +359,23 @@ local Sprint = table.freeze({
 })
 
 
+-- Primera persona fija (FirstPersonClient). Mira = puntito central; los paneles de ModalGuis liberan el cursor y CursorKey (mantener)
+-- también (para clicar la interfaz en PC; en móvil se toca). CameraOffset empuja la cámara hacia delante del cuello (z negativo = delante).
+local FirstPerson = table.freeze({
+	CursorKey = Enum.KeyCode.LeftAlt,
+	ModalGuis = table.freeze({ "Shop", "SubPanel" }),
+	DotSize = 4,
+	DotColor = Color3.fromRGB(235, 245, 255),
+	DotTransparency = 0.15,
+	CameraOffset = Vector3.new(0, 0, -0.45),
+})
+
+-- Zona segura (SafeZone.luau): la sala_0 por encima de su suelo. Dentro no hay enemigos ni ataques, se recupera oxígeno y no se corre.
+local SafeZone = table.freeze({
+	MonsterBuffer = 20, -- studs bajo el suelo de la sala_0 hasta donde puede llegar el centro de un enemigo (su cuerpo mide 16-30)
+	PlanePad = 6, -- margen horizontal alrededor de la sala_0 vetado a los enemigos
+})
+
 -- Impacto y temblor de cámara (CameraFxClient). Impacto: sacudida corta + destello rojo cuando un enemigo te golpea (remoto PlayerHit).
 -- Tensión: temblor leve y continuo que crece cuando un enemigo te persigue o te rastrea cerca, y un pulso al empezar su zarpazo.
 -- Los ángulos son radianes de giro de la cámara (0,01 rad ~ 0,6 grados).
@@ -475,6 +492,8 @@ return table.freeze({
 	Sprint = Sprint,
 	SubMarker = SubMarker,
 	CameraFx = CameraFx,
+	SafeZone = SafeZone,
+	FirstPerson = FirstPerson,
 	Sfx = Sfx,
 	Audio = Audio,
 	BaseOxygenSeconds = 360,

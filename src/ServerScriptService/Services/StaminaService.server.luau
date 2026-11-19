@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
+local SafeZone = require(script.Parent:WaitForChild("SafeZone"))
 
 local P = Config.Sprint
 local setSprint = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SetSprint") :: RemoteEvent
@@ -76,6 +77,9 @@ local function canSprint(player: Player): boolean
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not humanoid or humanoid.Health <= 0 or not root then
 		return false
+	end
+	if SafeZone.IsPlayerSafe(root.Position) then
+		return false -- en la sala_0 no hace falta correr
 	end
 	return root.AssemblyLinearVelocity.Magnitude >= P.MinSpeed
 end

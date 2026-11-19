@@ -6,7 +6,7 @@
 -- instante). Si te pierden, rastrean la zona del último punto visto antes de volver a patrullar, y avisan a los otros enemigos cercanos.
 -- No ven a quien está escondido (atributo Hidden) salvo pegados a su caja: si se quedan ahí olisqueando DiscoverSeconds lo descubren (lo sacan
 -- de la caja); si no, pierden el rastro a los HiddenLoseSeconds, rastrean la zona y se marchan lejos. Tampoco ven a quien está dentro del
--- submarino o fuera del laberinto.
+-- submarino, a salvo en la sala_0 (SafeZone: tampoco pueden entrar ahí) ni fuera del laberinto.
 -- Se mueven con velocidad y aceleración propias y chocan contra las paredes del laberinto (esferas de colisión): se deslizan en vez
 -- de atravesarlas. Parámetros: Config.Monster. Plantillas: ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
 local Players = game:GetService("Players")
@@ -23,6 +23,7 @@ local Runs = require(script.Parent:WaitForChild("Runs"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
 local LevelState = require(script.Parent:WaitForChild("LevelState"))
 local Hiding = require(script.Parent:WaitForChild("Hiding"))
+local SafeZone = require(script.Parent:WaitForChild("SafeZone"))
 
 local playerHit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PlayerHit") :: RemoteEvent
 
@@ -147,7 +148,16 @@ local function setPath(m: Monster, targetPos: Vector3)
 	-- desde el vértice más cercano por delante (si ya hay camino y el actual sigue siendo bueno no cambia de sentido)
 	local from = nearestVertex(nav, m.pos, m.dir)
 	local to = nearestVertex(nav, targetPos, nil)
-	m.path = shortestPath(nav, from, to)
+	local full = shortestPath(nav, from, to)
+	-- el camino se corta antes de entrar en la zona vetada (sala_0 y tramo del pozo)
+	local path: { Vector3 } = {}
+	for _, p in full do
+		if SafeZone.BarsMonster(p) then
+			break
+		end
+		table.insert(path, p)
+	end
+	m.path = path
 	m.idx = 1
 end
 
@@ -180,7 +190,7 @@ local function eligibleRoot(player: Player, m: Monster): BasePart?
 		return nil
 	end
 	local root = playerRoot(player)
-	if not root or Runs.IsUserInside(player.UserId) or not inMaze(root.Position) then
+	if not root or Runs.IsUserInside(player.UserId) or SafeZone.IsPlayerSafe(root.Position) or not inMaze(root.Position) then
 		return nil
 	end
 	return root
@@ -271,6 +281,10 @@ local function advance(m: Monster, dt: number): boolean
 	local dist = delta.Magnitude
 	if dist < 1e-4 then
 		return false
+	end
+	if SafeZone.BarsMonster(m.pos + delta) then
+		m.vel = Vector3.zero -- la sala_0 es zona segura: no entran
+		return true
 	end
 	local blocked = false
 	local hit = workspace:Spherecast(m.pos, m.k.BodyRadius, delta.Unit * (dist + 0.4), m.params)
@@ -374,7 +388,7 @@ local function pickPatrolTarget(m: Monster, avoid: Vector3?)
 	end
 	for _ = 1, 20 do
 		local p = nav.points[rng:NextInteger(1, #nav.points)]
-		if (p - m.pos).Magnitude > 60 and (not avoid or (p - avoid).Magnitude >= m.k.AvoidRadius) then
+		if (p - m.pos).Magnitude > 60 and not SafeZone.BarsMonster(p) and (not avoid or (p - avoid).Magnitude >= m.k.AvoidRadius) then
 			setPath(m, p)
 			return
 		end
@@ -390,7 +404,7 @@ local function pickNear(m: Monster, around: Vector3)
 	end
 	local near = {}
 	for _, p in nav.points do
-		if (p - around).Magnitude <= m.k.LingerRadius then
+		if (p - around).Magnitude <= m.k.LingerRadius and not SafeZone.BarsMonster(p) then
 			table.insert(near, p)
 		end
 	end
@@ -512,7 +526,7 @@ local function step(m: Monster, dt: number)
 			local spawn = nav.points[1]
 			for _ = 1, 40 do
 				local p = nav.points[rng:NextInteger(1, #nav.points)]
-				if (p - entry).Magnitude >= m.k.MinSpawnDistance then
+				if (p - entry).Magnitude >= m.k.MinSpawnDistance and not SafeZone.BarsMonster(p) then
 					spawn = p
 					break
 				end

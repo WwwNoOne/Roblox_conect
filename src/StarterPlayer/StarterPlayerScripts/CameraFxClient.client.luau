@@ -18,7 +18,6 @@ local C = Config.CameraFx
 local playerHit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("PlayerHit") :: RemoteEvent
 
 local player = Players.LocalPlayer
-local camera = workspace.CurrentCamera :: Camera
 
 -- ===== Destello rojo =====
 local gui = Instance.new("ScreenGui")
@@ -64,7 +63,7 @@ local function threatNow(): number
 		if model:IsA("Model") and model:IsDescendantOf(workspace) then
 			local state = model:GetAttribute("Estado")
 			if type(state) == "string" and state ~= "Hidden" then
-				local distance = (model:GetPivot().Position - camera.CFrame.Position).Magnitude
+				local distance = (model:GetPivot().Position - (workspace.CurrentCamera :: Camera).CFrame.Position).Magnitude
 				-- pulso al empezar su zarpazo
 				if state == "Windup" and lastState[model] ~= "Windup" and distance < C.TensionRange then
 					addShake(C.WindupPulseAngle, C.WindupPulseSeconds, 30)
@@ -119,7 +118,8 @@ RunService:BindToRenderStep("CameraFx", Enum.RenderPriority.Camera.Value + 1, fu
 		rz += math.noise(0, 33.3, t) * 2 * angle * 0.5
 	end
 
-	if rx ~= 0 or ry ~= 0 or rz ~= 0 then
+	local camera = workspace.CurrentCamera -- se resuelve cada cuadro: Roblox puede recrearla
+	if camera and (rx ~= 0 or ry ~= 0 or rz ~= 0) then
 		camera.CFrame = camera.CFrame * CFrame.Angles(rx, ry, rz)
 	end
 end)

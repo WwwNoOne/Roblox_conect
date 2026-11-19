@@ -1,8 +1,10 @@
 --!strict
 -- Panel del submarino: casco, Reparar (solo en la Parada), Salir (solo en niveles) y Avanzar (cuenta atrás de 60 s
 -- para que entren los demás; solo, parte ya). Se abre con E junto al indicador de casco (HullGauge.Screen).
+-- Teclado: 1 reparar, 2 salir, 3 avanzar, X cerrar (en PC, además, el panel libera el cursor: FirstPersonClient).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -132,7 +134,9 @@ local function playClick()
 end
 
 -- Botón con el arte de consola; el icono va a la izquierda del texto.
-local function button(label: string, piece: UiArt.Piece?, onClick: () -> ()): TextButton
+local actions: { [string]: () -> () } = {} -- tecla -> acción del botón
+
+local function button(label: string, piece: UiArt.Piece?, onClick: () -> (), key: string): TextButton
 	local holder = Instance.new("ImageButton")
 	holder.Size = UDim2.new(1, 0, 0, 46)
 	holder.AutoButtonColor = false
@@ -145,7 +149,7 @@ local function button(label: string, piece: UiArt.Piece?, onClick: () -> ()): Te
 	b.Font = Enum.Font.GothamBold
 	b.TextSize = 15
 	b.TextColor3 = TEXT
-	b.Text = label
+	b.Text = string.format("[%s] %s", key, label)
 	b.Parent = holder
 	if piece then
 		local ic = UiArt.Icon(piece, 20, holder)
@@ -165,12 +169,14 @@ local function button(label: string, piece: UiArt.Piece?, onClick: () -> ()): Te
 	b.MouseLeave:Connect(function()
 		press.Scale = 1
 	end)
-	b.Activated:Connect(function()
+	local function run()
 		if b.Active then
 			playClick()
 			onClick()
 		end
-	end)
+	end
+	actions[key] = run
+	b.Activated:Connect(run)
 	return b
 end
 
@@ -190,7 +196,7 @@ end
 local repairBtn = button("Reparar casco", UiArt.Icons.Repair, function()
 	local r = requestPurchase:InvokeServer("Repair")
 	say(if r and not r.ok then r.err else nil)
-end)
+end, "1")
 local exitBtn = button("Salir del submarino", UiArt.Icons.Exit, function()
 	local r = requestExit:InvokeServer()
 	if r and r.ok then
@@ -198,7 +204,7 @@ local exitBtn = button("Salir del submarino", UiArt.Icons.Exit, function()
 	else
 		say(if r then r.err else nil)
 	end
-end)
+end, "2")
 local advanceBtn = button("Avanzar al siguiente nivel", UiArt.Icons.Depth, function()
 	local r = requestDescend:InvokeServer()
 	if r and r.ok then
@@ -210,10 +216,10 @@ local advanceBtn = button("Avanzar al siguiente nivel", UiArt.Icons.Depth, funct
 	else
 		say(if r then r.err else nil)
 	end
-end)
+end, "3")
 local closeBtn = button("Cerrar", nil, function()
 	gui.Enabled = false
-end)
+end, "X")
 closeBtn.TextColor3 = Color3.fromRGB(230, 150, 140)
 
 local function refresh()
@@ -231,7 +237,7 @@ local function refresh()
 	setEnabled(exitBtn, state == "Level")
 	local canAdvance = (state == "Level" or state == "Stopover") and (p.zone or 0) < #Config.Run.Stages and p.advanceIn == nil
 	setEnabled(advanceBtn, canAdvance)
-	advanceBtn.Text = if p.advanceIn then string.format("Partiendo en %d s...", p.advanceIn) else "Avanzar al siguiente nivel"
+	advanceBtn.Text = if p.advanceIn then string.format("[3] Partiendo en %d s...", p.advanceIn) else "[3] Avanzar al siguiente nivel"
 	if p.advanceIn then
 		status.Text = "Todos deben estar dentro del submarino antes de que termine la cuenta"
 	end
@@ -288,4 +294,21 @@ task.spawn(function()
 			refresh()
 		end
 	end)
+end)
+
+local KEYS = {
+	[Enum.KeyCode.One] = "1",
+	[Enum.KeyCode.Two] = "2",
+	[Enum.KeyCode.Three] = "3",
+	[Enum.KeyCode.X] = "X",
+}
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or not gui.Enabled then
+		return
+	end
+	local key = KEYS[input.KeyCode]
+	local action = if key then actions[key] else nil
+	if action then
+		action()
+	end
 end)

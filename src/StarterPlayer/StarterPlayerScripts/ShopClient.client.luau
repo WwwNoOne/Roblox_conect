@@ -1,7 +1,9 @@
 --!strict
 -- Panel de tienda/reparación del submarino (provisional; la UI final es de Codex).
+-- Teclado: 1, 2, 3... activan los botones por orden y X cierra (en PC, además, el panel libera el cursor: FirstPersonClient).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Types = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Types"))
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
@@ -43,7 +45,16 @@ local function label(text: string): TextLabel
 	return l
 end
 
-local function button(text: string, onClick: () -> ()): TextButton
+-- Acciones de los botones numerados, en orden (las usa el teclado: 1, 2, 3...).
+local actions: { () -> () } = {}
+
+local function button(text: string, onClick: () -> (), key: string?): TextButton
+	if key then
+		text = string.format("[%s] %s", key, text)
+	else
+		table.insert(actions, onClick)
+		text = string.format("[%d] %s", #actions, text)
+	end
 	local b = Instance.new("TextButton")
 	b.Size = UDim2.new(1, 0, 0, 32)
 	b.BackgroundColor3 = Color3.fromRGB(30, 90, 130)
@@ -58,6 +69,7 @@ local function button(text: string, onClick: () -> ()): TextButton
 end
 
 local function render(state: Types.ShopState)
+	table.clear(actions)
 	for _, c in frame:GetChildren() do
 		if c:IsA("GuiObject") then
 			c:Destroy()
@@ -83,10 +95,32 @@ local function render(state: Types.ShopState)
 	end
 	button("Cerrar", function()
 		gui.Enabled = false
-	end)
+	end, "X")
 end
 
 shopOpen.OnClientEvent:Connect(function(state: Types.ShopState)
 	render(state)
 	gui.Enabled = true
+end)
+
+local DIGITS = {
+	[Enum.KeyCode.One] = 1,
+	[Enum.KeyCode.Two] = 2,
+	[Enum.KeyCode.Three] = 3,
+	[Enum.KeyCode.Four] = 4,
+	[Enum.KeyCode.Five] = 5,
+}
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or not gui.Enabled then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.X then
+		gui.Enabled = false
+		return
+	end
+	local n = DIGITS[input.KeyCode]
+	local action = if n then actions[n] else nil
+	if action then
+		action()
+	end
 end)

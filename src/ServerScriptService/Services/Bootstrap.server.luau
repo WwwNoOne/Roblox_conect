@@ -15,3 +15,9 @@ folder.Parent = ReplicatedStorage
 
 -- Los handlers de RemoteFunction (CreateRoom, JoinRoom, RequestPurchase, DepositTreasure) los definen
 -- sus servicios (T02, T05). Mientras no existan, el invoke del cliente queda sin respuesta: no llamarlos aún.
+
+-- Primera persona fija para todos (FirstPersonClient la refuerza en el cliente; esto cubre a quien entra antes de que cargue).
+local StarterPlayer = game:GetService("StarterPlayer")
+StarterPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
+StarterPlayer.CameraMinZoomDistance = 0.5
+StarterPlayer.CameraMaxZoomDistance = 0.5
