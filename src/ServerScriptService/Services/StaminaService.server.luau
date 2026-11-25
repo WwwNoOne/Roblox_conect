@@ -2,8 +2,8 @@
 -- Estamina y sprint autoritativos (sustituye al dash). El cliente solo avisa de si mantiene la tecla (SetSprint); el servidor decide
 -- si corre, gasta y recupera la estamina, y lo publica en atributos del jugador (los lee MovementController para la velocidad y
 -- SurvivalHud para la barra): Stamina, StaminaMax, Sprinting, Exhausted. Parámetros: Config.Sprint.
--- Solo se corre en partida, fuera del ascensor, vivo, escondido no y moviéndose. Al vaciarse queda agotado hasta recuperar
--- Config.Sprint.ExhaustedUntil. Fuera de partida la estamina está siempre llena. Los enemigos oyen a quien corre (MonsterService).
+-- Se corre (y se gasta estamina) siempre, también en el lobby, salvo dentro del ascensor en partida, en la sala_0, escondido,
+-- agachado o quieto. Al vaciarse queda agotado hasta recuperar Config.Sprint.ExhaustedUntil. Los enemigos oyen a quien corre.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -89,9 +89,9 @@ Players.PlayerRemoving:Connect(function(player)
 	lastStance[player] = nil
 end)
 
--- ¿Puede correr ahora mismo? (partida, vivo, fuera del ascensor, sin esconderse, moviéndose)
+-- ¿Puede correr ahora mismo? (vivo, fuera del ascensor si está en partida, sin esconderse ni agacharse, moviéndose)
 local function canSprint(player: Player): boolean
-	if Runs.GetByUser(player.UserId) == nil or Runs.IsUserInside(player.UserId) then
+	if Runs.GetByUser(player.UserId) ~= nil and Runs.IsUserInside(player.UserId) then
 		return false
 	end
 	if player:GetAttribute("Hidden") == true or player:GetAttribute("Crouching") == true then
@@ -113,10 +113,7 @@ while true do
 	local dt = task.wait(P.StepSeconds)
 	local now = os.clock()
 	for player, s in states do
-		if Runs.GetByUser(player.UserId) == nil then
-			-- fuera de partida: siempre llena
-			s.stamina, s.exhausted, s.sprinting, s.wants = P.StaminaMax, false, false, false
-		else
+		do
 			local running = s.wants and not s.exhausted and canSprint(player)
 			if running then
 				s.stamina = math.max(0, s.stamina - P.DrainPerSecond * dt)

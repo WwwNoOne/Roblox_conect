@@ -316,8 +316,8 @@ RunService.RenderStepped:Connect(function(dt)
 
 	-- Estamina
 	local st, stMax = player:GetAttribute("Stamina"), player:GetAttribute("StaminaMax")
-	local sRatio = if inRun and type(st) == "number" and type(stMax) == "number" and stMax > 0 then math.clamp(st / stMax, 0, 1) else 1
-	local exhausted = inRun and player:GetAttribute("Exhausted") == true
+	local sRatio = if type(st) == "number" and type(stMax) == "number" and stMax > 0 then math.clamp(st / stMax, 0, 1) else 1
+	local exhausted = player:GetAttribute("Exhausted") == true
 	staminaShown = smooth(staminaShown, sRatio, 12, dt)
 	staminaFill.Size = UDim2.fromScale(staminaShown, 1)
 	if sRatio < 0.995 or exhausted or MotionState.sprinting then

@@ -240,8 +240,7 @@ RunService.Heartbeat:Connect(function(dt)
 		else M.StrafeFactor + (M.BackwardFactor - M.StrafeFactor) * -forward
 
 	-- Sprint (predicción + autoridad del servidor)
-	local inRun = player:GetAttribute("InRun") == true
-	local exhausted = inRun and player:GetAttribute("Exhausted") == true
+	local exhausted = player:GetAttribute("Exhausted") == true
 	local want = sprintHeld and moving and forward >= M.SprintMinForward and not crouching and grounded
 		and state ~= Enum.HumanoidStateType.Swimming
 	if want and wantSince == -math.huge then
@@ -250,13 +249,8 @@ RunService.Heartbeat:Connect(function(dt)
 		wantSince = -math.huge
 	end
 	setWantSprint(want)
-	local sprinting: boolean
-	if inRun then
-		local confirmed = player:GetAttribute("Sprinting") == true
-		sprinting = want and not exhausted and (confirmed or now - wantSince < M.SprintGrace)
-	else
-		sprinting = want and M.LobbySprint
-	end
+	local confirmed = player:GetAttribute("Sprinting") == true
+	local sprinting = want and not exhausted and (confirmed or now - wantSince < M.SprintGrace)
 
 	-- Velocidad objetivo
 	local target = if crouching then M.CrouchSpeed elseif sprinting then M.SprintSpeed else M.WalkSpeed
@@ -311,7 +305,7 @@ RunService.Heartbeat:Connect(function(dt)
 	MotionState.grounded = grounded
 	MotionState.speed = flatSpeed
 	local st, stMax = player:GetAttribute("Stamina"), player:GetAttribute("StaminaMax")
-	local exertion = if inRun and type(st) == "number" and type(stMax) == "number" and stMax > 0 then 1 - st / stMax else 0
+	local exertion = if type(st) == "number" and type(stMax) == "number" and stMax > 0 then 1 - st / stMax else 0
 	if exhausted then
 		exertion = math.max(exertion, 0.9)
 	end

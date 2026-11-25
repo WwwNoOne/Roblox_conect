@@ -5,7 +5,10 @@
 --   * Inclinación al moverse de lado y al girar rápido (inercia de la cabeza).
 --   * Aterrizaje: muelle que hunde la cámara según la fuerza de la caída.
 --   * Respiración en reposo; se vuelve jadeo con la estamina baja.
---   * FOV: se abre con la velocidad real al correr y se cierra un poco agachado. CameraOffset baja al agacharse.
+--   * FOV: se abre con la velocidad real al correr y se cierra un poco agachado.
+--   * Posición: a la altura de los ojos (Config.FirstPerson.EyeUp) y por delante de la cara (EyeForward). El modo primera persona
+--     de Roblox deja la cámara en el centro de la cabeza, donde el cuello y los hombros tapan la vista. La altura sigue a la cabeza
+--     suavizada (así una animación de agachado la baja sola); sin animación de agachado se baja CrouchCameraDrop.
 -- Se aplica después del script de cámara de Roblox (que recalcula la cámara cada cuadro), así que no se acumula.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,7 +17,8 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local MotionState = require(script.Parent:WaitForChild("MotionState"))
 local M = Config.Movement
-local FP_OFFSET = Config.FirstPerson.CameraOffset
+local FP = Config.FirstPerson
+local CROUCH_DROP = if M.CrouchIdleAnim == "" then M.CrouchCameraDrop else 0 -- con animación, la cabeza ya baja sola
 
 local player = Players.LocalPlayer
 
@@ -35,6 +39,8 @@ local crouchBlend = 0
 local fovNow = M.FieldOfView
 local breathT = 0
 local lastYaw: number? = nil
+local eyeY: number? = nil -- altura suavizada del centro de la cabeza sobre la raíz
+local eyeOwner: Instance? = nil
 
 RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 1, function(dt)
 	local camera = workspace.CurrentCamera
@@ -104,13 +110,10 @@ RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 1
 	local lookTarget = math.clamp(yawRate * 0.012, -1, 1) * math.rad(M.LookRoll)
 	lookRoll = smooth(lookRoll, lookTarget, 7, dt)
 
-	-- ===== Agachado: CameraOffset =====
+	-- ===== Agachado =====
 	crouchBlend = smooth(crouchBlend, if MotionState.crouching and alive then 1 else 0, 9, dt)
-	if humanoid then
-		local offset = FP_OFFSET + Vector3.new(0, -M.CrouchCameraDrop * crouchBlend, 0)
-		if (humanoid.CameraOffset - offset).Magnitude > 1e-3 then
-			humanoid.CameraOffset = offset
-		end
+	if humanoid and humanoid.CameraOffset ~= FP.CameraOffset then
+		humanoid.CameraOffset = FP.CameraOffset
 	end
 
 	-- ===== FOV =====
@@ -125,11 +128,33 @@ RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 1
 	fovNow = smooth(fovNow, fovTarget, 5, dt)
 	camera.FieldOfView = fovNow
 
-	if not alive or hidden then
+	if not alive or hidden or not root or not humanoid then
 		return
 	end
+	-- Solo con la cámara normal siguiendo a tu personaje (no en cinemáticas, espectador ni cámara libre)
+	if camera.CameraType ~= Enum.CameraType.Custom or camera.CameraSubject ~= humanoid then
+		return
+	end
+	local head = character and character:FindFirstChild("Head") :: BasePart?
+	local rootPart = root :: BasePart
+	if head then
+		local measured = head.Position.Y - rootPart.Position.Y
+		if eyeOwner ~= head or eyeY == nil then
+			eyeOwner, eyeY = head, measured
+		else
+			eyeY = smooth(eyeY :: number, measured, 4, dt) -- filtra el vaivén de la animación de andar
+		end
+	end
+	if eyeY == nil then
+		return
+	end
+	local flatLook = rootPart.CFrame.LookVector * Vector3.new(1, 0, 1)
+	flatLook = if flatLook.Magnitude > 1e-3 then flatLook.Unit else Vector3.new(0, 0, -1)
+	local eye = rootPart.Position
+		+ Vector3.new(0, (eyeY :: number) + FP.EyeUp - CROUCH_DROP * crouchBlend, 0)
+		+ flatLook * (FP.EyeForward + (if CROUCH_DROP > 0 then 0.4 * crouchBlend else 0)) -- sin animación, fuera del pecho
 	local y = bobY + breathY + landPos
-	camera.CFrame = camera.CFrame
+	camera.CFrame = CFrame.new(eye) * camera.CFrame.Rotation
 		* CFrame.new(bobX, y, 0)
 		* CFrame.Angles(bobPitch + breathPitch + landPos * 0.06, 0, bobRoll + strafeRoll + lookRoll)
 end)

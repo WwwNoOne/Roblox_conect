@@ -236,7 +236,22 @@ local FirstPerson = table.freeze({
 	DotSize = 4,
 	DotColor = Color3.fromRGB(235, 245, 255),
 	DotTransparency = 0.15,
-	CameraOffset = Vector3.new(0, 0, -0.45),
+	-- CameraMotion coloca la cámara a la altura de los ojos y por delante de la cara (el modo primera persona de Roblox la deja en
+	-- el centro de la cabeza y el cuello tapa la vista). CameraOffset queda a cero: la posición es solo de CameraMotion.
+	CameraOffset = Vector3.zero,
+	EyeUp = 0.18, -- studs por encima del centro de la cabeza
+	EyeForward = 0.32, -- studs por delante del centro de la cabeza (sin salir de la caja de colisión del cuerpo)
+})
+
+-- Escala única del avatar (AvatarService): todos los personajes R15 se normalizan a estas escalas al aparecer, para que la altura
+-- de los ojos, las puertas y los escondites sean iguales para todos. Se conservan ropa, colores y accesorios.
+local Avatar = table.freeze({
+	HeightScale = 1,
+	WidthScale = 1,
+	DepthScale = 1,
+	HeadScale = 1,
+	BodyTypeScale = 0,
+	ProportionScale = 0,
 })
 
 -- Movimiento en tierra (MovementController + CameraMotion). Un solo dueño de WalkSpeed, del FOV y del CameraOffset.
@@ -256,7 +271,6 @@ local Movement = table.freeze({
 	LowHealthFraction = 0.25, -- por debajo de esta vida se cojea...
 	LowHealthFactor = 0.88, -- ...a esta fracción de la velocidad
 	SprintGrace = 0.4, -- s que el cliente corre antes de que el servidor confirme Sprinting (oculta la latencia)
-	LobbySprint = true, -- fuera de partida se corre sin gastar estamina
 	-- Agacharse (C / B del mando / botón táctil): más lento, cámara más baja y los enemigos te oyen a menos distancia.
 	CrouchKey = Enum.KeyCode.C,
 	CrouchPadKey = Enum.KeyCode.ButtonB,
@@ -432,6 +446,7 @@ return table.freeze({
 	CameraFx = CameraFx,
 	SafeZone = SafeZone,
 	FirstPerson = FirstPerson,
+	Avatar = Avatar,
 	Movement = Movement,
 	Footsteps = Footsteps,
 	Hud = Hud,
