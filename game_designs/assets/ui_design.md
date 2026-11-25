@@ -1,13 +1,13 @@
-# Interfaz de Abismo
+# Interfaz
 
-Guía de prototipo basada en el [GDD](../GDD.md). Validar las vistas en PC y táctil.
+Guía de prototipo basada en el [GDD](../GDD.md). Validar en PC y táctil.
 
 | Vista | Contenido y acciones |
 | --- | --- |
-| Lobby | Crear sala, unirse por código, ver integrantes. Mostrar `Iniciar` al anfitrión con 2–4 jugadores. Explicar sala llena, código inválido y desconexión. |
-| En partida | Mostrar casco, profundidad, oxígeno personal y dinero común. Indicar zona o parada actual. Avisar con texto o icono cuando el casco o el oxígeno estén bajos. |
-| Estaciones | Venta con valor del tesoro. Tienda y reparación con costo y saldo común. Mostrar el resultado confirmado por el servidor. |
-| Baliza | Indicar cuándo mantener `E` o el equivalente táctil, mostrar progreso y señalar interrupción. |
-| Espectador y final | Mostrar jugador observado, permitir cambiar de objetivo y presentar victoria o derrota con su causa. |
+| Lobby | Crear sala, unirse por código, ver integrantes. `Iniciar` al anfitrión con 2–4 jugadores. Errores: sala llena, código inválido, desconexión. |
+| En partida | Dinero común, nivel actual, máquinas reparadas, aviso de peligro. Indicador de carrera/estamina **[POR DEFINIR]**. |
+| Estaciones | Venta con valor del tesoro; tienda con costo y saldo común; resultado confirmado por el servidor. |
+| Máquinas y puzzles | Progreso de reparación, interfaz del puzzle **[POR DEFINIR]**, feedback de acierto/error. |
+| Espectador y final | Jugador observado, cambio de objetivo, victoria o derrota con su causa. |
 
-El HUD previo de oxígeno y profundidad sirve como referencia visual. Claude mantiene el contrato de datos de la nueva partida.
+Eliminados: indicadores de casco, profundidad y oxígeno. El HUD de buceo está archivado.

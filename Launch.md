@@ -1,20 +1,39 @@
 # Roblox Studio y lugares de prueba
 
-## Lugar actual
+> El banco de pruebas oceánico (puerto, agua de Terrain, marcadores `Marker_*`, `LightTest`, `hoja_coral`, `Workspace.Maps` con niveles submarinos) **quedó obsoleto el 2026-11-25**. Antes de integrar, limpiar el lugar `137133016631933` en Studio: eliminar agua de Terrain, `Workspace.OceanWorld`, `Workspace.Markers`, `Workspace.hoja_coral` y los mapas submarinos de `Workspace.Maps`.
 
-**Conservar el lugar actual como banco de pruebas.** En Studio, el lugar `137133016631933` contiene el puerto, agua de Terrain, 11 marcadores, `Workspace.OceanWorld.LightTest` y `Workspace.hoja_coral`. Sirve para comprobar importaciones, rig, agua, controles, lámpara y niebla en aislamiento.
+## Lugar de integración
 
-- Usar las estaciones de 8, 28 y 62 m para comparar luz. Verificar la visibilidad con lámpara encendida y apagada.
-- Usar Hoja Coral para validar escala, textura y animación. El clip está en `ServerStorage.RBX_ANIMSAVES`. Su reproducción publicada depende de un ID de animación que pueda usar el propietario de la experiencia.
-- Claude mantiene la configuración de Rojo y el arranque de partidas en su worktree. El GDD define economía en memoria para Abismo.
+1. Desde el worktree de Claude, ejecutar `rojo build` y `rojo serve`. Conectar el plugin de Rojo y verificar el lugar seleccionado antes de sincronizar.
+2. Mantener el escenario creado en Studio fuera de los contenedores que Rojo controla.
+3. Los mapas viven bajo `Workspace.Maps` (`Level_N`, `Parada`) con los nombres de [creation_models.md](creation_models.md). **[POR DEFINIR]** cuando existan los nuevos niveles.
+4. Probar con **Server & Clients** y dos clientes como mínimo; cuatro para validar espacio interior, puerta y concurrencia.
+5. Registrar lugar, commit, cantidad de clientes, resultado y pasos para reproducir fallos en [arranque.md](arranque.md).
 
-## Lugar de integración de Abismo
+En Linux, el selector de archivos de Studio bajo Wine muestra rutas `Z:/home/…`.
 
-En el lugar actual, los mapas de integración están bajo `Workspace.Maps`, separados del banco de luz. La secuencia acordada es `Level_1 → Parada → Level_2 → Parada → Level_3`. El [plan vigente](docs/superpowers/plans/2026-11-11-abismo.md) registra cómo conectar la lógica de partida.
+## Plugin de Rojo en Linux (instalado 2026-11-25)
 
-1. Desde el worktree de Claude, ejecutar `rojo build` y `rojo serve`. Conectar el plugin de Rojo al lugar de pruebas y verificar el lugar seleccionado antes de sincronizar.
-2. Mantener el escenario creado en Studio fuera de los contenedores que Rojo controla. Comprobar que los objetos del mapa siguen presentes después de la sincronización.
-3. Probar con **Server & Clients** y dos clientes como mínimo. Usar cuatro para validar espacio interior, compuerta y concurrencia.
-4. Registrar el lugar, commit, cantidad de clientes, resultado y pasos para reproducir fallos en [arranque.md](arranque.md).
+`rojo plugin install` **no funciona en Linux** (`Your platform is not currently supported`): solo conoce las rutas de Windows y macOS. El plugin se copia a mano en la carpeta de plugins de Studio, que bajo Vinegar es `%LOCALAPPDATA%\Roblox\Plugins`:
 
-En Linux, el selector de archivos de Studio bajo Wine mostró los archivos del sistema con la ruta `Z:/home/…`. El archivo en el repositorio conserva su ruta de Linux.
+```
+~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/Plugins/Rojo.rbxm
+```
+
+Instalado **Rojo 7.7.1**, la misma versión que el CLI de `/home/miranda/.rokit/bin/rojo`. La versión del plugin y la del CLI deben coincidir; para actualizar:
+
+```sh
+curl -sSL -o /tmp/Rojo.rbxm https://github.com/rojo-rbx/rojo/releases/download/v<X.Y.Z>/Rojo.rbxm
+cp /tmp/Rojo.rbxm ~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/Plugins/Rojo.rbxm
+```
+
+Studio carga los plugins **solo al arrancar**: hay que reiniciarlo para que aparezca la pestaña *Rojo* en la toolbar. Si tras reiniciar no aparece, revisar el log más reciente en `…/appdata/Roblox/logs/` buscando `Roblox\Plugins`.
+
+### Servir el proyecto
+
+```sh
+cd /home/miranda/.claudette/workspaces/Roblox_conect/burnished-lilac   # worktree con default.project.json
+rojo serve            # escucha en localhost:34872
+```
+
+En Studio: pestaña **Rojo** → *Connect*. Sin `rojo serve` corriendo el botón falla con un error de conexión, no de plugin.

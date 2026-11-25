@@ -1,10 +1,10 @@
-# Guía de modelos de Abismo
+# Guía de modelos
 
-El [manifiesto](../../creation_models.md) define IDs, prioridades, dimensiones de referencia y presupuesto por modelo. El estilo es low-poly estilizado, con siluetas legibles con poca luz.
+El [manifiesto](../../creation_models.md) define IDs, nombres, prioridades y presupuesto por modelo. Estilo: low poly estilizado con ambientación liminal tipo Backrooms (sin motivos oceánicos).
 
-- **Submarino.** Crear primero un bloque transitable para cuatro avatares. Usar piezas separadas para paredes, suelo y techo. Preparar el hueco de compuerta y reservar espacio junto al puesto de mando, venta, tienda y reparación. Mantener el casco exterior anterior como referencia visual.
-- **Tesoros y baliza.** Diferenciar tamaños por silueta. Mantener la base como referencia del pivote de la baliza y preparar la pieza `Light`.
-- **Fauna.** Dar siluetas distintas al cazador y al leviatán. Hoja Coral es candidato para la fauna ambiental `creature_small`. La asignación queda pendiente de validación con Claude.
-- **Naufragios y cuevas.** Construir secciones transitables con entradas claras y espacio de maniobra. Probar encajes y salida de las cuevas antes del detalle visual.
+- **Ascensor.** Cabina transitable para cuatro avatares, con puerta, estación de venta, tienda e indicador. Piezas separadas para paredes, suelo y techo. Aspecto de ascensor/cabina industrial.
+- **Niveles.** Secciones modulares con entradas claras y espacio de maniobra. Ocultar el ascensor en un nicho de acople. Incluir los puntos `TreasureSpawn`, `MachineSpawn`, `PuzzleSpawn`, `CreatureSpawn` y `Patrol`.
+- **Máquinas y puzzles.** Siluetas legibles, `StatusLight` para el estado, `PromptAttachment` para interactuar.
+- **Criaturas.** Híbridos tipo nextbot **[POR DEFINIR]**; siluetas distintas entre sí.
 
-Entregar FBX y fuente editable cuando exista, con tamaño, eje frontal, pivote, piezas móviles y colisiones previstos. Verificar en Studio escala, orientación, colisión, nombres y Attachments. Los nombres funcionales deben existir en el modelo de Studio que recibe Claude.
+Entregar FBX y fuente editable cuando exista, con tamaño, eje frontal, pivote, piezas móviles y colisiones. Verificar en Studio escala, orientación, colisión, nombres y Attachments.
