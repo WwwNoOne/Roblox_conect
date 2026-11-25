@@ -11,7 +11,7 @@ local Sfx = {}
 local function matches(prefix: string): { Sound }
 	local list: { Sound } = {}
 	local p = string.lower(prefix)
-	-- workspace.sonidos con todas sus subcarpetas (Efectos_submarino, ...) y los Sound sueltos del Workspace.
+	-- workspace.sonidos con todas sus subcarpetas (Efectos_ascensor, ...) y los Sound sueltos del Workspace.
 	local pools: { { Instance } } = {}
 	local sonidos = workspace:FindFirstChild("sonidos")
 	if sonidos then

@@ -36,6 +36,9 @@
 
 El resto de atributos (puntos de entrada/salida, `PromptAttachment`, escala 1.5 sobre la v2: interior 22,3 × 12 × 29,1 studs, puerta 9,3 × 9,6) se mantiene. Quitar toda estética de submarino (casco redondo, ojos de buey, remaches marinos): debe leerse como cabina/ascensor industrial.
 
+## Nombres que el código ya espera (2026-11-25)
+`Workspace.Elevator` (con `Body`, `Gate.Door/Frame`, `InteriorZone`, `SpawnPoint1…4`, `SellStation`, `ShopStation`, `StatusGauge.Screen`), `ElevatorDock` en cada mapa y en `Workspace.Sala_0`, plantilla de sala grande `Sala_Grande`, y plantillas de criaturas/objetos en `ServerStorage.GameAssets` (`Creatures/creature_nextbot_01`, `Kit_Objetos_De_Recoleccion`, `Beacon`).
+
 ## Prioridad 1 (primer prototipo)
 | Id | Descripción | Tris máx |
 | :-- | :-- | :-- |

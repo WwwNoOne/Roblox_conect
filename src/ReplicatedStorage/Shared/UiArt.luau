@@ -18,10 +18,6 @@ local function icon(x: number, y: number, w: number, h: number): Piece
 	return { image = ICONS, offset = Vector2.new(x, y), size = Vector2.new(w, h) }
 end
 UiArt.Icons = {
-	Hull = icon(141, 55, 178, 202),
-	Oxygen = icon(402, 55, 202, 202),
-	Depth = icon(674, 55, 200, 202),
-	Repair = icon(126, 301, 199, 202),
 	Money = icon(418, 318, 184, 177),
 	Exit = icon(674, 306, 223, 191),
 }

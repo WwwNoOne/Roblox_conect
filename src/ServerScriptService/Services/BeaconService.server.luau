@@ -31,7 +31,7 @@ local function build(code: string, map: Instance)
 	-- Si Codex entrega Maps.<nivel>.Beacon (Model con Light y PromptAttachment) se usa; si no, una baliza provisional.
 	local model = map:FindFirstChild("Beacon")
 	if not model then
-		-- Plantilla de Codex en ServerStorage.AbismoAssets (cualquier subcarpeta).
+		-- Plantilla de Codex en ServerStorage.GameAssets (cualquier subcarpeta).
 		local template = Assets.Find("Beacon")
 		if template and template:IsA("Model") then
 			local clone = template:Clone()

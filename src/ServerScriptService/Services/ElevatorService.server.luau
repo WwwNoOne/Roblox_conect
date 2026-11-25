@@ -1,5 +1,5 @@
 --!strict
--- Compuerta del submarino (T04): prompts salir/entrar, puerta abierta solo en niveles (no en la Parada), cabina sellada al viajar.
+-- Puerta del ascensor (T04): prompts salir/entrar, puerta abierta solo en niveles (no en la Parada), cabina sellada al viajar.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -10,38 +10,38 @@ local WorldRefs = require(game:GetService("ReplicatedStorage"):WaitForChild("Sha
 local Sfx = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Sfx"))
 local descentFx = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DescentFx") :: RemoteEvent
 
-local sub = WorldRefs.WaitSubmarine(30)
+local sub = WorldRefs.WaitElevator(30)
 if not sub then
-	warn("[SubmarineService] No hay Workspace.Submarine; compuerta desactivada")
+	warn("[ElevatorService] No hay Workspace.Elevator; puerta desactivada")
 	return
 end
 
-local hatch = sub:WaitForChild("Hatch")
-local door = hatch:WaitForChild("Door") :: BasePart
-local insideAtt = hatch:FindFirstChild("InsidePrompt", true) :: Attachment
-local outsideAtt = hatch:FindFirstChild("OutsidePrompt", true) :: Attachment
-local entryAtt = hatch:FindFirstChild("EntryPoint", true) :: Attachment
-local exitAtt = hatch:FindFirstChild("ExitPoint", true) :: Attachment
-local doorClosed = hatch:FindFirstChild("DoorClosed", true) :: Attachment
+local gate = sub:WaitForChild("Gate")
+local door = gate:WaitForChild("Door") :: BasePart
+local insideAtt = gate:FindFirstChild("InsidePrompt", true) :: Attachment
+local outsideAtt = gate:FindFirstChild("OutsidePrompt", true) :: Attachment
+local entryAtt = gate:FindFirstChild("EntryPoint", true) :: Attachment
+local exitAtt = gate:FindFirstChild("ExitPoint", true) :: Attachment
+local doorClosed = gate:FindFirstChild("DoorClosed", true) :: Attachment
 
-local hatchOpen = false
+local gateOpen = false
 
 -- Un solo botón para entrar y salir: dos botones casi en el mismo sitio se tapaban entre sí y, muy cerca de la puerta,
--- el que se mostraba era el del lado contrario (no hacía nada). El texto "Entrar"/"Salir" lo pone cada cliente (HatchPromptText).
-local hatchPrompt = Instance.new("ProximityPrompt")
-hatchPrompt.Name = "HatchPrompt"
-hatchPrompt.ActionText = "Compuerta"
-hatchPrompt.ObjectText = "Compuerta"
-hatchPrompt.KeyboardKeyCode = Enum.KeyCode.E
-hatchPrompt.HoldDuration = 0.3
-hatchPrompt.MaxActivationDistance = 12
-hatchPrompt.RequiresLineOfSight = false
-hatchPrompt.Enabled = false
-hatchPrompt.Parent = hatch:FindFirstChild("Frame") or insideAtt
+-- el que se mostraba era el del lado contrario (no hacía nada). El texto "Entrar"/"Salir" lo pone cada cliente (GatePromptText).
+local gatePrompt = Instance.new("ProximityPrompt")
+gatePrompt.Name = "GatePrompt"
+gatePrompt.ActionText = "Puerta"
+gatePrompt.ObjectText = "Ascensor"
+gatePrompt.KeyboardKeyCode = Enum.KeyCode.E
+gatePrompt.HoldDuration = 0.3
+gatePrompt.MaxActivationDistance = 12
+gatePrompt.RequiresLineOfSight = false
+gatePrompt.Enabled = false
+gatePrompt.Parent = gate:FindFirstChild("Frame") or insideAtt
 
-local function setHatch(open: boolean)
-	hatchOpen = open
-	hatchPrompt.Enabled = open
+local function setGate(open: boolean)
+	gateOpen = open
+	gatePrompt.Enabled = open
 	-- La puerta permanece cerrada siempre: se entra y se sale solo con los botones (teletransporte).
 	door.CFrame = doorClosed.WorldCFrame
 	door.CanCollide = true
@@ -49,7 +49,7 @@ end
 
 local function cross(player: Player, to: Attachment)
 	local run = Runs.GetByUser(player.UserId)
-	if not run or run.state ~= "Level" or not hatchOpen then
+	if not run or run.state ~= "Level" or not gateOpen then
 		return
 	end
 	local character = player.Character
@@ -59,11 +59,11 @@ local function cross(player: Player, to: Attachment)
 		return
 	end
 	root.CFrame = to.WorldCFrame
-	Sfx.Play(if to == entryAtt then Config.Sfx.SubEnter else Config.Sfx.SubExit, to.Parent, Config.Audio.SubVolume, Config.Audio.SubRollOff)
+	Sfx.Play(if to == entryAtt then Config.Sfx.ElevatorEnter else Config.Sfx.ElevatorExit, to.Parent, Config.Audio.ElevatorVolume, Config.Audio.ElevatorRollOff)
 	root.AssemblyLinearVelocity = Vector3.zero
 end
 
-hatchPrompt.Triggered:Connect(function(player: Player)
+gatePrompt.Triggered:Connect(function(player: Player)
 	if Runs.IsUserInside(player.UserId) then
 		cross(player, exitAtt)
 	else
@@ -71,7 +71,7 @@ hatchPrompt.Triggered:Connect(function(player: Player)
 	end
 end)
 
--- Botón "Salir" del panel del submarino: mismo efecto que la compuerta, solo desde dentro y en un nivel.
+-- Botón "Salir" del panel del ascensor: mismo efecto que la puerta, solo desde dentro y en un nivel.
 local requestExit = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("RequestExit") :: RemoteFunction
 local lastExit: { [Player]: number } = {}
 requestExit.OnServerInvoke = function(player: Player)
@@ -81,7 +81,7 @@ requestExit.OnServerInvoke = function(player: Player)
 	end
 	lastExit[player] = now
 	local run = Runs.GetByUser(player.UserId)
-	if not run or run.state ~= "Level" or not hatchOpen then
+	if not run or run.state ~= "Level" or not gateOpen then
 		return { ok = false, err = "NOT_LEVEL" }
 	end
 	if not Runs.IsUserInside(player.UserId) then
@@ -101,13 +101,13 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 	end
 	local phase: string? = nil
 	if state == "Descending" then
-		setHatch(false)
+		setGate(false)
 		phase = "Start"
 	elseif state == "Level" then
-		setHatch(true) -- se sale a explorar
+		setGate(true) -- se sale a explorar
 		phase = "End"
 	elseif state == "Stopover" then
-		setHatch(false) -- Parada: nadie sale; se opera desde dentro
+		setGate(false) -- Parada: nadie sale; se opera desde dentro
 		phase = "End"
 	end
 	if phase then

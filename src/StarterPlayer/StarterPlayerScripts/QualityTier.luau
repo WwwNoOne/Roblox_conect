@@ -1,5 +1,5 @@
 --!strict
--- Nivel de calidad de efectos visuales, reutilizable por cualquier script de cliente (linterna, agua, partículas...).
+-- Nivel de calidad de efectos visuales, reutilizable por cualquier script de cliente (linterna, partículas...).
 --   local QualityTier = require(script.Parent.QualityTier)
 --   QualityTier.Tier   -- 1 baja, 2 media, 3 alta
 --   QualityTier.Level  -- 1-10 (equivalente a la calidad gráfica de Roblox)

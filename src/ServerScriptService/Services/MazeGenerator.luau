@@ -5,7 +5,7 @@
 -- plano del extremo y a media altura del hueco. El pivote del modelo es el origen local. Toda pieza se une a otra haciendo coincidir
 -- dos puertos enfrentados (sin hueco), así que todas deben tener la misma sección (hoy 20 x 20 por fuera, 16 x 16 por dentro).
 -- Plan(): puro (semilla -> piezas colocadas sin solapes). Validate(): comprueba el plan. Build(): clona, tapa los extremos libres,
--- pone el marco del pozo de la sala_0 y rellena de agua todo el volumen del laberinto.
+-- pone el marco del pozo de la sala_0.
 local MazeGenerator = {}
 
 export type PortDef = { name: string, dir: Vector3, pos: Vector3 }
@@ -87,7 +87,7 @@ function MazeGenerator.ReadPiece(model: Model, kind: string): PieceDef
 		end
 	end
 	assert(#ports >= 1, model.Name .. " no tiene conexiones validas")
-	local source: Instance = model:FindFirstChild("Estructura") or model:FindFirstChild("Casco") or model
+	local source: Instance = model:FindFirstChild("Estructura") or model
 	local mn, mx = Vector3.new(1e9, 1e9, 1e9), Vector3.new(-1e9, -1e9, -1e9)
 	for _, d in source:GetDescendants() do
 		if d:IsA("BasePart") then
@@ -432,10 +432,10 @@ local function part(name: string, size: Vector3, cf: CFrame, color: Color3, pare
 end
 
 -- Construye el laberinto en `container`. templates: nombre de plantilla -> Model.
--- opts.water: rellena de agua todo el volumen del laberinto hasta la altura del pozo (y = entry.y); opts.inner/outer: sección del
+-- opts.inner/outer: sección del
 -- pasillo (16 y 20). opts.pit (opcional): lado de un pozo más ancho que el pasillo; si se da, se pone un marco que lo une con la
 -- primera pieza. Con el agujero de 16 × 16 de la sala_0 (2026-11-18) no hace falta marco.
-function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, container: Instance, opts: { water: boolean, inner: number, outer: number, pit: number? })
+function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, container: Instance, opts: { inner: number, outer: number, pit: number? })
 	local counts = { pieces = 0, caps = 0 }
 	for _, n in plan.nodes do
 		local template = templates[n.def.name]
@@ -478,15 +478,6 @@ function MazeGenerator.Build(plan: Plan, templates: { [string]: Model }, contain
 	bounds.Size = plan.boundsMax - plan.boundsMin
 	bounds.CFrame = CFrame.new((plan.boundsMax + plan.boundsMin) / 2)
 	bounds.Parent = container
-	if opts.water then
-		-- todo el volumen del laberinto bajo el nivel del pozo es agua: no hace falta contener el agua dentro de paredes finas
-		local pad = 24
-		local top = e.Y
-		local bottom = plan.boundsMin.Y - pad
-		local size = Vector3.new(plan.boundsMax.X - plan.boundsMin.X + pad * 2, top - bottom, plan.boundsMax.Z - plan.boundsMin.Z + pad * 2)
-		local center = Vector3.new((plan.boundsMax.X + plan.boundsMin.X) / 2, (top + bottom) / 2, (plan.boundsMax.Z + plan.boundsMin.Z) / 2)
-		workspace.Terrain:FillBlock(CFrame.new(center), size, Enum.Material.Water)
-	end
 	return counts
 end
 

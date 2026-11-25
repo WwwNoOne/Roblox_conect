@@ -69,7 +69,7 @@ requestDescend.OnServerInvoke = function(player: Player)
 		for _, userId in members do
 			local p = Players:GetPlayerByUserId(userId)
 			if p and p ~= player then
-				p:SetAttribute("HudNotice", string.format("%s quiere avanzar: entren al submarino (%d s)|%f", player.DisplayName, Config.Run.AdvanceCountdown, os.clock()))
+				p:SetAttribute("HudNotice", string.format("%s quiere avanzar: entren al ascensor (%d s)|%f", player.DisplayName, Config.Run.AdvanceCountdown, os.clock()))
 			end
 		end
 	end
@@ -87,8 +87,8 @@ local function warnTimer(run: Runs.Run, left: number)
 		if left <= threshold and not warned[key] then
 			warned[key] = true
 			local text = if threshold >= 60
-				then string.format("Quedan %d min para que el submarino parta", threshold // 60)
-				else string.format("¡Quedan %d s! Vuelvan al submarino", threshold)
+				then string.format("Quedan %d min para que el ascensor parta", threshold // 60)
+				else string.format("¡Quedan %d s! Vuelvan al ascensor", threshold)
 			for _, userId in run.members do
 				local p = Players:GetPlayerByUserId(userId)
 				if p then
@@ -104,31 +104,24 @@ while true do
 	local dt = task.wait(Config.HudUpdateInterval)
 	Runs.Step(dt)
 	for _, player in Players:GetPlayers() do
-		local oxygen = player:GetAttribute("Oxygen")
-		local oxygenMax = player:GetAttribute("OxygenMax")
-		if type(oxygen) == "number" and type(oxygenMax) == "number" then
-			local payload: Types.HudPayload = { oxygen = oxygen, oxygenMax = oxygenMax }
-			local run = Runs.GetByUser(player.UserId)
-			if run then
-				payload.hull = math.floor(run.hull + 0.5)
-				payload.hullMax = Config.Run.HullMax
-				payload.depth = run.depth
-				payload.money = run.money
-				payload.runState = run.state
-				payload.zone = run.zone
-				local stage = Config.Run.Stages[if run.state == "Level" then run.zone else run.zone + 1]
-				payload.quota = stage and stage.Quota
-				payload.deposited = run.deposited
-				payload.failures = run.failures
-				local deadline = run.advanceDeadline
-				payload.advanceIn = if deadline then math.max(0, math.ceil(deadline - os.clock())) else nil
-				local left = Runs.LevelTimeLeft(run)
-				payload.levelLeft = if left then math.ceil(left) else nil
-				if left then
-					warnTimer(run, left)
-				end
+		local payload: Types.HudPayload = {}
+		local run = Runs.GetByUser(player.UserId)
+		if run then
+			payload.money = run.money
+			payload.runState = run.state
+			payload.zone = run.zone
+			local stage = Config.Run.Stages[if run.state == "Level" then run.zone else run.zone + 1]
+			payload.quota = stage and stage.Quota
+			payload.deposited = run.deposited
+			payload.failures = run.failures
+			local deadline = run.advanceDeadline
+			payload.advanceIn = if deadline then math.max(0, math.ceil(deadline - os.clock())) else nil
+			local left = Runs.LevelTimeLeft(run)
+			payload.levelLeft = if left then math.ceil(left) else nil
+			if left then
+				warnTimer(run, left)
 			end
-			updateHud:FireClient(player, payload)
 		end
+		updateHud:FireClient(player, payload)
 	end
 end

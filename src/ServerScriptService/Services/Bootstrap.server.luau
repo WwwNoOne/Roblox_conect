@@ -1,5 +1,5 @@
 --!strict
--- Crea los remotos de Abismo (lista en Shared/Remotes) y levanta los servicios.
+-- Crea los remotos (lista en Shared/Remotes) y levanta los servicios.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Remotes"))

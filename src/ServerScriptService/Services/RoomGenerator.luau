@@ -1,7 +1,7 @@
 --!strict
 -- Generador de cuevas por salas (ver game_designs/Generacion_Cuevas.md).
 -- Plan(): parte pura (semilla -> grafo de salas y pasillos sobre posiciones exactas, sin solapes).
--- Build(): clona salas y pasillos, tapa las puertas sin usar y rellena de agua los volúmenes.
+-- Build(): clona salas y pasillos, tapa las puertas sin usar.
 -- Convención de salas: Model con Folder "Conexiones" y 6 Parts invisibles Cara_Norte (-Z), Cara_Sur (+Z), Cara_Oeste (-X),
 -- Cara_Este (+X), Cara_Piso (-Y), Cara_Techo (+Y) en el centro de cada puerta (a mitad del grosor de la pared).
 -- El pasillo es un Model con pivote en el centro, eje Z a lo largo, y Parts Port_A (+Z) y Port_B (-Z) en los extremos.
@@ -14,7 +14,6 @@ export type RoomDef = {
 	ports: PortMap,
 	half: Vector3, -- mitad de la caja exterior (para detectar solapes)
 	wall: number, -- grosor de pared
-	water: Vector3?, -- volumen de agua interior (nil = sin agua)
 	centerInPivot: Vector3, -- centro de la sala en el espacio del pivote de la plantilla
 }
 export type Node = {
@@ -67,7 +66,7 @@ end
 
 -- Lee una plantilla de sala (Model) y devuelve su definición.
 -- scale: escala con la que se instanciará la plantilla (todo lo medido se multiplica por ella).
-function RoomGenerator.ReadDef(model: Model, kind: string, wall: number, water: Vector3?, scale: number?): RoomDef
+function RoomGenerator.ReadDef(model: Model, kind: string, wall: number, scale: number?): RoomDef
 	local folder = model:FindFirstChild("Conexiones", true)
 	assert(folder, "Falta Conexiones en " .. model.Name)
 	local world: { [string]: Vector3 } = {}
@@ -89,9 +88,6 @@ function RoomGenerator.ReadDef(model: Model, kind: string, wall: number, water: 
 		ports[name] = (pos - center) * k
 	end
 	wall = wall * k
-	if water then
-		water = water * k
-	end
 	local half = Vector3.new(
 		(math.abs(ports["X+"].X) + math.abs(ports["X-"].X)) / 2 + wall / 2,
 		(math.abs(ports["Y+"].Y) + math.abs(ports["Y-"].Y)) / 2 + wall / 2,
@@ -104,7 +100,6 @@ function RoomGenerator.ReadDef(model: Model, kind: string, wall: number, water: 
 		ports = ports,
 		half = half,
 		wall = wall,
-		water = water,
 		centerInPivot = pivot:PointToObjectSpace(center) * k,
 	}
 end
@@ -305,8 +300,7 @@ local function cframeFor(dir: Vector3, pos: Vector3): CFrame
 end
 
 -- Construye el nivel dentro de `container`. templates: big, small, corridor (Models). La sala_0 no se clona (ya está en el mundo).
-function RoomGenerator.Build(plan: Plan, templates: { rooms: { [string]: Model }, corridor: Model }, container: Instance, withWater: boolean): { rooms: number, corridors: number, plugs: number }
-	local terrain = workspace.Terrain
+function RoomGenerator.Build(plan: Plan, templates: { rooms: { [string]: Model }, corridor: Model }, container: Instance): { rooms: number, corridors: number, plugs: number }
 	local counts = { rooms = 0, corridors = 0, plugs = 0 }
 	for _, n in plan.nodes do
 		if n.kind ~= "sala0" then
@@ -316,10 +310,10 @@ function RoomGenerator.Build(plan: Plan, templates: { rooms: { [string]: Model }
 			clone:ScaleTo(clone:GetScale() * plan.scale)
 			clone.Name = string.format("%s_%d", n.kind, n.id)
 			clone:PivotTo(CFrame.new(n.center) * CFrame.Angles(0, math.rad(90 * n.yaw), 0) * CFrame.new(-n.def.centerInPivot))
-			-- Bounds: volumen interior libre (agua y límite de las criaturas)
+			-- Bounds: volumen interior libre (límite de las criaturas)
 			local bounds = Instance.new("Part")
 			bounds.Name = "Bounds"
-			bounds.Size = n.def.water or (n.half * 2 - Vector3.new(n.def.wall, n.def.wall, n.def.wall) * 2)
+			bounds.Size = (n.half * 2 - Vector3.new(n.def.wall, n.def.wall, n.def.wall) * 2)
 			bounds.CFrame = CFrame.new(n.center)
 			bounds.Anchored = true
 			bounds.CanCollide = false
@@ -329,9 +323,6 @@ function RoomGenerator.Build(plan: Plan, templates: { rooms: { [string]: Model }
 			bounds.Parent = clone
 			clone.Parent = container
 			counts.rooms += 1
-			if withWater and n.def.water then
-				terrain:FillBlock(CFrame.new(n.center), n.def.water, Enum.Material.Water)
-			end
 		end
 		-- tapones en las puertas sin usar (la sala_0 no se tapa: su única puerta es el pozo)
 		if n.kind ~= "sala0" then
@@ -359,14 +350,6 @@ function RoomGenerator.Build(plan: Plan, templates: { rooms: { [string]: Model }
 		clone:PivotTo(cf)
 		clone.Parent = container
 		counts.corridors += 1
-		if withWater then
-			-- el tramo abarca de marcador a marcador; se alarga media pared en el lado de una sala (no en la sala_0)
-			local extA = if plan.nodes[e.a].kind == "sala0" then 0 else plan.nodes[e.a].def.wall / 2
-			local extB = plan.nodes[e.b].def.wall / 2
-			local len = (e.posB - e.posA).Magnitude + extA + extB
-			local center = mid + e.dir * ((extB - extA) / 2)
-			terrain:FillBlock(cframeFor(e.dir, center), Vector3.new(60 * plan.scale, 60 * plan.scale, len), Enum.Material.Water)
-		end
 	end
 	return counts
 end

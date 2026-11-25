@@ -2,9 +2,9 @@
 -- Primera persona realista, fija. Parámetros: Config.FirstPerson.
 --   * Cámara bloqueada en primera persona (sin zoom).
 --   * Se ve el cuerpo del personaje (brazos, manos, torso y piernas al mirar abajo) pero no la cabeza, el pelo, los sombreros ni lo que
---     lleve en la cara o el cuello, que taparían la vista. Las manos salen al nadar y al sostener cosas.
+--     lleve en la cara o el cuello, que taparían la vista. Las manos salen al sostener cosas.
 --   * El cursor está oculto y bloqueado en el centro; en su lugar hay un puntito. Se libera solo (con el cursor visible y el puntito
---     oculto) mientras haya un panel que lo necesite (Shop, SubPanel) o se mantenga Alt izquierdo. En móvil no hay cursor: los paneles
+--     oculto) mientras haya un panel que lo necesite (Shop, ElevatorPanel) o se mantenga Alt izquierdo. En móvil no hay cursor: los paneles
 --     se tocan y el puntito marca el centro.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

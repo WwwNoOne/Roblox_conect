@@ -1,8 +1,8 @@
 --!strict
 -- Estamina y sprint autoritativos (sustituye al dash). El cliente solo avisa de si mantiene la tecla (SetSprint); el servidor decide
--- si corre, gasta y recupera la estamina, y lo publica en atributos del jugador (los lee SwimClient para la velocidad y SprintClient
+-- si corre, gasta y recupera la estamina, y lo publica en atributos del jugador (los lee MovementClient para la velocidad y SprintClient
 -- para la barra): Stamina, StaminaMax, Sprinting, Exhausted. Parámetros: Config.Sprint.
--- Solo se corre en partida, fuera del submarino, vivo, escondido no y moviéndose. Al vaciarse queda agotado hasta recuperar
+-- Solo se corre en partida, fuera del ascensor, vivo, escondido no y moviéndose. Al vaciarse queda agotado hasta recuperar
 -- Config.Sprint.ExhaustedUntil. Fuera de partida la estamina está siempre llena. Los enemigos oyen a quien corre (MonsterService).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -64,7 +64,7 @@ Players.PlayerRemoving:Connect(function(player)
 	states[player] = nil
 end)
 
--- ¿Puede correr ahora mismo? (partida, vivo, fuera del submarino, sin esconderse, moviéndose)
+-- ¿Puede correr ahora mismo? (partida, vivo, fuera del ascensor, sin esconderse, moviéndose)
 local function canSprint(player: Player): boolean
 	if Runs.GetByUser(player.UserId) == nil or Runs.IsUserInside(player.UserId) then
 		return false

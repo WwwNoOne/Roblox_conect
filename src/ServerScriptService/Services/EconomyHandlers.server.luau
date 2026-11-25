@@ -1,5 +1,5 @@
 --!strict
--- Conecta Economy con el mundo: objetos de recolección sobre el laberinto generado, paneles del submarino y remotos.
+-- Conecta Economy con el mundo: objetos de recolección sobre el laberinto generado, paneles del ascensor y remotos.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -26,9 +26,8 @@ local MESSAGES: { [string]: string } = {
 	NOT_ENOUGH_MONEY = "Fondos insuficientes",
 	NOTHING_TO_DEPOSIT = "No llevas tesoros",
 	NOT_IN_LEVEL = "Solo se deposita durante un nivel",
-	HULL_FULL = "El casco está intacto",
 	NOT_AT_PARADA = "Solo en la Parada",
-	NOT_INSIDE = "Debes estar dentro del submarino",
+	NOT_INSIDE = "Debes estar dentro del ascensor",
 	MAX_LEVEL = "Nivel máximo",
 }
 
@@ -49,7 +48,7 @@ end
 
 local rng = Random.new()
 
--- Objetos del kit de recolección (AbismoAssets.<Config.Economy.Kit>) por clase, según su atributo ClaseSugerida.
+-- Objetos del kit de recolección (GameAssets.<Config.Economy.Kit>) por clase, según su atributo ClaseSugerida.
 local function kitModels(tier: string): { Model }
 	local kit = Assets.Find(Config.Economy.Kit)
 	local list: { Model } = {}
@@ -127,7 +126,7 @@ local function makeTreasure(ground: Vector3, tier: string)
 	object:SetAttribute("Size", tier)
 	object:SetAttribute("Value", def.Value)
 
-	-- Luz propia: sin ella el objeto es casi invisible en el agua oscura.
+	-- Luz propia: sin ella el objeto es casi invisible en la oscuridad.
 	local glow = Instance.new("PointLight")
 	glow.Color = def.Color
 	glow.Range = Config.TreasureGlowRange
@@ -176,7 +175,6 @@ local function collectSlots(): { Vector3 }
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { container }
 	params.RespectCanCollide = true
-	params.IgnoreWater = true
 	local overlap = OverlapParams.new()
 	overlap.FilterType = Enum.RaycastFilterType.Include
 	overlap.FilterDescendantsInstances = { container }
@@ -317,8 +315,8 @@ local function spawnTreasure(run: Runs.Run?)
 	print(string.format("[Economy] %d objetos de recolección repartidos (cuota %d, %d huecos)", #plan, quota, #slots))
 end
 
--- ===== Paneles del submarino =====
-local sub = WorldRefs.WaitSubmarine(30)
+-- ===== Paneles del ascensor =====
+local sub = WorldRefs.WaitElevator(30)
 local panelPrompts: { { prompt: ProximityPrompt, state: string } } = {}
 if sub then
 	local function panel(stationName: string, action: string, activeIn: string, handler: (Player) -> ())
@@ -349,14 +347,6 @@ if sub then
 			fail(player, r.err)
 		end
 	end)
-	panel("RepairStation", "Reparar casco", "Stopover", function(player)
-		local r = Economy.Repair(player)
-		if r.ok then
-			notice(player, "Casco reparado")
-		else
-			fail(player, r.err)
-		end
-	end)
 	panel("ShopStation", "Tienda", "Stopover", function(player)
 		local state = Economy.ShopState(player)
 		if state then
@@ -383,7 +373,7 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 		for _, userId in run.members do
 			local p = Players:GetPlayerByUserId(userId)
 			if p then
-				notice(p, "El submarino sufrió daño. ¡Repárenlo y aprovechen para comprar suministros!")
+				notice(p, "Parada segura. Aprovechen para comprar suministros.")
 			end
 		end
 	end
@@ -439,12 +429,12 @@ depositTreasure.OnServerInvoke = function(player: Player)
 	return Economy.Deposit(player)
 end
 
--- itemId: "Repair" o el id de una mejora (Armor, Oxygen).
+-- itemId: id de una mejora de la tienda.
 requestPurchase.OnServerInvoke = function(player: Player, itemId: unknown)
 	if throttled(player) then
 		return { ok = false, err = "TOO_FAST" }
 	end
-	local result = if itemId == "Repair" then Economy.Repair(player) else Economy.Buy(player, itemId)
+	local result = Economy.Buy(player, itemId)
 	result.state = Economy.ShopState(player)
 	return result
 end

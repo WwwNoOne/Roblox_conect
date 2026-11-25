@@ -6,14 +6,13 @@
 -- instante). Si te pierden, rastrean la zona del último punto visto antes de volver a patrullar, y avisan a los otros enemigos cercanos.
 -- No ven a quien está escondido (atributo Hidden) salvo pegados a su caja: si se quedan ahí olisqueando DiscoverSeconds lo descubren (lo sacan
 -- de la caja); si no, pierden el rastro a los HiddenLoseSeconds, rastrean la zona y se marchan lejos. Tampoco ven a quien está dentro del
--- submarino, a salvo en la sala_0 (SafeZone: tampoco pueden entrar ahí) ni fuera del laberinto.
+-- ascensor, a salvo en la sala_0 (SafeZone: tampoco pueden entrar ahí) ni fuera del laberinto.
 -- Se mueven con velocidad y aceleración propias y chocan contra las paredes del laberinto (esferas de colisión): se deslizan en vez
--- de atravesarlas. Parámetros: Config.Monster. Plantillas: ServerStorage.AbismoAssets.Creatures (o Workspace.Creatures).
+-- de atravesarlas. Parámetros: Config.Monster. Plantillas: ServerStorage.GameAssets.Creatures (o Workspace.Creatures).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
-local CollectionService = game:GetService("CollectionService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -183,7 +182,7 @@ local function playerRoot(player: Player): BasePart?
 	return nil
 end
 
--- Jugador de esta partida, vivo, fuera del submarino y dentro del laberinto.
+-- Jugador de esta partida, vivo, fuera del ascensor y dentro del laberinto.
 local function eligibleRoot(player: Player, m: Monster): BasePart?
 	local run = Runs.GetByUser(player.UserId)
 	if not run or run.code ~= m.code or run.state ~= "Level" then
@@ -761,15 +760,10 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 	root.Anchored = true
 	model.Name = k.Name
 	model:SetAttribute("Species", k.Name)
-	if k.ProcAnim then
-		model:SetAttribute("ProcAnim", k.ProcAnim)
-		CollectionService:AddTag(model, "ProcCreature")
-	end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 	params.FilterDescendantsInstances = { LevelState.container :: Instance }
 	params.RespectCanCollide = true
-	params.IgnoreWater = true
 	local hidden = Vector3.new(0, -2000, 0)
 	model:PivotTo(CFrame.new(hidden))
 	model.ModelStreamingMode = Enum.ModelStreamingMode.Persistent

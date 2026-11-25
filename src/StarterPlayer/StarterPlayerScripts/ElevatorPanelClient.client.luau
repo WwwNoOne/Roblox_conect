@@ -1,7 +1,7 @@
 --!strict
--- Panel del submarino: casco, Reparar (solo en la Parada), Salir (solo en niveles) y Avanzar (cuenta atrás de 60 s
--- para que entren los demás; solo, parte ya). Se abre con E junto al indicador de casco (HullGauge.Screen).
--- Teclado: 1 reparar, 2 salir, 3 avanzar, X cerrar (en PC, además, el panel libera el cursor: FirstPersonClient).
+-- Panel del ascensor: fondo común, Salir (solo en niveles) y Avanzar (cuenta atrás de 60 s
+-- para que entren los demás; solo, parte ya). Se abre con E junto al indicador de estado (StatusGauge.Screen).
+-- Teclado: 1 salir, 2 avanzar, X cerrar (en PC, además, el panel libera el cursor: FirstPersonClient).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -16,22 +16,19 @@ local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local updateHud = remotes:WaitForChild("UpdateHUD") :: RemoteEvent
 local requestDescend = remotes:WaitForChild("RequestDescend") :: RemoteFunction
 local requestExit = remotes:WaitForChild("RequestExit") :: RemoteFunction
-local requestPurchase = remotes:WaitForChild("RequestPurchase") :: RemoteFunction
 local player = Players.LocalPlayer
 
 local MESSAGES: { [string]: string } = {
-	NOT_INSIDE = "Debes estar dentro del submarino",
-	NOT_DOCKED = "El submarino está en movimiento",
+	NOT_INSIDE = "Debes estar dentro del ascensor",
+	NOT_DOCKED = "El ascensor está en movimiento",
 	NOT_LEVEL = "Solo se sale en los niveles",
-	NOT_AT_PARADA = "Solo se repara en la parada",
-	HULL_FULL = "El casco está intacto",
 	NOT_ENOUGH_MONEY = "No hay dinero suficiente",
 	ALREADY_COUNTING = "Ya hay una cuenta atrás en marcha",
 	ALREADY_AT_BOTTOM = "Este es el último nivel",
 }
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "SubPanel"
+gui.Name = "ElevatorPanel"
 gui.ResetOnSpawn = false
 gui.Enabled = false
 gui.Parent = player:WaitForChild("PlayerGui")
@@ -108,24 +105,7 @@ local function iconRow(piece: UiArt.Piece, size: number, color: Color3): TextLab
 end
 
 local title = text(19, ACCENT, 26)
-title.Text = "PANEL DEL SUBMARINO"
-local hullLabel = iconRow(UiArt.Icons.Hull, 16, TEXT)
-
-local barBg = Instance.new("Frame")
-barBg.Size = UDim2.new(1, 0, 0, 12)
-barBg.BackgroundColor3 = Color3.fromRGB(12, 20, 22)
-barBg.BorderSizePixel = 0
-barBg.LayoutOrder = nextOrder()
-barBg.Parent = content
-local barStroke = Instance.new("UIStroke")
-barStroke.Color = Color3.fromRGB(70, 90, 92)
-barStroke.Thickness = 1
-barStroke.Parent = barBg
-local bar = Instance.new("Frame")
-bar.Size = UDim2.fromScale(1, 1)
-bar.BorderSizePixel = 0
-bar.Parent = barBg
-
+title.Text = "PANEL DEL ASCENSOR"
 local moneyLabel = iconRow(UiArt.Icons.Money, 15, Color3.fromRGB(235, 210, 140))
 local status = text(14, Color3.fromRGB(170, 215, 225), 34)
 
@@ -193,19 +173,15 @@ local function say(err: string?)
 	status.Text = if err then (MESSAGES[err] or err) else ""
 end
 
-local repairBtn = button("Reparar casco", UiArt.Icons.Repair, function()
-	local r = requestPurchase:InvokeServer("Repair")
-	say(if r and not r.ok then r.err else nil)
-end, "1")
-local exitBtn = button("Salir del submarino", UiArt.Icons.Exit, function()
+local exitBtn = button("Salir del ascensor", UiArt.Icons.Exit, function()
 	local r = requestExit:InvokeServer()
 	if r and r.ok then
 		gui.Enabled = false
 	else
 		say(if r then r.err else nil)
 	end
-end, "2")
-local advanceBtn = button("Avanzar al siguiente nivel", UiArt.Icons.Depth, function()
+end, "1")
+local advanceBtn = button("Avanzar al siguiente nivel", nil, function()
 	local r = requestDescend:InvokeServer()
 	if r and r.ok then
 		if r.counting then
@@ -216,7 +192,7 @@ local advanceBtn = button("Avanzar al siguiente nivel", UiArt.Icons.Depth, funct
 	else
 		say(if r then r.err else nil)
 	end
-end, "3")
+end, "2")
 local closeBtn = button("Cerrar", nil, function()
 	gui.Enabled = false
 end, "X")
@@ -224,22 +200,17 @@ closeBtn.TextColor3 = Color3.fromRGB(230, 150, 140)
 
 local function refresh()
 	local p = last
-	if not p or not p.hull or not p.hullMax then
+	if not p then
 		return
 	end
-	local ratio = math.clamp(p.hull / p.hullMax, 0, 1)
-	hullLabel.Text = string.format("Casco: %d / %d", p.hull, p.hullMax)
-	bar.Size = UDim2.fromScale(ratio, 1)
-	bar.BackgroundColor3 = if ratio < 0.3 then Color3.fromRGB(255, 70, 70) elseif ratio < 0.6 then Color3.fromRGB(255, 190, 60) else Color3.fromRGB(80, 220, 140)
 	moneyLabel.Text = string.format("Fondo común: $%d", p.money or 0)
 	local state = p.runState
-	setEnabled(repairBtn, state == "Stopover" and p.hull < p.hullMax)
 	setEnabled(exitBtn, state == "Level")
 	local canAdvance = (state == "Level" or state == "Stopover") and (p.zone or 0) < #Config.Run.Stages and p.advanceIn == nil
 	setEnabled(advanceBtn, canAdvance)
-	advanceBtn.Text = if p.advanceIn then string.format("[3] Partiendo en %d s...", p.advanceIn) else "[3] Avanzar al siguiente nivel"
+	advanceBtn.Text = if p.advanceIn then string.format("[2] Partiendo en %d s...", p.advanceIn) else "[2] Avanzar al siguiente nivel"
 	if p.advanceIn then
-		status.Text = "Todos deben estar dentro del submarino antes de que termine la cuenta"
+		status.Text = "Todos deben estar dentro del ascensor antes de que termine la cuenta"
 	end
 	if state == "Descending" or state == "Won" or state == "Lost" then
 		gui.Enabled = false
@@ -251,15 +222,15 @@ updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	refresh()
 end)
 
--- Prompt en el indicador de casco (se crea en el cliente: solo lo ve y usa este jugador).
+-- Prompt en el indicador de estado (se crea en el cliente: solo lo ve y usa este jugador).
 task.spawn(function()
-	-- Con StreamingEnabled el submarino y sus piezas llegan poco a poco: se reintenta hasta que aparezcan.
+	-- Con StreamingEnabled el ascensor y sus piezas llegan poco a poco: se reintenta hasta que aparezcan.
 	local sub: Model? = nil
 	local anchor: Instance? = nil
 	local deadline = os.clock() + 90
 	while os.clock() < deadline do
-		sub = WorldRefs.Submarine()
-		local gauge = sub and sub:FindFirstChild("HullGauge", true)
+		sub = WorldRefs.Elevator()
+		local gauge = sub and sub:FindFirstChild("StatusGauge", true)
 		anchor = gauge and (gauge:FindFirstChild("Screen") or gauge:FindFirstChildWhichIsA("BasePart", true))
 		if anchor and anchor:IsA("BasePart") then
 			break
@@ -267,23 +238,23 @@ task.spawn(function()
 		task.wait(1)
 	end
 	if not sub or not anchor or not anchor:IsA("BasePart") then
-		warn("[SubPanel] Falta HullGauge.Screen para el panel del submarino")
+		warn("[ElevatorPanel] Falta StatusGauge.Screen para el panel del ascensor")
 		return
 	end
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.Name = "SubPanelPrompt"
-	prompt.ActionText = "Panel del submarino"
-	prompt.ObjectText = "Casco"
+	prompt.Name = "ElevatorPanelPrompt"
+	prompt.ActionText = "Panel del ascensor"
+	prompt.ObjectText = "Estado"
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = 0.2
 	prompt.MaxActivationDistance = 10
 	prompt.RequiresLineOfSight = false
 	-- El prompt va en un Attachment adelantado hacia el interior (el indicador está pegado a la pared) y más abajo,
-	-- a la altura de las estaciones, para alcanzarlo desde dentro del submarino como el resto de paneles.
+	-- a la altura de las estaciones, para alcanzarlo desde dentro del ascensor como el resto de paneles.
 	local zone = sub and sub:FindFirstChild("InteriorZone", true)
 	local toInside = if zone and zone:IsA("BasePart") then Vector3.new(zone.Position.X - anchor.Position.X, 0, zone.Position.Z - anchor.Position.Z) else Vector3.zero
 	local att = Instance.new("Attachment")
-	att.Name = "SubPanelAttachment"
+	att.Name = "ElevatorPanelAttachment"
 	att.Parent = anchor -- primero el padre: WorldPosition solo es mundo con el Attachment ya dentro de una pieza
 	att.WorldPosition = anchor.Position + (if toInside.Magnitude > 0.1 then toInside.Unit * 5 else Vector3.zero) - Vector3.new(0, 3, 0)
 	prompt.Parent = att
@@ -299,7 +270,6 @@ end)
 local KEYS = {
 	[Enum.KeyCode.One] = "1",
 	[Enum.KeyCode.Two] = "2",
-	[Enum.KeyCode.Three] = "3",
 	[Enum.KeyCode.X] = "X",
 }
 UserInputService.InputBegan:Connect(function(input, processed)

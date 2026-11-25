@@ -1,5 +1,5 @@
 --!strict
--- Panel de tienda/reparación del submarino (provisional; la UI final es de Codex).
+-- Panel de tienda del ascensor (provisional; la UI final es de Codex).
 -- Teclado: 1, 2, 3... activan los botones por orden y X cierra (en PC, además, el panel libera el cursor: FirstPersonClient).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -75,13 +75,7 @@ local function render(state: Types.ShopState)
 			c:Destroy()
 		end
 	end
-	label(string.format("Fondo común: $%d   Casco: %d/%d", state.money, state.hull, state.hullMax))
-	button(string.format("Reparar +10 HP  ($%d)", state.repairCost), function()
-		local r = requestPurchase:InvokeServer("Repair")
-		if r and r.state then
-			render(r.state)
-		end
-	end)
+	label(string.format("Fondo común: $%d", state.money))
 	for _, item in state.items do
 		local text = if item.price
 			then string.format("%s  Nv %d/%d  ($%d)", item.name, item.level, item.maxLevel, item.price)

@@ -42,11 +42,10 @@ sub.TextColor3 = Color3.fromRGB(220, 220, 220)
 sub.Parent = bg
 
 local REASONS: { [string]: string } = {
-	Beacon = "La baliza está activa. ¡Misión cumplida!",
-	Implosion = "El submarino implosionó por la presión.",
+	Beacon = "Objetivo final activado. ¡Misión cumplida!",
 	QuotaFailed = "Fallaron demasiadas cuotas.",
 	AllDead = "Toda la tripulación murió.",
-	TimeUp = "Se acabó el tiempo: el submarino no llegó a tiempo a la baliza.",
+	TimeUp = "Se acabó el tiempo: no se alcanzó el objetivo final.",
 }
 
 runEnded.OnClientEvent:Connect(function(result: string, reason: string)

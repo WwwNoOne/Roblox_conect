@@ -1,6 +1,6 @@
 --!strict
--- La compuerta del submarino tiene un solo botón (HatchPrompt, creado por SubmarineService). Aquí cada cliente ve
--- "Entrar" si está fuera del submarino y "Salir" si está dentro (InteriorZone).
+-- La puerta del ascensor tiene un solo botón (GatePrompt, creado por ElevatorService). Aquí cada cliente ve
+-- "Entrar" si está fuera del ascensor y "Salir" si está dentro (InteriorZone).
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,7 +11,7 @@ local localPlayer = Players.LocalPlayer
 local function isInside(): boolean
 	local character = localPlayer.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local sub = WorldRefs.Submarine()
+	local sub = WorldRefs.Elevator()
 	local zone = sub and sub:FindFirstChild("InteriorZone", true)
 	if not (root and root:IsA("BasePart") and zone and zone:IsA("BasePart")) then
 		return false
@@ -24,7 +24,7 @@ end
 local showing: { [ProximityPrompt]: boolean } = {}
 
 ProximityPromptService.PromptShown:Connect(function(prompt: ProximityPrompt)
-	if prompt.Name ~= "HatchPrompt" or showing[prompt] then
+	if prompt.Name ~= "GatePrompt" or showing[prompt] then
 		return
 	end
 	showing[prompt] = true

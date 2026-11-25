@@ -1,6 +1,6 @@
 --!strict
--- Inicio de partida: con E se entra al submarino (en el lobby). Cuando todos los jugadores del servidor
--- están dentro, empieza la partida y el submarino viaja (Runs lo coloca en el SubDock del Nivel 1).
+-- Inicio de partida: con E se entra al ascensor (en el lobby). Cuando todos los jugadores del servidor
+-- están dentro, empieza la partida y el ascensor viaja (Runs lo coloca en el ElevatorDock del Nivel 1).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -13,18 +13,18 @@ local WorldRefs = require(game:GetService("ReplicatedStorage"):WaitForChild("Sha
 
 local START_DELAY = 2 -- segundos entre el último en entrar y el inicio
 
-local sub = WorldRefs.WaitSubmarine(30)
+local sub = WorldRefs.WaitElevator(30)
 if not sub then
-	warn("[Boarding] No hay Workspace.Submarine")
+	warn("[Boarding] No hay Workspace.Elevator")
 	return
 end
-local hatch = sub:WaitForChild("Hatch")
-local outsideAtt = hatch:FindFirstChild("OutsidePrompt", true) :: Attachment
+local gate = sub:WaitForChild("Gate")
+local outsideAtt = gate:FindFirstChild("OutsidePrompt", true) :: Attachment
 
 local prompt = Instance.new("ProximityPrompt")
 prompt.Name = "BoardPrompt"
-prompt.ActionText = "Entrar al submarino"
-prompt.ObjectText = "Submarino"
+prompt.ActionText = "Entrar al ascensor"
+prompt.ObjectText = "Ascensor"
 prompt.KeyboardKeyCode = Enum.KeyCode.E
 prompt.HoldDuration = 0.3
 prompt.MaxActivationDistance = 10
@@ -130,8 +130,8 @@ Rooms.Changed:Connect(function(room)
 	end
 end)
 
--- Durante una partida el botón de abordaje debe estar apagado: comparte tecla con el de la compuerta (HatchPrompt) y,
--- si sigue activo junto a la puerta, "gana" al estar más cerca y el de la compuerta no responde.
+-- Durante una partida el botón de abordaje debe estar apagado: comparte tecla con el de la puerta (GatePrompt) y,
+-- si sigue activo junto a la puerta, "gana" al estar más cerca y el de la puerta no responde.
 Runs.StateChanged:Connect(function(_code: string, state: string)
 	if state == "Descending" or state == "Level" or state == "Stopover" then
 		prompt.Enabled = false

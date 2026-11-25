@@ -117,7 +117,6 @@ function LampHotspot.new(parent: Instance): Hotspot
 	part.Parent = parent
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.IgnoreWater = true
 	params.RespectCanCollide = false
 	return setmetatable({
 		part = part,

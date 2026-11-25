@@ -81,7 +81,7 @@ local aimAccum = 0
 local lastSent = Vector3.zero
 
 -- Después de que la cámara se actualice: si no, la luz usa la dirección del cuadro anterior y "tiembla" al mover la vista.
-RunService:BindToRenderStep("AbismoLamp", Enum.RenderPriority.Camera.Value + 1, function(dt)
+RunService:BindToRenderStep("Lamp", Enum.RenderPriority.Camera.Value + 1, function(dt)
 	local camera = workspace.CurrentCamera -- se resuelve cada cuadro: Roblox puede recrearla
 	if not camera then
 		return

@@ -1,12 +1,12 @@
 --!strict
--- Busca modelos de Codex en ServerStorage.AbismoAssets (Kit_Objetos_De_Recoleccion/, Props/, Creatures/...).
+-- Busca modelos de Codex en ServerStorage.GameAssets (Kit_Objetos_De_Recoleccion/, Props/, Creatures/...).
 -- Ignora la carpeta _Duplicados (copias sueltas pendientes de borrar).
 local ServerStorage = game:GetService("ServerStorage")
 
 local Assets = {}
 
 function Assets.Find(name: string): Instance?
-	local root = ServerStorage:FindFirstChild("AbismoAssets")
+	local root = ServerStorage:FindFirstChild("GameAssets")
 	if not root then
 		return nil
 	end

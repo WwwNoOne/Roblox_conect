@@ -96,7 +96,7 @@ local function generateMaze(dock: BasePart, stash: Instance)
 		container.Name = "NivelGenerado"
 		container.Parent = workspace
 		local started = os.clock()
-		local counts = Maze.Build(plan, templates, container, { water = true, inner = M.Inner, outer = M.Outer })
+		local counts = Maze.Build(plan, templates, container, { inner = M.Inner, outer = M.Outer })
 		LevelState.plan = plan
 		LevelState.nav = Maze.NavGraph(plan)
 		LevelState.container = container
@@ -121,9 +121,9 @@ local function generate()
 		end
 	end
 	local sala0 = workspace:FindFirstChild("Sala_0")
-	local dock = sala0 and sala0:FindFirstChild("SubDock", true)
+	local dock = sala0 and sala0:FindFirstChild("ElevatorDock", true)
 	if not dock or not dock:IsA("BasePart") then
-		return fail("Falta Workspace.Sala_0.SubDock")
+		return fail("Falta Workspace.Sala_0.ElevatorDock")
 	end
 	if P.Mode == "maze" then
 		return generateMaze(dock, stash)
@@ -160,10 +160,10 @@ local function generate()
 		local smallDefs: { Generator.RoomDef } = {}
 		local rooms: { [string]: Model } = {}
 		for _, m in smallModels do
-			table.insert(smallDefs, Generator.ReadDef(m, "small", P.SmallWall, P.SmallWater, P.Scale))
+			table.insert(smallDefs, Generator.ReadDef(m, "small", P.SmallWall, P.Scale))
 			rooms[m.Name] = m
 		end
-		local bigDef = Generator.ReadDef(bigModel, "big", P.BigWall, P.BigWater, P.Scale)
+		local bigDef = Generator.ReadDef(bigModel, "big", P.BigWall, P.Scale)
 		rooms[bigDef.name] = bigModel
 		local sala0Def: Generator.RoomDef = {
 			name = "Sala_0",
@@ -171,7 +171,6 @@ local function generate()
 			ports = { ["Y-"] = P.Sala0Port },
 			half = P.Sala0Half,
 			wall = 0,
-			water = nil,
 			centerInPivot = Vector3.zero,
 		}
 		local seed = P.Seed or os.time()
@@ -196,7 +195,7 @@ local function generate()
 		container.Name = "NivelGenerado"
 		container.Parent = workspace
 		local started = os.clock()
-		local counts = Generator.Build(plan, { rooms = rooms, corridor = corridor }, container, true)
+		local counts = Generator.Build(plan, { rooms = rooms, corridor = corridor }, container)
 		print(string.format("[Nivel] semilla %d: %d salas (%d pequeñas de %d), %d pasillos, %d tapones, %.1fs", seed, counts.rooms, plan.placedSmall, P.Smalls, counts.corridors, counts.plugs, os.clock() - started))
 	end)
 	if not ok then

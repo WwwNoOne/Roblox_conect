@@ -1,7 +1,7 @@
 --!strict
--- Indicador del submarino (donde se depositan los tesoros): durante un nivel, un rombo con la distancia sobre el submarino si está a
--- la vista, o pegado al borde de la pantalla apuntando hacia él si no. Se oculta al estar cerca (Config.SubMarker.HideWithin) o
--- dentro. Se calcula en el cliente a partir de la posición del modelo "Submarine".
+-- Indicador del ascensor (donde se depositan los tesoros): durante un nivel, un rombo con la distancia sobre el ascensor si está a
+-- la vista, o pegado al borde de la pantalla apuntando hacia él si no. Se oculta al estar cerca (Config.ElevatorMarker.HideWithin) o
+-- dentro. Se calcula en el cliente a partir de la posición del modelo "Elevator".
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -11,13 +11,13 @@ local Config = require(Shared:WaitForChild("Config"))
 local Types = require(Shared:WaitForChild("Types"))
 local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 local updateHud = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpdateHUD") :: RemoteEvent
-local M = Config.SubMarker
+local M = Config.ElevatorMarker
 
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera :: Camera
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "SubmarineMarker"
+gui.Name = "ElevatorMarker"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
 gui.Parent = player:WaitForChild("PlayerGui")
@@ -59,18 +59,18 @@ updateHud.OnClientEvent:Connect(function(payload: Types.HudPayload)
 	inLevel = payload.runState == "Level"
 end)
 
-local function submarinePosition(): Vector3?
-	local sub = WorldRefs.Submarine()
+local function elevatorPosition(): Vector3?
+	local sub = WorldRefs.Elevator()
 	if sub then
 		return sub:GetPivot().Position
 	end
-	local dock = workspace:FindFirstChild("SubDock", true)
+	local dock = workspace:FindFirstChild("ElevatorDock", true)
 	return if dock and dock:IsA("BasePart") then dock.Position else nil
 end
 
 RunService.RenderStepped:Connect(function()
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	local target = submarinePosition()
+	local target = elevatorPosition()
 	if not (inLevel and player:GetAttribute("InRun") == true and root and target) then
 		marker.Visible = false
 		return
@@ -83,7 +83,7 @@ RunService.RenderStepped:Connect(function()
 	local view = camera.ViewportSize
 	local screen, onScreen = camera:WorldToViewportPoint(target + Vector3.new(0, M.HeightOffset, 0))
 	local pos = Vector2.new(screen.X, screen.Y)
-	local label = string.format("SUBMARINO  %d m", distance)
+	local label = string.format("ASCENSOR  %d m", distance)
 	if screen.Z < 0 then
 		-- detrás de la cámara: las coordenadas vienen invertidas
 		pos = Vector2.new(view.X - pos.X, view.Y - pos.Y)
@@ -92,7 +92,7 @@ RunService.RenderStepped:Connect(function()
 	if onScreen and pos.X > M.Margin and pos.X < view.X - M.Margin and pos.Y > M.Margin and pos.Y < view.Y - M.Margin then
 		diamond.Visible = true
 	else
-		-- fuera de pantalla: lo pega al borde en la dirección del submarino, con una flecha de texto
+		-- fuera de pantalla: lo pega al borde en la dirección del ascensor, con una flecha de texto
 		local center = view / 2
 		local dir = pos - center
 		if dir.Magnitude < 1 then

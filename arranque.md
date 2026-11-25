@@ -7,8 +7,10 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 - Archivados los modelos y mapas oceánicos (fauna, kits marinos, naufragios, estaciones, niveles submarinos, HUD de buceo, cangrejo, arpón) en `assets_build/archive_oceano/`.
 - Archivados los planes y GDD anteriores y el mapa de pruebas oceánico en `docs/archivo_oceano/`.
 - GDD, manifiesto, README, Launch, UI y guía de modelos reescritos para la nueva temática.
-- Pendiente para Claude: el código Rojo (en su worktree) aún contiene sistemas de agua, oxígeno, presión, casco y fauna; debe retirarse.
-- Pendiente en Studio: limpiar el lugar `137133016631933` (ver [Launch.md](Launch.md)).
+- **Código (rama `backrooms-cleanup`, 2026-11-25):** retirados agua, natación, oxígeno, casco, presión, profundidad, día/noche, kraken, fauna ambiental, HUD de buceo y animación procedural de peces. Añadido `MovementClient` (caminar/correr). Submarino → Ascensor (`Elevator`): `Hatch`→`Gate`, `SubDock`→`ElevatorDock`, `HullGauge`→`StatusGauge`, `Hull`→`Body`; `ServerStorage.AbismoAssets`→`GameAssets`; plantilla `Kraken_map`→`Sala_Grande`. `rojo build` y sintaxis OK; sin probar en Studio.
+- **Sin criaturas por ahora:** `Config.Monster.Species` solo espera `creature_nextbot_01` en `GameAssets.Creatures`.
+- **Limitación conocida:** el generador de laberinto todavía entra por el pozo de la sala_0 (antes se bajaba nadando). Sin agua hay que rediseñar la entrada/pozos verticales (`Config.Maze.MaxVertical`, `Config.Level.VerticalMax`) cuando lleguen los mapas nuevos.
+- **Pendiente en Studio** (no automatizable desde aquí): limpiar el lugar `137133016631933` (ver [Launch.md](Launch.md)).
 
 ## Entregas
 
@@ -18,5 +20,6 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 | Reutilizable | Tesoros small/medium/large (A03) | Codex |
 | Por revisar | Kits de salas y pasillos industriales como base liminal | Codex |
 | Pendiente | `Level_1` liminal, `Parada`, `machine_comm`, `puzzle_door`, `puzzle_chest`, `creature_nextbot_01` | Codex |
-| Pendiente | Retirar agua/oxígeno/presión/casco del código; añadir correr, máquinas, puzzles y criaturas | Claude |
+| Hecho (sin probar) | Retirar agua/oxígeno/presión/casco del código; correr | Claude |
+| Pendiente | Máquinas de comunicación, puzzles y criaturas | Claude |
 | Por definir | Mecánicas de criaturas, tipos de puzzle, reparación de máquinas, condición de victoria, temáticas de niveles 2+ | Usuario |

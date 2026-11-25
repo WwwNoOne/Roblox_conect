@@ -1,5 +1,5 @@
 --!strict
--- Lógica de tesoros, venta, reparación y tienda (T05). Todo ocurre en el servidor, sin yields,
+-- Lógica de tesoros, venta y tienda (T05). Todo ocurre en el servidor, sin yields,
 -- así que cada operación es atómica frente a solicitudes simultáneas.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -51,7 +51,7 @@ function Economy.Pickup(player: Player, size: string, glyph: string?): Result
 end
 
 -- Vende todo lo que carga el jugador; suma al fondo común una sola vez.
--- Deposita lo que carga el jugador en el almacén del submarino (cuenta para la cuota del nivel).
+-- Deposita lo que carga el jugador en el almacén del ascensor (cuenta para la cuota del nivel).
 function Economy.Deposit(player: Player): Result
 	local run = Runs.GetByUser(player.UserId)
 	if not run or run.ended or run.state ~= "Level" then
@@ -72,34 +72,6 @@ function Economy.Deposit(player: Player): Result
 	run.deposited += total
 	syncCarry(player, run)
 	return { ok = true, earned = total }
-end
-
-local function repairCost(run: Runs.Run): number
-	local missing = Config.Run.HullMax - run.hull
-	local amount = math.min(Config.Economy.RepairChunk, missing)
-	return math.ceil(amount * Config.Economy.RepairCostPerHp)
-end
-
-function Economy.Repair(player: Player): Result
-	local run = Runs.GetByUser(player.UserId)
-	if not run or run.ended or run.state ~= "Stopover" then
-		return { ok = false, err = "NOT_AT_PARADA" }
-	end
-	if not aliveInside(player) then
-		return { ok = false, err = "NOT_INSIDE" }
-	end
-	local missing = Config.Run.HullMax - run.hull
-	if missing <= 0.01 then
-		return { ok = false, err = "HULL_FULL" }
-	end
-	local amount = math.min(Config.Economy.RepairChunk, missing)
-	local cost = math.ceil(amount * Config.Economy.RepairCostPerHp)
-	if run.money < cost then
-		return { ok = false, err = "NOT_ENOUGH_MONEY" }
-	end
-	run.money -= cost
-	run.hull = math.min(Config.Run.HullMax, run.hull + amount)
-	return { ok = true }
 end
 
 function Economy.ShopState(player: Player): Types.ShopState?
@@ -124,9 +96,6 @@ function Economy.ShopState(player: Player): Types.ShopState?
 	return {
 		money = run.money,
 		items = items,
-		hull = math.floor(run.hull + 0.5),
-		hullMax = Config.Run.HullMax,
-		repairCost = repairCost(run),
 	}
 end
 

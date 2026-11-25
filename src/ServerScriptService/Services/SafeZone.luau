@@ -1,6 +1,6 @@
 --!strict
--- Zona segura: la sala_0 (Workspace.Sala_0, donde está el submarino y que es seca) por encima de su suelo.
---   * Un jugador dentro (IsPlayerSafe) no puede ser detectado ni atacado por los enemigos, recupera oxígeno y no corre.
+-- Zona segura: la sala_0 (Workspace.Sala_0, donde está el ascensor) por encima de su suelo.
+--   * Un jugador dentro (IsPlayerSafe) no puede ser detectado ni atacado por los enemigos y no corre.
 --   * Los enemigos no pueden entrar: BarsMonster marca el volumen de la sala_0 y el tramo del pozo (el primer pasillo bajo el agujero
 --     de 16 × 16) hasta Config.SafeZone.MonsterBuffer studs por debajo del suelo, para que ni la cabeza de un enemigo largo asome.
 -- La caja de la sala se calcula una vez a partir de las piezas de Workspace.Sala_0; la altura del suelo es LevelState.entry.Y (el
@@ -27,7 +27,7 @@ local function sala0Box(): { min: Vector3, max: Vector3 }?
 	local mn, mx = Vector3.one * math.huge, -Vector3.one * math.huge
 	local found = false
 	for _, d in folder:GetDescendants() do
-		if d:IsA("BasePart") and d.Name ~= "SubDock" then
+		if d:IsA("BasePart") and d.Name ~= "ElevatorDock" then
 			local h = d.Size / 2
 			-- caja alineada con los ejes que contiene la pieza (suficiente: la sala es rectangular)
 			local ext = Vector3.new(
@@ -51,7 +51,7 @@ local function insideXZ(b: { min: Vector3, max: Vector3 }, pos: Vector3, pad: nu
 	return pos.X >= b.min.X - pad and pos.X <= b.max.X + pad and pos.Z >= b.min.Z - pad and pos.Z <= b.max.Z + pad
 end
 
--- ¿El jugador está en la sala_0 (por encima del suelo)? Quien nada por el pozo bajo el suelo no está a salvo.
+-- ¿El jugador está en la sala_0 (por encima del suelo)? Quien baja por el pozo bajo el suelo no está a salvo.
 function SafeZone.IsPlayerSafe(pos: Vector3): boolean
 	local b, entry = sala0Box(), LevelState.entry
 	if not b or not entry then
