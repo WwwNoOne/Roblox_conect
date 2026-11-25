@@ -1,0 +1,552 @@
+{
+  "version": 2,
+  "project": "Abismo",
+  "game_style": "roblox",
+  "place": {
+    "studio_id": "9d578197-c09e-4422-814f-a3640cfa7f06",
+    "place_id": "137133016631933",
+    "name": "Explorador de las profundidades del océano"
+  },
+  "publishing_destination": {
+    "connection_id": "bb48f27a-0fdc-4446-81df-1050bbd3f069",
+    "creator": {
+      "type": "user",
+      "id": "9514396368"
+    }
+  },
+  "art_direction": "Abandoned underwater research facility, horror atmosphere: heavy rust, corroded steel, flanged joints, barnacles, dark green algae slime streaks and invasive kelp, dim teal-grey palette, realistic PBR, seen in near darkness under a diver's lamp.",
+  "art_sentence": "abandoned underwater research facility, heavy rust, barnacles, dark green algae slime streaks, dim teal-grey palette, horror atmosphere",
+  "palette": [
+    "#0b1a1f",
+    "#1f3a3d",
+    "#3f5b4a",
+    "#6b4a2e",
+    "#8a8f86"
+  ],
+  "material_language": "rusted steel, corroded copper, cracked concrete, slimy kelp, barnacle crust, bioluminescent cyan accents on creatures",
+  "decisions": [
+    {
+      "topic": "spend",
+      "value": "paid generation authorized by user request (rooms, 5 creatures, panels, audio); no cap stated",
+      "date": "2026-11-17",
+      "by": "user"
+    },
+    {
+      "topic": "rooms",
+      "value": "decorate Workspace.Kit_10_Salas_Vacias_16 (10 rooms) with a generated prop kit placed many times; theme abandoned installation with pipes and invasive algae",
+      "date": "2026-11-17",
+      "by": "user"
+    },
+    {
+      "topic": "creatures",
+      "value": "5 new terrifying marine creatures with animation; animation done in Luau (bones/procedural) because ForgeGUI upload.roblox_animation is unavailable",
+      "date": "2026-11-17",
+      "by": "user"
+    },
+    {
+      "topic": "interface_tone",
+      "value": "restrained industrial (worn metal, hairline edges, one cyan accent), no ornate gold rims",
+      "date": "2026-11-17",
+      "by": "assistant-assumption"
+    },
+    {
+      "topic": "creature_animation",
+      "value": "client-side procedural animation via EditableMesh vertex deformation, fallback to whole-body motion; creatures: eel, anglerfish, jellyfish, isopod, goblin shark",
+      "date": "2026-11-17",
+      "by": "assistant"
+    },
+    {
+      "topic": "rooms_decoration_v2",
+      "value": "user asked ForgeGUI to generate rooms or only decoration; chose decoration only (ForgeGUI makes single objects, kit rooms already have exact 16x16 holes): 6 new props kit v2 placed many times",
+      "date": "2026-11-18",
+      "by": "assistant-assumption"
+    },
+    {
+      "topic": "spend",
+      "value": "user: 20K of 160K ForgeGUI credits remain (2026-11-18); keep batches small; wants structures not only plants/pipes; sounds deferred to the end",
+      "date": "2026-11-18",
+      "by": "user"
+    },
+    {
+      "topic": "spend",
+      "value": "measured by user 2026-11-18: 3 standard models (kit3) cost 14000 credits (20712 -> 6712), ~4670 each; 6712 left. No further paid generation without user OK; at most 1 more model fits",
+      "date": "2026-11-18",
+      "by": "user"
+    }
+  ],
+  "assets": [
+    {
+      "key": "kit_pipes",
+      "kind": "model",
+      "request_id": "abismo-kit-pipes-001",
+      "job_id": "96bfc4bb-6235-4df6-b136-06698cb85eb7",
+      "delivery": "publish",
+      "publication_id": "18f5caf2-304d-4744-a703-8da460378e4a",
+      "roblox_asset_id": "128909144277402",
+      "status": "inserted",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Tuberias_Oxidadas (+ placed in rooms)",
+      "native_size": "about 1.9 studs tall, scaled to ~26.6"
+    },
+    {
+      "key": "kit_tank",
+      "kind": "model",
+      "request_id": "abismo-kit-tank-001",
+      "job_id": "5e3e6a62-be20-409c-a817-6d4e0a9191c7",
+      "delivery": "publish",
+      "status": "inserted",
+      "publication_id": "194c2702-777b-4e9d-9a28-e3553a8344b4",
+      "roblox_asset_id": "89335348445743",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Tanque_Presion",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_kelp_hanging",
+      "kind": "model",
+      "request_id": "abismo-kit-kelp-hanging-001",
+      "job_id": "6facceff-f04d-42e5-b485-b0d7279ba354",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "126041295242652",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Cortina_Algas",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_console",
+      "kind": "model",
+      "request_id": "abismo-kit-console-001",
+      "job_id": "477e8bab-6b57-40a1-ad7d-a892a02baae4",
+      "delivery": "publish",
+      "status": "inserted",
+      "publication_id": "4f7c1cc3-cc33-4520-b2ce-278d3b848910",
+      "roblox_asset_id": "88237126301920",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Consola_Rota",
+      "moderation": "approved"
+    },
+    {
+      "key": "creature_eel",
+      "kind": "model",
+      "request_id": "abismo-creature-eel-001",
+      "job_id": "0060fc39-b97c-48bc-8e6b-acd50a4c76f9",
+      "delivery": "publish",
+      "status": "inserted",
+      "publication_id": "a5feb0f1-decf-4819-ba28-7056a0e4ce85",
+      "roblox_asset_id": "117828739915968",
+      "instance": "ServerStorage.AbismoAssets.Creatures.Anguila_Abisal",
+      "moderation": "approved"
+    },
+    {
+      "key": "gui_panel",
+      "kind": "gui",
+      "request_id": "abismo-gui-panel-001",
+      "job_id": "cf220bda-89c9-487e-b76f-98417f1fc869",
+      "delivery": "direct",
+      "status": "published",
+      "publication_id": "b82efaa4-53aa-410d-9bca-ff457c0f4b4d",
+      "artifact_ref": "mcp-artifact:cf220bda-89c9-487e-b76f-98417f1fc869:0",
+      "roblox_asset_id": "99587350783353",
+      "moderation": "approved",
+      "used_by": "src/ReplicatedStorage/Shared/UiArt.luau"
+    },
+    {
+      "key": "gui_button",
+      "kind": "gui",
+      "request_id": "abismo-gui-button-001",
+      "job_id": "5958aaeb-6003-445c-b548-79b9d49c6c9e",
+      "delivery": "direct",
+      "status": "published",
+      "publication_id": "bf271775-5451-424d-bdac-9c5bfe744da0",
+      "artifact_ref": "mcp-artifact:5958aaeb-6003-445c-b548-79b9d49c6c9e:1",
+      "roblox_asset_id": "120477640903266",
+      "moderation": "approved",
+      "used_by": "src/ReplicatedStorage/Shared/UiArt.luau"
+    },
+    {
+      "key": "gui_icons",
+      "kind": "gui",
+      "request_id": "abismo-gui-icons-001",
+      "job_id": "62974fbe-44ad-44e2-92d2-c313df57ef33",
+      "delivery": "direct",
+      "status": "published",
+      "publication_id": "d06f93cd-0086-44d2-afb8-35f53e68ed53",
+      "artifact_ref": "mcp-artifact:62974fbe-44ad-44e2-92d2-c313df57ef33:2",
+      "roblox_asset_id": "113404836852402",
+      "moderation": "approved",
+      "used_by": "src/ReplicatedStorage/Shared/UiArt.luau"
+    },
+    {
+      "key": "sfx_facility_ambience",
+      "kind": "audio",
+      "request_id": "abismo-sfx-facility-ambience-001",
+      "job_id": "e802cbaf-3dff-4a90-b451-b1964a45b0da",
+      "delivery": "publish",
+      "status": "outcome_unknown (worker interruption) — not regenerated, awaiting user decision"
+    },
+    {
+      "key": "sfx_pipe_groan",
+      "kind": "audio",
+      "request_id": "abismo-sfx-pipe-groan-001",
+      "job_id": "02b13b0e-d222-4c22-b019-d812c1e1a667",
+      "delivery": "publish",
+      "status": "outcome_unknown (worker interruption) — not regenerated, awaiting user decision"
+    },
+    {
+      "key": "sfx_ui_panel",
+      "kind": "audio",
+      "request_id": "abismo-sfx-ui-panel-001",
+      "job_id": "bae4f3e6-8ebd-4c2b-b0b1-d51b7670e9d4",
+      "delivery": "publish",
+      "status": "outcome_unknown (worker interruption) — not regenerated, awaiting user decision"
+    },
+    {
+      "key": "creature_angler",
+      "kind": "model",
+      "request_id": "abismo-creature-angler-001",
+      "job_id": "76453874-24c2-4f8b-8c03-615bcacabae3",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "105790438610663",
+      "instance": "ServerStorage.AbismoAssets.Creatures.Rape_Abisal",
+      "moderation": "approved"
+    },
+    {
+      "key": "creature_jelly",
+      "kind": "model",
+      "request_id": "abismo-creature-jelly-001",
+      "job_id": "7a86a285-374a-4630-9e3c-82071e20b215",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "128981368995596",
+      "instance": "ServerStorage.AbismoAssets.Creatures.Medusa_Abisal",
+      "moderation": "approved"
+    },
+    {
+      "key": "creature_isopod",
+      "kind": "model",
+      "request_id": "abismo-creature-isopod-001",
+      "job_id": "54096379-89f1-464e-b805-07c76e25a3f0",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "100706990834748",
+      "instance": "ServerStorage.AbismoAssets.Creatures.Isopodo_Gigante",
+      "moderation": "approved"
+    },
+    {
+      "key": "creature_goblinshark",
+      "kind": "model",
+      "request_id": "abismo-creature-goblinshark-001",
+      "job_id": "e81fe8da-a0fd-4ff0-a6c5-63593cd8a939",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "91621385863640",
+      "instance": "ServerStorage.AbismoAssets.Creatures.Tiburon_Duende",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_floor_algae",
+      "kind": "model",
+      "request_id": "abismo-kit-floor-algae-001",
+      "job_id": "e7e8eb47-fed1-434b-a379-c7efc4dffe85",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "110900206806328",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Algas_Suelo",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_debris_crates",
+      "kind": "model",
+      "request_id": "abismo-kit-debris-crates-001",
+      "job_id": "627b0a77-b329-4a0d-806e-d713db900038",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "124503800159636",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Escombros_Cajas",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_caged_lamp",
+      "kind": "model",
+      "request_id": "abismo-kit-caged-lamp-001",
+      "job_id": "74def44b-cc79-4d70-a97c-efc59177d2dd",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "122019826842725",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Lampara_Jaula",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_diver_remains",
+      "kind": "model",
+      "request_id": "abismo-kit-diver-remains-001",
+      "job_id": "aadd2db4-8306-4f36-8bca-42062e97d56c",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "103020141577391",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Buzo_Muerto",
+      "moderation": "approved"
+    },
+    {
+      "key": "kit_wall_cables",
+      "kind": "model",
+      "request_id": "abismo-kit-wall-cables-001",
+      "job_id": "939909ab-0d19-415b-9536-cd972751a20d",
+      "delivery": "publish",
+      "status": "inserted",
+      "roblox_asset_id": "125867485254615",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Cables_Pared",
+      "moderation": "approved"
+    },
+    {
+      "key": "sfx_roar_eel",
+      "kind": "audio",
+      "request_id": "abismo-sfx-roar-eel-001",
+      "job_id": "fe39c413-d994-476c-88fa-df038a952d24",
+      "delivery": "publish",
+      "status": "inserted",
+      "outputs": [
+        "118815298358840",
+        "77501700276966"
+      ],
+      "instance": "Workspace.sonidos.Criaturas_ForgeGUI"
+    },
+    {
+      "key": "sfx_roar_angler",
+      "kind": "audio",
+      "request_id": "abismo-sfx-roar-angler-001",
+      "job_id": "eaab5c73-15e7-4d4f-bd49-ca5515a8d8da",
+      "delivery": "publish",
+      "status": "inserted",
+      "outputs": [
+        "129734301598575",
+        "117265650012939"
+      ],
+      "instance": "Workspace.sonidos.Criaturas_ForgeGUI"
+    },
+    {
+      "key": "sfx_roar_jelly",
+      "kind": "audio",
+      "request_id": "abismo-sfx-roar-jelly-001",
+      "job_id": "d0cb17f8-1761-4966-a341-7e51624453be",
+      "delivery": "publish",
+      "status": "inserted",
+      "outputs": [
+        "72003161914987",
+        "113172191531833"
+      ],
+      "instance": "Workspace.sonidos.Criaturas_ForgeGUI"
+    },
+    {
+      "key": "sfx_roar_isopod",
+      "kind": "audio",
+      "request_id": "abismo-sfx-roar-isopod-001",
+      "job_id": "1f0c3ced-ba52-4c83-a69c-3158da346cb9",
+      "delivery": "publish",
+      "status": "inserted",
+      "outputs": [
+        "108636787625719",
+        "115366962561049 (pending_moderation, not used)"
+      ],
+      "instance": "Workspace.sonidos.Criaturas_ForgeGUI"
+    },
+    {
+      "key": "sfx_roar_shark",
+      "kind": "audio",
+      "request_id": "abismo-sfx-roar-shark-001",
+      "job_id": "86a6f262-2f65-40fa-af05-1160442fb48d",
+      "delivery": "publish",
+      "status": "inserted",
+      "outputs": [
+        "138558842935949",
+        "123233892243359"
+      ],
+      "instance": "Workspace.sonidos.Criaturas_ForgeGUI"
+    },
+    {
+      "key": "remesh_eel",
+      "kind": "model_remesh",
+      "request_id": "abismo-remesh-eel-5k-001",
+      "job_id": "573583f2-e17d-42ad-b471-7390739232d8",
+      "delivery": "direct then artifact_publish",
+      "target_polycount": 5000,
+      "reason": "client EditableMesh memory budget fits ~one 15k-tri creature",
+      "status": "published (approved), swapped into Studio template 2026-11-18",
+      "artifact_ref": "mcp-artifact:573583f2-e17d-42ad-b471-7390739232d8:0",
+      "publication_id": "d56bee6a-c652-4d1e-9ab4-8f5b8407fc46",
+      "roblox_asset_id": "80866203673012"
+    },
+    {
+      "key": "remesh_angler",
+      "kind": "model_remesh",
+      "request_id": "abismo-remesh-angler-5k-001",
+      "job_id": "233b018b-1da1-44f9-b788-9f2b0eca5297",
+      "delivery": "direct then artifact_publish",
+      "target_polycount": 5000,
+      "reason": "client EditableMesh memory budget fits ~one 15k-tri creature",
+      "status": "published (approved), swapped into Studio template 2026-11-18",
+      "publication_id": "92c70e31-bad0-43d1-be67-22d91ff4b7b8",
+      "roblox_asset_id": "128547282629874"
+    },
+    {
+      "key": "remesh_jelly",
+      "kind": "model_remesh",
+      "request_id": "abismo-remesh-jelly-5k-001",
+      "job_id": "b6716ef1-046e-492b-9857-ee88493c593f",
+      "delivery": "direct then artifact_publish",
+      "target_polycount": 5000,
+      "reason": "client EditableMesh memory budget fits ~one 15k-tri creature",
+      "status": "published (approved), swapped into Studio template 2026-11-18",
+      "artifact_ref": "mcp-artifact:b6716ef1-046e-492b-9857-ee88493c593f:0",
+      "publication_id": "3440b38f-7184-4fc9-8498-46a296e784a4",
+      "roblox_asset_id": "86947844147364"
+    },
+    {
+      "key": "remesh_isopod",
+      "kind": "model_remesh",
+      "request_id": "abismo-remesh-isopod-5k-001",
+      "job_id": "5adc6f82-3374-4718-92e0-5320dd9a84f0",
+      "delivery": "direct then artifact_publish",
+      "target_polycount": 5000,
+      "reason": "client EditableMesh memory budget fits ~one 15k-tri creature",
+      "status": "published (approved), swapped into Studio template 2026-11-18",
+      "publication_id": "b49d1f9e-f0aa-48d6-a748-e64184ba19f7",
+      "roblox_asset_id": "104554316877697"
+    },
+    {
+      "key": "remesh_shark",
+      "kind": "model_remesh",
+      "request_id": "abismo-remesh-shark-5k-001",
+      "job_id": "300b064e-52c3-4c92-aa6c-28db0311e174",
+      "delivery": "direct then artifact_publish",
+      "target_polycount": 5000,
+      "reason": "client EditableMesh memory budget fits ~one 15k-tri creature",
+      "status": "published (approved), swapped into Studio template 2026-11-18",
+      "publication_id": "c9ea618a-fa32-469e-822a-1b889fefd163",
+      "roblox_asset_id": "132607918977280"
+    },
+    {
+      "key": "sfx_facility_ambience_v2",
+      "kind": "audio",
+      "request_id": "abismo-sfx-facility-ambience-002",
+      "job_id": "c369ce84-e734-4917-9e84-2a3b6be9576d",
+      "delivery": "publish",
+      "status": "outcome_unknown (2nd failure) - not retried, awaiting user",
+      "note": "re-requested with user approval after v1 outcome_unknown"
+    },
+    {
+      "key": "sfx_pipe_groan_v2",
+      "kind": "audio",
+      "request_id": "abismo-sfx-pipe-groan-002",
+      "job_id": "be54d8fb-88b3-4922-8ebf-b664238ee908",
+      "delivery": "publish",
+      "status": "outcome_unknown (2nd failure) - not retried, awaiting user",
+      "note": "re-requested with user approval after v1 outcome_unknown"
+    },
+    {
+      "key": "sfx_ui_panel_v2",
+      "kind": "audio",
+      "request_id": "abismo-sfx-ui-panel-002",
+      "job_id": "ff2122be-9446-42e3-8015-f52a6cb46d91",
+      "delivery": "publish",
+      "status": "outcome_unknown (2nd failure) - not retried, awaiting user",
+      "note": "re-requested with user approval after v1 outcome_unknown"
+    },
+    {
+      "key": "kit2_bunk",
+      "kind": "model",
+      "request_id": "abismo-kit2-bunk-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "d2e8fd21-47ff-4999-be36-72e90fd65914",
+      "roblox_asset_id": "70441629704190",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Litera"
+    },
+    {
+      "key": "kit2_workbench",
+      "kind": "model",
+      "request_id": "abismo-kit2-workbench-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "2e02f21a-1f87-413f-8970-96909bccfac1",
+      "roblox_asset_id": "121993486914810",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Mesa_Laboratorio"
+    },
+    {
+      "key": "kit2_generator",
+      "kind": "model",
+      "request_id": "abismo-kit2-generator-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "02fc0ce0-b88b-4b15-9149-a538560624f9",
+      "roblox_asset_id": "104581575859704",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Generador"
+    },
+    {
+      "key": "kit2_cabinet",
+      "kind": "model",
+      "request_id": "abismo-kit2-cabinet-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "3219415f-fce6-40a5-82b3-012137c78b2f",
+      "roblox_asset_id": "87903118725363",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Armario_Electrico"
+    },
+    {
+      "key": "kit2_hatch",
+      "kind": "model",
+      "request_id": "abismo-kit2-hatch-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "4e66de86-e295-44ef-8b19-9107e5582f79",
+      "roblox_asset_id": "120767962731371",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Escotilla"
+    },
+    {
+      "key": "kit2_eggs",
+      "kind": "model",
+      "request_id": "abismo-kit2-eggs-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "a534fbc0-53ae-4f37-8730-c8efb902a041",
+      "roblox_asset_id": "96630464222229",
+      "moderation": "approved",
+      "instance": "ServerStorage.AbismoAssets.Kit_Instalacion.Prop_Huevos_Organicos"
+    },
+    {
+      "key": "kit3_catwalk",
+      "kind": "model",
+      "request_id": "abismo-kit3-catwalk-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "cdebcd0b-fc20-48ed-9359-eb180f8c3c7c",
+      "roblox_asset_id": "101378525624014",
+      "instance": "Kit_Instalacion.Prop_Pasarela"
+    },
+    {
+      "key": "kit3_partition",
+      "kind": "model",
+      "request_id": "abismo-kit3-partition-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "624c0002-70d2-4885-b1da-d7efc7f5e54c",
+      "publication_id": "7954342a-2360-4bdc-9e04-e9adf7f7f6e7",
+      "roblox_asset_id": "110287199812322",
+      "moderation": "approved",
+      "instance": "Kit_Instalacion.Prop_Tabique_Ventanal"
+    },
+    {
+      "key": "kit3_column",
+      "kind": "model",
+      "request_id": "abismo-kit3-column-001",
+      "delivery": "publish",
+      "status": "inserted",
+      "job_id": "04f97909-56e1-428b-abc9-e8d234680f93",
+      "roblox_asset_id": "75229538697792",
+      "instance": "Kit_Instalacion.Prop_Columna_Rota"
+    }
+  ],
+  "decorated_rooms": {
+    "where": "Workspace.Kit_10_Salas_Vacias_16.<Sala>.Decoracion",
+    "script": "assets_build/forgegui/decorar_salas.luau",
+    "pieces": 356
+  }
+}
