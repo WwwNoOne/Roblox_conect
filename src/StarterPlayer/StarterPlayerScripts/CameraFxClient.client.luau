@@ -89,7 +89,7 @@ local function threatNow(): number
 end
 
 -- ===== Aplicar sobre la cámara =====
-RunService:BindToRenderStep("CameraFx", Enum.RenderPriority.Camera.Value + 1, function(dt)
+RunService:BindToRenderStep("CameraFx", Enum.RenderPriority.Camera.Value + 3, function(dt)
 	local now = os.clock()
 	local rx, ry, rz = 0, 0, 0
 

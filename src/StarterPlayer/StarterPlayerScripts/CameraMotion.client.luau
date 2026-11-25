@@ -6,10 +6,12 @@
 --   * Aterrizaje: muelle que hunde la cámara según la fuerza de la caída.
 --   * Respiración en reposo; se vuelve jadeo con la estamina baja.
 --   * FOV: se abre con la velocidad real al correr y se cierra un poco agachado.
---   * Posición: a la altura de los ojos (Config.FirstPerson.EyeUp) y por delante de la cara (EyeForward). El modo primera persona
---     de Roblox deja la cámara en el centro de la cabeza, donde el cuello y los hombros tapan la vista. La altura sigue a la cabeza
---     suavizada (así una animación de agachado la baja sola); sin animación de agachado se baja CrouchCameraDrop.
--- Se aplica después del script de cámara de Roblox (que recalcula la cámara cada cuadro), así que no se acumula.
+--   * Posición: a la altura de los ojos (Config.FirstPerson.EyeUp) y por delante de la cara (EyeForward), con la altura de la
+--     cabeza en la pose de reposo del esqueleto. Va por Humanoid.CameraOffset (lo entiende el script de cámara de Roblox), compensando
+--     los 0,5 studs que ese script retrocede la cámara en primera persona. El balanceo vertical/lateral también va por ahí.
+--   * Sobre la cámara solo se aplican giros pequeños (balanceo, inclinaciones). El script de Roblox calcula la mirada partiendo de la
+--     cámara del cuadro anterior, así que al empezar cada cuadro (First) se le devuelve la suya: si no, los giros se acumulan
+--     (temblor y deriva). Orden: Roblox (Camera) -> captura (+1) -> este script (+2) -> sacudidas de CameraFx / DescentFx (+3).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -39,10 +41,47 @@ local crouchBlend = 0
 local fovNow = M.FieldOfView
 local breathT = 0
 local lastYaw: number? = nil
-local eyeY: number? = nil -- altura suavizada del centro de la cabeza sobre la raíz
-local eyeOwner: Instance? = nil
+-- ===== Sin retroalimentación =====
+local leanForward = 0
+local moduleCF: CFrame? = nil -- lo que calculó el script de cámara de Roblox este cuadro
+local applied = false
 
-RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 1, function(dt)
+RunService:BindToRenderStep("CameraMotionRestore", Enum.RenderPriority.First.Value, function()
+	local camera = workspace.CurrentCamera
+	if applied and camera and moduleCF and camera.CameraType == Enum.CameraType.Custom then
+		camera.CFrame = moduleCF
+	end
+	applied = false
+end)
+RunService:BindToRenderStep("CameraMotionCapture", Enum.RenderPriority.Camera.Value + 1, function()
+	local camera = workspace.CurrentCamera
+	moduleCF = camera and camera.CFrame
+end)
+
+-- Altura de los ojos con la pose de reposo del esqueleto R15 (raíz -> cadera -> cintura -> cuello), sin la animación: estable.
+local function restHeadY(character: Model): number?
+	local lower = character:FindFirstChild("LowerTorso")
+	local upper = character:FindFirstChild("UpperTorso")
+	local head = character:FindFirstChild("Head")
+	local rootJ = lower and lower:FindFirstChild("Root")
+	local waist = upper and upper:FindFirstChild("Waist")
+	local neck = head and head:FindFirstChild("Neck")
+	-- Motor6D clásico o AnimationConstraint (articulaciones nuevas de Roblox): ambos exponen C0/C1
+	local function joint(j: Instance?): CFrame?
+		if j and (j:IsA("Motor6D") or j:IsA("AnimationConstraint")) then
+			local any = j :: any
+			return any.C0 * any.C1:Inverse()
+		end
+		return nil
+	end
+	local a, b, c = joint(rootJ), joint(waist), joint(neck)
+	if not (a and b and c) then
+		return nil
+	end
+	return (a * b * c).Position.Y
+end
+
+RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 2, function(dt)
 	local camera = workspace.CurrentCamera
 	if not camera then
 		return
@@ -112,9 +151,6 @@ RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 1
 
 	-- ===== Agachado =====
 	crouchBlend = smooth(crouchBlend, if MotionState.crouching and alive then 1 else 0, 9, dt)
-	if humanoid and humanoid.CameraOffset ~= FP.CameraOffset then
-		humanoid.CameraOffset = FP.CameraOffset
-	end
 
 	-- ===== FOV =====
 	local fovTarget = M.FieldOfView
@@ -135,26 +171,24 @@ RunService:BindToRenderStep("CameraMotion", Enum.RenderPriority.Camera.Value + 1
 	if camera.CameraType ~= Enum.CameraType.Custom or camera.CameraSubject ~= humanoid then
 		return
 	end
-	local head = character and character:FindFirstChild("Head") :: BasePart?
 	local rootPart = root :: BasePart
-	if head then
-		local measured = head.Position.Y - rootPart.Position.Y
-		if eyeOwner ~= head or eyeY == nil then
-			eyeOwner, eyeY = head, measured
-		else
-			eyeY = smooth(eyeY :: number, measured, 4, dt) -- filtra el vaivén de la animación de andar
-		end
+	-- Posición de los ojos en el espacio de la raíz. El script de Roblox sigue a la raíz + 1,5 (+ ajuste por su tamaño) y retrocede
+	-- 0,5 en primera persona; el offset lo compensa.
+	local eyeY = restHeadY(character :: Model) or 1.6
+	local followY = 1.5 + rootPart.Size.Y / 2 - 1
+	local crouchForward = if CROUCH_DROP > 0 then 0.4 * crouchBlend else 0 -- sin animación, fuera del pecho
+	-- al andar y correr la animación inclina la cabeza hacia delante: la cámara se adelanta con ella
+	local walkRatio = math.clamp(MotionState.speed / math.max(MotionState.walkSpeed, 1), 0, 1)
+	local runRatio = math.clamp((MotionState.speed - MotionState.walkSpeed) / math.max(M.SprintSpeed - MotionState.walkSpeed, 1), 0, 1)
+	leanForward = smooth(leanForward, if MotionState.grounded then 0.3 * walkRatio + 0.3 * runRatio else 0, 6, dt)
+	local offset = Vector3.new(
+		bobX,
+		eyeY + FP.EyeUp - followY - CROUCH_DROP * crouchBlend + bobY + breathY + landPos,
+		-(FP.EyeForward + 0.5 + crouchForward + leanForward)
+	)
+	if (humanoid.CameraOffset - offset).Magnitude > 1e-4 then
+		humanoid.CameraOffset = offset
 	end
-	if eyeY == nil then
-		return
-	end
-	local flatLook = rootPart.CFrame.LookVector * Vector3.new(1, 0, 1)
-	flatLook = if flatLook.Magnitude > 1e-3 then flatLook.Unit else Vector3.new(0, 0, -1)
-	local eye = rootPart.Position
-		+ Vector3.new(0, (eyeY :: number) + FP.EyeUp - CROUCH_DROP * crouchBlend, 0)
-		+ flatLook * (FP.EyeForward + (if CROUCH_DROP > 0 then 0.4 * crouchBlend else 0)) -- sin animación, fuera del pecho
-	local y = bobY + breathY + landPos
-	camera.CFrame = CFrame.new(eye) * camera.CFrame.Rotation
-		* CFrame.new(bobX, y, 0)
-		* CFrame.Angles(bobPitch + breathPitch + landPos * 0.06, 0, bobRoll + strafeRoll + lookRoll)
+	camera.CFrame = camera.CFrame * CFrame.Angles(bobPitch + breathPitch + landPos * 0.06, 0, bobRoll + strafeRoll + lookRoll)
+	applied = true
 end)

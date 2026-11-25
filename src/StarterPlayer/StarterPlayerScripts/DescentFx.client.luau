@@ -63,7 +63,7 @@ end)
 local shake = 0 -- 0..1
 local shakeTarget = 0
 
-RunService:BindToRenderStep("DescentShake", Enum.RenderPriority.Camera.Value + 1, function(dt: number)
+RunService:BindToRenderStep("DescentShake", Enum.RenderPriority.Camera.Value + 3, function(dt: number)
 	shake += (shakeTarget - shake) * math.min(1, dt * 3)
 	if shake > 0.01 then
 		local t = os.clock() * 25

@@ -233,8 +233,12 @@ RunService.Heartbeat:Connect(function(dt)
 	-- Dirección relativa a la mirada
 	local moveDir = h.MoveDirection
 	local moving = moveDir.Magnitude > 0.05
-	local localDir = r.CFrame:VectorToObjectSpace(moveDir)
-	local forward = if moving then -localDir.Unit.Z else 0
+	-- delante/detrás según la mirada de la cámara (en primera persona el cuerpo puede ir un poco por detrás al girar)
+	local camera = workspace.CurrentCamera
+	local look = (if camera then camera.CFrame.LookVector else r.CFrame.LookVector) * Vector3.new(1, 0, 1)
+	look = if look.Magnitude > 1e-3 then look.Unit else Vector3.new(0, 0, -1)
+	local flatMove = moveDir * Vector3.new(1, 0, 1)
+	local forward = if moving and flatMove.Magnitude > 1e-3 then flatMove.Unit:Dot(look) else 0
 	local dirFactor = if forward >= 0
 		then M.StrafeFactor + (1 - M.StrafeFactor) * forward
 		else M.StrafeFactor + (M.BackwardFactor - M.StrafeFactor) * -forward
