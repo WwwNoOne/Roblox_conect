@@ -240,6 +240,9 @@ local function detect(m: Monster): (Player?, BasePart?)
 				local sight = m.k.SightRange * (if player:GetAttribute("LampOn") then m.k.LampSightMultiplier else 1)
 				local noisy = player:GetAttribute("Sprinting") == true -- correr hace ruido
 				local hear = if noisy then m.k.NoiseRange else m.k.HearRange
+				if not noisy and player:GetAttribute("Crouching") == true then
+					hear *= Config.Movement.CrouchHearFactor -- agachado se hace menos ruido
+				end
 				seen = d <= hear or (d <= sight and hasLineOfSight(m, root))
 			end
 			if seen and d < bestDist then

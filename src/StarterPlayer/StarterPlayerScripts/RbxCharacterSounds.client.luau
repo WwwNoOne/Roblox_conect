@@ -1,0 +1,3 @@
+--!strict
+-- Vacío a propósito: un LocalScript con este nombre en StarterPlayerScripts impide que Roblox inserte sus sonidos de personaje por
+-- defecto (pasos, salto, caída...). Todo el sonido de movimiento lo hace FootstepAudio.

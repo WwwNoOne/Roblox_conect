@@ -1,5 +1,6 @@
 --!strict
--- HUD de partida: nivel, dinero, ranuras de carga, linterna, cuota, reloj del nivel y avisos.
+-- HUD de partida: reloj del nivel y avisos. El panel de datos (nivel, dinero, ranuras, linterna, cuota) está oculto: lo sustituye
+-- SurvivalHud.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -21,6 +22,8 @@ frame.Size = UDim2.fromOffset(300, 96)
 frame.BackgroundColor3 = Color3.fromRGB(20, 20, 18)
 frame.BackgroundTransparency = 0.25
 frame.Parent = gui
+-- Panel de datos oculto: nivel, dinero, ranuras, linterna y cuota los dibuja SurvivalHud. De aquí quedan el reloj y los avisos.
+frame.Visible = false
 Instance.new("UICorner").Parent = frame
 
 local levelLabel = Instance.new("TextLabel")

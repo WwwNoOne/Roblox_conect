@@ -1,0 +1,12 @@
+{
+ "ClassName": "StringValue",
+ "Children": [
+  {
+   "ClassName": "Animation",
+   "Name": "ClimbAnim",
+   "Properties": {
+    "AnimationId": "rbxassetid://507765644"
+   }
+  }
+ ]
+}

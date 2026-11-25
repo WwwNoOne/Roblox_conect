@@ -1,7 +1,7 @@
 --!strict
 -- Estamina y sprint autoritativos (sustituye al dash). El cliente solo avisa de si mantiene la tecla (SetSprint); el servidor decide
--- si corre, gasta y recupera la estamina, y lo publica en atributos del jugador (los lee MovementClient para la velocidad y SprintClient
--- para la barra): Stamina, StaminaMax, Sprinting, Exhausted. Parámetros: Config.Sprint.
+-- si corre, gasta y recupera la estamina, y lo publica en atributos del jugador (los lee MovementController para la velocidad y
+-- SurvivalHud para la barra): Stamina, StaminaMax, Sprinting, Exhausted. Parámetros: Config.Sprint.
 -- Solo se corre en partida, fuera del ascensor, vivo, escondido no y moviéndose. Al vaciarse queda agotado hasta recuperar
 -- Config.Sprint.ExhaustedUntil. Fuera de partida la estamina está siempre llena. Los enemigos oyen a quien corre (MonsterService).
 local Players = game:GetService("Players")
@@ -13,6 +13,7 @@ local SafeZone = require(script.Parent:WaitForChild("SafeZone"))
 
 local P = Config.Sprint
 local setSprint = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SetSprint") :: RemoteEvent
+local setStance = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SetStance") :: RemoteEvent
 
 type State = {
 	stamina: number,
@@ -54,14 +55,38 @@ setSprint.OnServerEvent:Connect(function(player: Player, held: unknown)
 	s.wants = held
 end)
 
+-- Agacharse (MovementController): el servidor solo lo publica en el atributo Crouching (lo leen MonsterService para el oído de los
+-- enemigos y los demás clientes para el volumen de los pasos). Agachado no se corre. Se limpia al reaparecer.
+local lastStance: { [Player]: number } = {}
+setStance.OnServerEvent:Connect(function(player: Player, crouching: unknown)
+	if type(crouching) ~= "boolean" then
+		return
+	end
+	local now = os.clock()
+	if now - (lastStance[player] or 0) < 0.05 then
+		return
+	end
+	lastStance[player] = now
+	player:SetAttribute("Crouching", crouching)
+end)
+
+local function watchCharacter(player: Player)
+	player.CharacterAdded:Connect(function()
+		player:SetAttribute("Crouching", false)
+	end)
+end
+
 Players.PlayerAdded:Connect(function(player)
 	publish(player, stateOf(player))
+	watchCharacter(player)
 end)
 for _, p in Players:GetPlayers() do
 	publish(p, stateOf(p))
+	watchCharacter(p)
 end
 Players.PlayerRemoving:Connect(function(player)
 	states[player] = nil
+	lastStance[player] = nil
 end)
 
 -- ¿Puede correr ahora mismo? (partida, vivo, fuera del ascensor, sin esconderse, moviéndose)
@@ -69,7 +94,7 @@ local function canSprint(player: Player): boolean
 	if Runs.GetByUser(player.UserId) == nil or Runs.IsUserInside(player.UserId) then
 		return false
 	end
-	if player:GetAttribute("Hidden") == true then
+	if player:GetAttribute("Hidden") == true or player:GetAttribute("Crouching") == true then
 		return false
 	end
 	local character = player.Character

@@ -1,0 +1,12 @@
+{
+ "ClassName": "StringValue",
+ "Children": [
+  {
+   "ClassName": "Animation",
+   "Name": "FallAnim",
+   "Properties": {
+    "AnimationId": "rbxassetid://507767968"
+   }
+  }
+ ]
+}

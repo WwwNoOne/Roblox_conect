@@ -22,6 +22,7 @@ Remotes.List = table.freeze({
 	RunEnded = "Event", -- servidor -> cliente: (result: "Won" | "Lost", reason: string)
 	PlayerHit = "Event", -- servidor -> cliente: (damage: number) un enemigo te golpeó (impacto y temblor de cámara)
 	SetSprint = "Event", -- cliente -> servidor: (held: boolean) mantiene/suelta el sprint; la estamina es del servidor
+	SetStance = "Event", -- cliente -> servidor: (crouching: boolean) se agacha/levanta; el servidor lo publica en el atributo Crouching
 	-- Equipo (reutilizado del prototipo)
 	ToggleLamp = "Event",
 	AimLamp = "Event",

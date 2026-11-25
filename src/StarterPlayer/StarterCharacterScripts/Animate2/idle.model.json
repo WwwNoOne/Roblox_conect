@@ -1,0 +1,37 @@
+{
+ "ClassName": "StringValue",
+ "Children": [
+  {
+   "ClassName": "Animation",
+   "Children": [
+    {
+     "ClassName": "NumberValue",
+     "Properties": {
+      "Value": 9.0
+     },
+     "Name": "Weight"
+    }
+   ],
+   "Name": "Animation1",
+   "Properties": {
+    "AnimationId": "rbxassetid://507766666"
+   }
+  },
+  {
+   "ClassName": "Animation",
+   "Name": "Animation2",
+   "Properties": {
+    "AnimationId": "rbxassetid://507766951"
+   },
+   "Children": [
+    {
+     "ClassName": "NumberValue",
+     "Name": "Weight",
+     "Properties": {
+      "Value": 1.0
+     }
+    }
+   ]
+  }
+ ]
+}

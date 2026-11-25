@@ -214,7 +214,7 @@ local Economy = table.freeze({
 -- Tensión buscada: correr (34) supera la persecución de los enemigos (26-29), pero solo ~7 s: hay que romper la línea de visión
 -- y salir de su oído antes de quedarse sin estamina.
 local Sprint = table.freeze({
-	WalkSpeed = 16, -- velocidad al caminar (MovementClient)
+	WalkSpeed = 16, -- velocidad al caminar (MovementController, ver Config.Movement)
 	Key = Enum.KeyCode.LeftShift,
 	PadKey = Enum.KeyCode.ButtonL3,
 	Speed = 34, -- WalkSpeed al correr
@@ -225,7 +225,6 @@ local Sprint = table.freeze({
 	ExhaustedUntil = 30, -- tras vaciarse no se puede correr hasta llegar a esta estamina
 	MinSpeed = 6, -- hay que moverse (studs/s) para gastar estamina
 	StepSeconds = 0.1, -- paso de simulación del servidor
-	FovKick = 8, -- grados extra de campo de visión al correr (0 = desactivado)
 })
 
 
@@ -238,6 +237,125 @@ local FirstPerson = table.freeze({
 	DotColor = Color3.fromRGB(235, 245, 255),
 	DotTransparency = 0.15,
 	CameraOffset = Vector3.new(0, 0, -0.45),
+})
+
+-- Movimiento en tierra (MovementController + CameraMotion). Un solo dueño de WalkSpeed, del FOV y del CameraOffset.
+-- Velocidades en studs/s: andar y correr salen de Config.Sprint (equilibrio con Monster.ChaseSpeed: te alcanzan andando, no corriendo).
+local Movement = table.freeze({
+	WalkSpeed = Sprint.WalkSpeed,
+	SprintSpeed = Sprint.Speed,
+	CrouchSpeed = 8,
+	StartSpeedFactor = 0.45, -- al arrancar desde parado se parte de esta fracción de la velocidad objetivo (inercia)
+	Accel = 26, -- studs/s² al ganar velocidad
+	Decel = 60, -- studs/s² al perderla (soltar Shift, agacharse)
+	BackwardFactor = 0.65, -- andar hacia atrás es más lento
+	StrafeFactor = 0.85, -- y de lado
+	SprintMinForward = 0.35, -- solo se corre hacia delante (producto escalar con la mirada)
+	CarryPenaltyPerItem = 0.04, -- -4 % de velocidad por objeto cargado (GDD: el botín pesa)
+	ExhaustedFactor = 0.85, -- agotado: se camina más lento
+	LowHealthFraction = 0.25, -- por debajo de esta vida se cojea...
+	LowHealthFactor = 0.88, -- ...a esta fracción de la velocidad
+	SprintGrace = 0.4, -- s que el cliente corre antes de que el servidor confirme Sprinting (oculta la latencia)
+	LobbySprint = true, -- fuera de partida se corre sin gastar estamina
+	-- Agacharse (C / B del mando / botón táctil): más lento, cámara más baja y los enemigos te oyen a menos distancia.
+	CrouchKey = Enum.KeyCode.C,
+	CrouchPadKey = Enum.KeyCode.ButtonB,
+	CrouchCameraDrop = 1.6, -- studs que baja la cámara
+	CrouchHearFactor = 0.5, -- multiplica el HearRange de los enemigos (MonsterService)
+	CrouchHeadroom = 2.2, -- studs libres sobre la cabeza necesarios para levantarse
+	CrouchIdleAnim = "", -- [PENDIENTE] animación propia de agachado en reposo (la del pack es de otro creador y Roblox la bloquea)
+	CrouchWalkAnim = "", -- [PENDIENTE] andar agachado; vacío = se usa la de reposo
+	-- Caídas: impacto = velocidad vertical al tocar suelo (studs/s).
+	SoftLandSpeed = 22, -- por debajo no hay efecto de aterrizaje
+	HardLandSpeed = 55, -- por encima: golpe seco, ralentización y animación de aterrizaje
+	HardLandSlowSeconds = 0.7,
+	HardLandSlowFactor = 0.45,
+	LandAnim = "", -- [PENDIENTE] animación propia de aterrizaje fuerte (la del pack está bloqueada)
+	-- Cámara (CameraMotion). Amplitudes en studs y grados; las zancadas marcan el ritmo del balanceo.
+	FieldOfView = 70,
+	SprintFovBonus = 7, -- proporcional a la velocidad real por encima de andar
+	CrouchFovBonus = -4,
+	BobVertical = 0.11, -- bajada de la cabeza en cada pisada (andando)
+	BobLateral = 0.06, -- vaivén hacia la pierna de apoyo
+	BobRoll = 0.55, -- grados
+	BobPitch = 0.35, -- grados
+	GaitBobScale = table.freeze({ Crouch = 0.6, Walk = 1, Sprint = 1.9 }),
+	StrafeRoll = 1.6, -- grados de inclinación al moverse de lado
+	LookRoll = 2.2, -- grados máx. de inclinación al girar rápido
+	LandDip = 0.55, -- studs máx. que baja la cámara al aterrizar
+	BreathAmplitude = 0.015, -- respiración en reposo
+	BreathAmplitudeTired = 0.06, -- jadeo con la estamina baja
+})
+
+-- Sonido de movimiento (FootstepAudio). IDs verificados en Studio (2026-11-25). Cada superficie tiene variantes: nunca suena la
+-- misma dos veces seguidas y cada pisada varía tono y volumen. Un BasePart puede forzar su superficie con el atributo
+-- "Superficie" (p. ej. "Carpet" para una moqueta hecha con Fabric). Metal: SCP:CB, licencia CC BY-SA 3.0 (atribuir en créditos).
+local function ids(...: number): { string }
+	local list = {}
+	for _, id in { ... } do
+		table.insert(list, "rbxassetid://" .. id)
+	end
+	return table.freeze(list)
+end
+local Footsteps = table.freeze({
+	Surfaces = table.freeze({
+		Concrete = table.freeze({ Volume = 0.55, Sounds = ids(104345504554799, 70639393862430, 108290664490396, 96955798612091, 120195545352847, 78982375383648, 112000835797556, 106961831442199) }),
+		Carpet = table.freeze({ Volume = 0.6, Sounds = ids(91882016473062, 111131620367547, 73343053773763, 123224557798023, 92103616531947, 73871404556766, 77619756895899, 131412978408311, 83766009140419, 114768473003662) }),
+		Metal = table.freeze({ Volume = 0.5, Sounds = ids(139723537411614, 135890657963973, 134846179256941) }),
+		Wood = table.freeze({ Volume = 0.6, Sounds = ids(116028889166618, 75982487060381, 92705710431057, 76286399907074) }),
+		Water = table.freeze({ Volume = 0.5, Sounds = ids(9120582975, 9113361614) }),
+		Grass = table.freeze({ Volume = 0.55, Sounds = ids(116195990169547, 134875177651982) }),
+	}),
+	Default = "Concrete",
+	Materials = table.freeze({
+		[Enum.Material.Fabric] = "Carpet",
+		[Enum.Material.Carpet] = "Carpet",
+		[Enum.Material.Metal] = "Metal",
+		[Enum.Material.DiamondPlate] = "Metal",
+		[Enum.Material.CorrodedMetal] = "Metal",
+		[Enum.Material.Foil] = "Metal",
+		[Enum.Material.Wood] = "Wood",
+		[Enum.Material.WoodPlanks] = "Wood",
+		[Enum.Material.Water] = "Water",
+		[Enum.Material.Grass] = "Grass",
+		[Enum.Material.LeafyGrass] = "Grass",
+		[Enum.Material.Ground] = "Grass",
+		[Enum.Material.Mud] = "Grass",
+		[Enum.Material.Sand] = "Grass",
+	} :: { [Enum.Material]: string }),
+	-- Zancada (studs por pisada) y volumen/alcance según la forma de moverse.
+	Gaits = table.freeze({
+		Crouch = table.freeze({ Stride = 4, Volume = 0.3, Range = 22, Pitch = 0.95 }),
+		Walk = table.freeze({ Stride = 7.5, Volume = 0.7, Range = 55, Pitch = 1 }),
+		Sprint = table.freeze({ Stride = 11, Volume = 1, Range = 110, Pitch = 1.06 }),
+	}),
+	PitchJitter = 0.07,
+	VolumeJitter = 0.12,
+	MinSpeed = 1.5, -- por debajo no hay pasos
+	OthersSprintRatio = 1.35, -- otro jugador corre si va a más de WalkSpeed x esto
+	-- Oclusión: los pasos de otros tras una pared suenan apagados.
+	OccludedVolume = 0.55,
+	OccludedHighGain = -24,
+	OccludedMidGain = -8,
+	-- Otros sonidos
+	Cloth = ids(9113468907, 9113534108), -- ropa al saltar, agacharse y levantarse
+	BodyFall = ids(122835002033356), -- golpe del cuerpo en un aterrizaje fuerte
+	Breathing = "rbxassetid://123035842146872", -- bucle de jadeo (volumen según el esfuerzo)
+	BreathingMaxVolume = 0.45,
+	Heartbeat = "rbxassetid://6202853067", -- bucle de latido con poca vida
+	HeartbeatMaxVolume = 0.6,
+	HeartbeatBelow = 0.35, -- fracción de vida a partir de la cual se oye
+	-- Reverberación del espacio (solo pasos y ropa, no la música): se mide con rayos alrededor de la cámara.
+	ReverbProbeSeconds = 0.4,
+	ReverbProbeRange = 70,
+})
+
+-- Interfaz de supervivencia (SurvivalHud): vida, estamina, cuota y ranuras.
+local Hud = table.freeze({
+	LowHealth = 0.3, -- fracción: barra en rojo y viñeta
+	StaminaHideAfter = 1.8, -- s con la estamina llena antes de ocultar su barra
+	DamageTrailDelay = 0.45, -- s que espera el rastro blanco del daño antes de encogerse
+	Glyphs = table.freeze({ report = "DOC", disk = "DAT", gauge = "EQP" }), -- respaldo en texto si no está la hoja de iconos de Codex
 })
 
 -- Zona segura (SafeZone.luau): la sala_0 por encima de su suelo. Dentro no hay enemigos ni ataques y no se corre.
@@ -314,6 +432,9 @@ return table.freeze({
 	CameraFx = CameraFx,
 	SafeZone = SafeZone,
 	FirstPerson = FirstPerson,
+	Movement = Movement,
+	Footsteps = Footsteps,
+	Hud = Hud,
 	Sfx = Sfx,
 	Audio = Audio,
 	HudUpdateInterval = 0.25, -- 4 Hz, muy por debajo del límite de 20 Hz
