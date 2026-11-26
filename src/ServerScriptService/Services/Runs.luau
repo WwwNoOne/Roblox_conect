@@ -25,6 +25,8 @@ export type Run = {
 	failures: number, -- cuotas falladas
 	advanceDeadline: number?, -- os.clock() en que parte el ascensor (cuenta atrás de Avanzar)
 	levelDeadline: number?, -- os.clock() en que se acaba el tiempo del nivel (Config.Run.LevelSeconds); nil fuera de un nivel
+	powerNeeded: number, -- generadores que hay que reparar para poder bajar (ObjectiveService; 0 = sin requisito)
+	powerDone: number, -- generadores reparados en el nivel actual
 }
 
 export type Result = { ok: boolean, err: string? }
@@ -191,6 +193,8 @@ function Runs.Start(code: string, members: { number })
 		failures = 0,
 		advanceDeadline = nil,
 		levelDeadline = nil,
+		powerNeeded = 0,
+		powerDone = 0,
 	}
 	runs[code] = run
 	for _, userId in members do
@@ -299,6 +303,8 @@ end
 local function depart(run: Run)
 	run.advanceDeadline = nil
 	run.levelDeadline = nil
+	run.powerNeeded = 0
+	run.powerDone = 0
 	if run.state == "Level" then
 		settle(run)
 		if run.ended then
@@ -327,6 +333,9 @@ function Runs.RequestDescend(userId: number): Result & { counting: boolean? }
 	local root = aliveRoot(userId)
 	if not root or not isInsideElevator(root) then
 		return { ok = false, err = "NOT_INSIDE" }
+	end
+	if run.state == "Level" and run.powerDone < run.powerNeeded then
+		return { ok = false, err = "POWER_OFF" } -- faltan generadores por reparar (el temporizador del nivel sigue partiendo solo)
 	end
 	if #aliveMembers(run) <= 1 or everyoneInside(run) then
 		depart(run)

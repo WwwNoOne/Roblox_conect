@@ -1,5 +1,5 @@
 --!strict
--- Conecta Economy con el mundo: objetos de recolección sobre el laberinto generado, paneles del ascensor y remotos.
+-- Conecta Economy con el mundo: objetos de recolección en los TreasureSpawn del mapa (TreasureSpawner), paneles del ascensor y remotos.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -9,16 +9,12 @@ local Types = require(Shared:WaitForChild("Types"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 local Economy = require(script.Parent:WaitForChild("Economy"))
 local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
-local Assets = require(script.Parent:WaitForChild("Assets"))
+local TreasureSpawner = require(script.Parent:WaitForChild("TreasureSpawner"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local shopOpen = remotes:WaitForChild("ShopOpen") :: RemoteEvent
 local depositTreasure = remotes:WaitForChild("DepositTreasure") :: RemoteFunction
 local requestPurchase = remotes:WaitForChild("RequestPurchase") :: RemoteFunction
-
-local treasureFolder = Instance.new("Folder")
-treasureFolder.Name = "RunTreasure"
-treasureFolder.Parent = workspace
 
 local MESSAGES: { [string]: string } = {
 	INVENTORY_FULL = "Inventario lleno (4/4)",
@@ -42,117 +38,13 @@ end
 
 -- ===== Tesoros =====
 local function clearTreasure()
-	treasureFolder:ClearAllChildren()
+	TreasureSpawner.Clear()
 end
 
 local rng = Random.new()
 
--- Objetos del kit de recolección (GameAssets.<Config.Economy.Kit>) por clase, según su atributo ClaseSugerida.
-local function kitModels(tier: string): { Model }
-	local kit = Assets.Find(Config.Economy.Kit)
-	local list: { Model } = {}
-	if kit then
-		for _, d in kit:GetDescendants() do
-			if d:IsA("Model") and d:GetAttribute("ClaseSugerida") == tier then
-				table.insert(list, d)
-			end
-		end
-	end
-	return list
-end
-
-local function pickTemplate(tier: string): Model?
-	local list = kitModels(tier)
-	return if #list > 0 then list[rng:NextInteger(1, #list)] else nil
-end
-
-local function prettyName(name: string): string
-	return (string.gsub(name, "_", " "))
-end
-
--- `ground`: punto de apoyo en el suelo. El objeto se coloca encima, con giro al azar.
 local function makeTreasure(ground: Vector3, tier: string)
-	local def = (Config.Economy.Treasure :: any)[tier]
-	if not def then
-		return
-	end
-	local template = pickTemplate(tier)
-	local rootOrNil: BasePart? = nil
-	local objectOrNil: Instance? = nil
-	local label = "Objeto " .. tier
-	local glyph: string = Config.Economy.DefaultGlyph
-	if template then
-		local clone = template:Clone()
-		local handle = clone.PrimaryPart or clone:FindFirstChild("Handle") or clone:FindFirstChildWhichIsA("BasePart", true)
-		if handle and handle:IsA("BasePart") then
-			if def.Scale and def.Scale ~= 1 then
-				clone:ScaleTo(clone:GetScale() * def.Scale)
-			end
-			for _, d in clone:GetDescendants() do
-				if d:IsA("BasePart") then
-					d.Anchored = true
-					d.CanCollide = false
-				end
-			end
-			local box, size = clone:GetBoundingBox()
-			local target = ground + Vector3.new(0, size.Y / 2 + 0.1, 0)
-			clone:PivotTo(clone:GetPivot() + (target - box.Position)) -- el centro de la caja queda en el punto objetivo
-			local yaw = CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-			clone:PivotTo(CFrame.new(target) * yaw * CFrame.new(-target) * clone:GetPivot())
-			objectOrNil = clone
-			rootOrNil = handle
-			label = prettyName(template.Name)
-			local group = template.Parent
-			glyph = (group and (Config.Economy.KitGlyphs :: any)[group.Name]) or glyph
-		else
-			clone:Destroy()
-		end
-	end
-	if not rootOrNil or not objectOrNil then
-		local part = Instance.new("Part") -- provisional (sin kit)
-		part.Name = "Objeto_" .. tier
-		part.Size = def.Size
-		part.Color = def.Color
-		part.Material = Enum.Material.Neon
-		part.CFrame = CFrame.new(ground + Vector3.new(0, def.Size.Y / 2 + 0.2, 0))
-		objectOrNil = part
-		rootOrNil = part
-	end
-	local object = objectOrNil :: Instance
-	local root = rootOrNil :: BasePart
-	root.Anchored = true
-	root.CanCollide = false
-	object:SetAttribute("Size", tier)
-	object:SetAttribute("Value", def.Value)
-
-	-- Luz propia: sin ella el objeto es casi invisible en la oscuridad.
-	local glow = Instance.new("PointLight")
-	glow.Color = def.Color
-	glow.Range = Config.TreasureGlowRange
-	glow.Brightness = Config.TreasureGlowBrightness
-	glow.Shadows = false
-	glow.Parent = root
-
-	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Recoger"
-	prompt.ObjectText = string.format("%s  ($%d)", label, def.Value)
-	prompt.KeyboardKeyCode = Enum.KeyCode.E
-	prompt.HoldDuration = 0.4
-	prompt.MaxActivationDistance = 8
-	prompt.RequiresLineOfSight = false
-	prompt.Parent = root
-	prompt.Triggered:Connect(function(player: Player)
-		if not object.Parent then
-			return -- ya recogido por otro jugador
-		end
-		local result = Economy.Pickup(player, tier, glyph)
-		if result.ok then
-			object:Destroy()
-		else
-			fail(player, result.err)
-		end
-	end)
-	object.Parent = treasureFolder
+	TreasureSpawner.Spawn(ground, tier)
 end
 
 -- Huecos de un nivel: los TreasureSpawn (Attachment) colocados a mano en el mapa fijo cargado (Workspace.Maps). Cada hueco es el punto
@@ -163,8 +55,28 @@ local function collectSlots(): { Vector3 }
 	if not maps then
 		return slots
 	end
+	-- Huecos ocupados por generadores o cajas fuertes (ObjectiveService los coloca antes) no se usan.
+	local blockers: { { cf: CFrame, half: Vector3 } } = {}
+	local objectives = workspace:FindFirstChild("RunObjectives")
+	if objectives then
+		for _, m in objectives:GetChildren() do
+			if m:IsA("Model") then
+				local cf, size = m:GetBoundingBox()
+				table.insert(blockers, { cf = cf, half = size / 2 + Vector3.new(1.5, 2, 1.5) })
+			end
+		end
+	end
+	local function blocked(p: Vector3): boolean
+		for _, b in blockers do
+			local rel = b.cf:PointToObjectSpace(p)
+			if math.abs(rel.X) <= b.half.X and math.abs(rel.Y) <= b.half.Y and math.abs(rel.Z) <= b.half.Z then
+				return true
+			end
+		end
+		return false
+	end
 	for _, d in maps:GetDescendants() do
-		if d:IsA("Attachment") and d.Name == "TreasureSpawn" then
+		if d:IsA("Attachment") and d.Name == "TreasureSpawn" and not blocked(d.WorldPosition) then
 			table.insert(slots, d.WorldPosition)
 		end
 	end
@@ -266,7 +178,7 @@ local sub = WorldRefs.WaitElevator(30)
 local panelPrompts: { { prompt: ProximityPrompt, state: string } } = {}
 if sub then
 	local function panel(stationName: string, action: string, activeIn: string, handler: (Player) -> ())
-		local station = sub:FindFirstChild(stationName)
+		local station = sub:FindFirstChild(stationName, true)
 		local att = station and station:FindFirstChild("PromptAttachment", true)
 		if not att then
 			warn("[Economy] Falta " .. stationName .. ".PromptAttachment")
@@ -324,7 +236,12 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 		end
 	end
 	if state == "Level" then
-		spawnTreasure(run)
+		-- Tras colocar los objetivos (ObjectiveService), para no poner tesoros dentro de ellos.
+		task.delay(0.3, function()
+			if run.state == "Level" and not run.ended then
+				spawnTreasure(run)
+			end
+		end)
 	elseif state == "Descending" or state == "Won" or state == "Lost" then
 		clearTreasure()
 	end

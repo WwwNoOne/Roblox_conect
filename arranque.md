@@ -20,12 +20,18 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 - Añadidos: `AdminService` / `AdminPanel` (**temporales**, solo Studio; borrar antes de publicar), `LoadingScreen` ya no espera ningún nivel generado.
 - Exports de Codex pendientes de revisar contra el manifiesto: `Elevator`, `Level_1`, `Level_1_Terror` (variante con vista previa `Level_1_Terror_Vista.png`), `Lobby`, `Kit_Gris_Modular` (medidas en [medidas_kit_modular.md](docs/medidas_kit_modular.md)).
 
+## Objetivos de Level_1 (2026-11-25)
+
+- `Level_1` integrado en `Workspace.Maps` del lugar; `ServerStorage.AbismoAssets` renombrado a `GameAssets` (el código ya lo buscaba así).
+- Generadores, cajas fuertes con dial, animaciones y panel de energía: ver [objetivos_nivel.md](docs/objetivos_nivel.md). Verificado en Play (1 cliente): aparecen 3 generadores (2 necesarios) y 2 cajas; bajar da `POWER_OFF` hasta reparar 2; validación de fases y de combinación; botín dentro de la caja; recogida con vuelo; sonidos cargados.
+- Corregido: `SellStation`/`ShopStation` están en `Elevator.Equipment` y no se encontraban (no se podía depositar).
+
 ## Siguiente sesión
 
-1. Reconectar el MCP de Studio (`list_roblox_studios` se colgó en la última sesión) y probar en Play que la eliminación de `MazeGenerator`/`RoomGenerator` no rompe nada (pantalla de carga, viaje por el Ascensor, escondites, tesoros).
-2. Integrar `Level_1`/`Level_1_Terror` en `Workspace.Maps` y comprobar que llevan `ElevatorDock`, `TreasureSpawn` y `Escondite`.
-3. Borrar `Workspace.Sala_0` del lugar de Studio (ya nadie la usa).
-4. T05: red de navegación para criaturas sobre mapas fijos (`LevelState.nav`).
+1. Probar con 2-4 clientes (Studio → Test → Clients) y ajustar `Config.Objectives` a gusto.
+2. Puertas con puzzle en `Puerta01/02` (`PuzzleSpawn`).
+3. Borrar `Workspace.Sala_0` del lugar de Studio si sigue (ya nadie la usa). Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
+4. T05: red de navegación para criaturas sobre mapas fijos (`LevelState.nav`) y conectar `Noise.Emitted`.
 
 ## Entregas
 

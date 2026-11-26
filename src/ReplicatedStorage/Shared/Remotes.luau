@@ -23,6 +23,10 @@ Remotes.List = table.freeze({
 	PlayerHit = "Event", -- servidor -> cliente: (damage: number) un enemigo te golpeó (impacto y temblor de cámara)
 	SetSprint = "Event", -- cliente -> servidor: (held: boolean) mantiene/suelta el sprint; la estamina es del servidor
 	SetStance = "Event", -- cliente -> servidor: (crouching: boolean) se agacha/levanta; el servidor lo publica en el atributo Crouching
+	-- Objetivos: generadores y cajas fuertes (ObjectiveService / PuzzleClient)
+	PuzzleOpen = "Event", -- servidor -> cliente: (kind: "Generator" | "Safe", id: string, data) abre el minijuego
+	PuzzleClose = "Event", -- servidor -> cliente: (id: string, reason: string) lo cierra (lejos, muerto, fin del nivel...)
+	PuzzleAction = "Function", -- (id: string, action: string, arg: any) -> resultado; el servidor valida todo
 	-- Equipo (reutilizado del prototipo)
 	ToggleLamp = "Event",
 	AimLamp = "Event",

@@ -112,6 +112,56 @@ local Level = table.freeze({
 	Stash = { "Assets", "Zona_Prueba", "LeadPipes", "Creatures" },
 })
 
+-- Objetivos del nivel (ObjectiveService): generadores que reparar y cajas fuertes que abrir. Valores de prueba (T08).
+-- Generadores: van en los MachineSpawn del mapa. Repararlos = minijuego de calibración (fijar una aguja oscilante dentro de la franja,
+-- Steps veces). Fallar suelta chispas, hace ruido y resta un paso. Hasta reparar Needed generadores el ascensor no puede bajar
+-- (el temporizador del nivel sigue partiendo solo).
+-- Cajas fuertes: van en los PuzzleSpawn cuyo Part padre empieza por "Cofre". Se abren con un dial de combinación (Steps números,
+-- 0..Numbers-1): al pasar por el número correcto se oye un clic; se fija con Espacio. Dentro hay tesoros (Loot).
+local Objectives = table.freeze({
+	UseDistance = 10, -- studs máx. para abrir el minijuego; a más de UseDistance + 4 se cierra solo
+	Generator = table.freeze({
+		Template = "Generator", -- Model opcional en GameAssets (contrato: Body, PromptAttachment, Screen, StatusLight, Fan, ExhaustPoint, SparkPoint); sin él se construye uno de piezas (Props)
+		Base = 2, -- generadores necesarios con 1 jugador
+		PerExtraPlayers = 2, -- +1 necesario por cada 2 jugadores adicionales
+		Spare = 1, -- generadores extra que aparecen (no hace falta repararlos todos)
+		Steps = 3, -- calibraciones correctas para repararlo
+		Period = { 1.25, 1.05, 0.9 }, -- segundos que tarda la aguja en cruzar el medidor, por paso
+		ZoneWidth = { 0.24, 0.18, 0.13 }, -- ancho de la franja válida (fracción del medidor), por paso
+		Tolerance = 0.03, -- margen extra al validar (latencia)
+		MaxClockSkew = 0.6, -- segundos de desfase aceptados en la marca de tiempo del cliente
+		HitCooldown = 0.25,
+		MissPenalty = 1, -- pasos que se pierden al fallar
+		NoiseRadius = 70, -- ruido al fallar (T05: lo oirán las criaturas)
+		RepairedNoiseRadius = 110,
+		HoldSeconds = 0.3,
+	}),
+	Safe = table.freeze({
+		Template = "Safe", -- Model opcional en GameAssets (contrato: Body, Door [Model con Hinge], Dial, PromptAttachment, StatusLight, LootPoint)
+		SpawnPrefix = "Cofre", -- PuzzleSpawn cuyo Part padre empieza por esto
+		Numbers = 40,
+		Steps = 3,
+		MinGap = 6, -- distancia mínima entre números consecutivos de la combinación
+		ProbesPerSecond = 14, -- límite de consultas del dial (cada número que se pasa)
+		LockoutSeconds = 2.5, -- bloqueo tras fijar un número incorrecto
+		NoiseRadius = 50,
+		Loot = { "Large", "Medium" }, -- tesoros que aparecen dentro al abrirla
+		OpenSeconds = 1.6, -- duración de la animación de la puerta
+		HoldSeconds = 0.3,
+	}),
+	-- Sonidos (ids de la Creator Store; cámbialos aquí). Volumen por sonido.
+	Sounds = table.freeze({
+		GeneratorHum = { Id = "rbxassetid://85901761858902", Volume = 0.55 },
+		Spark = { Id = "rbxassetid://9116279339", Volume = 0.8 },
+		DialClick = { Id = "rbxassetid://127004816100960", Volume = 0.9 },
+		DialTick = { Id = "rbxassetid://9080070218", Volume = 0.25 },
+		Lock = { Id = "rbxassetid://92873453090584", Volume = 0.8 },
+		Wrong = { Id = "rbxassetid://134343807114403", Volume = 0.5 },
+		SafeOpen = { Id = "rbxassetid://9118837996", Volume = 0.9 },
+		Pickup = { Id = "rbxassetid://76809333017046", Volume = 0.7 },
+	}),
+})
+
 local Economy = table.freeze({
 	CarrySlots = 4, -- objetos que lleva cada jugador (1 por slot)
 	-- Objetos de recolección (para la cuota). Kit = carpeta de GameAssets con los modelos de Codex; cada Model lleva el atributo
@@ -465,6 +515,7 @@ return table.freeze({
 	Run = Run,
 	Economy = Economy,
 	Level = Level,
+	Objectives = Objectives,
 	Hiding = Hiding,
 	Monster = Monster,
 	Upgrades = Upgrades,

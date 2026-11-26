@@ -114,6 +114,8 @@ while true do
 			payload.quota = stage and stage.Quota
 			payload.deposited = run.deposited
 			payload.failures = run.failures
+			payload.powerDone = run.powerDone
+			payload.powerNeeded = run.powerNeeded
 			local deadline = run.advanceDeadline
 			payload.advanceIn = if deadline then math.max(0, math.ceil(deadline - os.clock())) else nil
 			local left = Runs.LevelTimeLeft(run)

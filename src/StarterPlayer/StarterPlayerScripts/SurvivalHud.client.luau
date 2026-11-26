@@ -155,6 +155,15 @@ local failLabel = text({ Text = "", TextSize = 11, TextColor3 = RED, TextXAlignm
 local _quotaTrack, quotaGhost, quotaFill = bar(quotaPanel, -12, 6, AMBER)
 quotaGhost.BackgroundTransparency = 1
 
+-- ===== Energía (generadores del nivel; hasta completarla el ascensor no baja) =====
+local powerPanel = panel({ Name = "Energia", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -28, 0, 154), Size = UDim2.fromOffset(270, 46), Visible = false }, gui)
+scaleOf(powerPanel)
+local powerTitle = text({ Text = "ENERGÍA", TextSize = 12, TextColor3 = DIM, TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.fromOffset(12, 8), Size = UDim2.fromOffset(150, 14) }, powerPanel)
+local powerValue = text({ Text = "", TextSize = 13, FontFace = MONO_BOLD, TextXAlignment = Enum.TextXAlignment.Right, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -12, 0, 7), Size = UDim2.fromOffset(110, 16) }, powerPanel)
+local powerRow = new("Frame", { Position = UDim2.fromOffset(12, 28), Size = UDim2.new(1, -24, 0, 8), BackgroundTransparency = 1 }, powerPanel)
+new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6) }, powerRow)
+local powerCells: { Frame } = {}
+
 -- ===== Viñeta y color de pantalla =====
 local function edge(anchor: Vector2, pos: UDim2, size: UDim2, rotation: number): Frame
 	local f = new("Frame", { AnchorPoint = anchor, Position = pos, Size = size, BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, BackgroundTransparency = 0 }, fxGui)
@@ -356,6 +365,26 @@ RunService.RenderStepped:Connect(function(dt)
 		moneyLabel.Text = if q.money then string.format("FONDO $%d", q.money) else ""
 		local fails = q.failures or 0
 		failLabel.Text = if fails > 0 then string.format("FALLOS %d/%d", fails, Config.Economy.Quota.MaxFailures) else ""
+	end
+
+	-- Energía
+	local needed = q and q.powerNeeded or 0
+	powerPanel.Visible = inRun and q ~= nil and q.runState == "Level" and needed > 0
+	if q and needed > 0 then
+		local doneP = q.powerDone or 0
+		local ok = doneP >= needed
+		while #powerCells < needed do
+			table.insert(powerCells, new("Frame", { Size = UDim2.fromOffset(40, 8), BackgroundColor3 = PAPER, BorderSizePixel = 0 }, powerRow))
+		end
+		for i, c in powerCells do
+			c.Visible = i <= needed
+			c.BackgroundColor3 = if i <= doneP then GREEN else PAPER
+			c.BackgroundTransparency = if i <= doneP then 0 else 0.85
+		end
+		powerTitle.Text = if ok then "ENERGÍA · ASCENSOR LISTO" else "ENERGÍA · REPARA GENERADORES"
+		powerTitle.TextColor3 = if ok then GREEN else DIM
+		powerValue.Text = string.format("%d/%d", math.min(doneP, needed), needed)
+		powerValue.TextColor3 = if ok then GREEN else AMBER
 	end
 
 	-- Viñeta: roja con poca vida (late), oscura al agotarse

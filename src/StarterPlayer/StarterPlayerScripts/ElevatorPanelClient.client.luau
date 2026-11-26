@@ -25,6 +25,7 @@ local MESSAGES: { [string]: string } = {
 	NOT_ENOUGH_MONEY = "No hay dinero suficiente",
 	ALREADY_COUNTING = "Ya hay una cuenta atrás en marcha",
 	ALREADY_AT_BOTTOM = "Este es el último nivel",
+	POWER_OFF = "Sin energía: reparen los generadores primero",
 }
 
 local gui = Instance.new("ScreenGui")
