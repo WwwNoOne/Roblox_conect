@@ -217,6 +217,58 @@ local Hiding = table.freeze({
 	PromptText = "Esconderse / Salir",
 	ObjectText = "Caja industrial",
 	Cooldown = 0.6, -- segundos entre usos del mismo jugador (evita rebotes)
+	-- Texto del aviso según el atributo Label del volumen (los mapas nuevos lo traen: Taquilla, Armario, Arbusto).
+	-- Kind = Locker | Bush: HidingView dibuja la vista desde dentro (rendijas de la taquilla u hojas del arbusto).
+})
+
+-- Ambiente de cada nivel (LevelAtmosphere, cliente): se aplica mientras el mapa está cargado en Workspace.Maps y se restaura el del
+-- lobby al salir. Siempre de noche y con niebla (Atmosphere). Los colores van en RGB 0-255.
+local LevelAtmosphere = table.freeze({
+	FadeSeconds = 2.5,
+	Profiles = table.freeze({
+		Level_1 = table.freeze({ -- fábrica subterránea: penumbra cálida, niebla de polvo
+			ClockTime = 0,
+			Brightness = 0,
+			Ambient = { 44, 41, 38 },
+			OutdoorAmbient = { 30, 30, 32 },
+			EnvironmentDiffuseScale = 0.15,
+			EnvironmentSpecularScale = 0.35,
+			ExposureCompensation = 0.1,
+			Density = 0.42,
+			Offset = 0.05,
+			Haze = 2.2,
+			Glare = 0,
+			Color = { 58, 54, 48 },
+			Decay = { 40, 36, 30 },
+			Tint = { 255, 240, 220 },
+			Contrast = 0.12,
+			Saturation = -0.1,
+			BloomIntensity = 0.6,
+			BloomSize = 30,
+			BloomThreshold = 1.4,
+		}),
+		Level_2 = table.freeze({ -- pantano de noche: luna fría, niebla verdosa baja
+			ClockTime = 0.2,
+			Brightness = 1.1,
+			Ambient = { 30, 40, 46 },
+			OutdoorAmbient = { 62, 82, 98 },
+			EnvironmentDiffuseScale = 0.25,
+			EnvironmentSpecularScale = 0.4,
+			ExposureCompensation = 0,
+			Density = 0.5,
+			Offset = 0.12,
+			Haze = 3,
+			Glare = 0.2,
+			Color = { 70, 92, 96 },
+			Decay = { 34, 46, 50 },
+			Tint = { 210, 228, 236 },
+			Contrast = 0.15,
+			Saturation = -0.15,
+			BloomIntensity = 0.8,
+			BloomSize = 34,
+			BloomThreshold = 1.2,
+		}),
+	}),
 })
 
 -- Preparación del mundo (LevelService). Los niveles son mapas fijos en Workspace.Maps (los carga Runs).
@@ -663,6 +715,7 @@ return table.freeze({
 	Level = Level,
 	Objectives = Objectives,
 	Hiding = Hiding,
+	LevelAtmosphere = LevelAtmosphere,
 	Monster = Monster,
 	Upgrades = Upgrades,
 })

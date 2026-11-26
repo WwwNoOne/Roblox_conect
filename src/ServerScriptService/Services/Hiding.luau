@@ -1,5 +1,5 @@
 --!strict
--- Lógica de esconderse en las cajas industriales (volúmenes `Escondite`). Hide(): mete al jugador en la caja (anclado e invisible);
+-- Lógica de esconderse en los volúmenes `Escondite` (taquillas, armarios, arbustos, cajas). Hide(): mete al jugador en la caja (anclado e invisible);
 -- Release(): lo devuelve a donde estaba. El atributo de jugador `Hidden` lo leen los enemigos (no ven a quien está escondido).
 local Players = game:GetService("Players")
 
@@ -56,8 +56,17 @@ function Hiding.Hide(player: Player, volume: BasePart): boolean
 	hidden[player] = state
 	setInvisible(c, state, true)
 	root.AssemblyLinearVelocity = Vector3.zero
-	root.CFrame = CFrame.new(volume.Position) * root.CFrame.Rotation
+	local kind = volume:GetAttribute("Kind")
+	if type(kind) == "string" then
+		-- Escondites de los mapas nuevos: se mira hacia fuera (la puerta de la taquilla, el claro desde el arbusto). -Z del volumen.
+		local out = volume.CFrame.LookVector * Vector3.new(1, 0, 1)
+		local look = if out.Magnitude > 0.1 then out.Unit else root.CFrame.LookVector
+		root.CFrame = CFrame.lookAt(volume.Position, volume.Position + look)
+	else
+		root.CFrame = CFrame.new(volume.Position) * root.CFrame.Rotation
+	end
 	root.Anchored = true
+	player:SetAttribute("HiddenKind", if type(kind) == "string" then kind else "Box")
 	player:SetAttribute("Hidden", true)
 	return true
 end
@@ -78,6 +87,7 @@ function Hiding.Release(player: Player): boolean
 		root.Anchored = false
 	end
 	player:SetAttribute("Hidden", nil)
+	player:SetAttribute("HiddenKind", nil)
 	return true
 end
 
@@ -93,6 +103,7 @@ local function watch(player: Player)
 		if hidden[player] then
 			hidden[player] = nil
 			player:SetAttribute("Hidden", nil)
+			player:SetAttribute("HiddenKind", nil)
 		end
 	end)
 end

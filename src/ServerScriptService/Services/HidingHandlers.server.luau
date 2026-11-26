@@ -18,7 +18,8 @@ local function addPrompt(volume: BasePart)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "EsconderPrompt"
 	prompt.ActionText = H.PromptText
-	prompt.ObjectText = H.ObjectText
+	local label = volume:GetAttribute("Label")
+	prompt.ObjectText = if type(label) == "string" then label else H.ObjectText
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.HoldDuration = H.HoldSeconds
 	prompt.MaxActivationDistance = H.Distance

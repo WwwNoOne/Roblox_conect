@@ -13,6 +13,9 @@ local SafeZone = require(script.Parent:WaitForChild("SafeZone"))
 
 local MapNav = {}
 
+-- Desplazamientos (en fracción de la separación) que se prueban si el centro de la celda está ocupado.
+local NUDGES = { Vector2.zero, Vector2.new(0.3, 0), Vector2.new(-0.3, 0), Vector2.new(0, 0.3), Vector2.new(0, -0.3) }
+
 export type Edge = { to: number, d: number }
 export type AmbushSpot = { pos: Vector3, hideSpot: BasePart? }
 export type NavGraph = {
@@ -76,7 +79,18 @@ function MapNav.Build(map: Instance): NavGraph
 	local radius = Config.Monster.BodyRadius * 0.85
 	local params = makeMapFilter(map)
 	local doorPrefix = Config.Objectives.Door.SpawnPrefix
-	local spacing = Config.Monster.NavGridSpacing
+	-- Separación de la malla: atributo NavSpacing del mapa (los generados la igualan a su celda, así cada punto cae en el centro de la
+	-- celda y nunca pegado a un muro), si no la de Config.
+	local cfgPart = map:FindFirstChild("Bounds")
+	local function mapAttr(name: string): any
+		local v = map:GetAttribute(name)
+		if v == nil and cfgPart then
+			v = cfgPart:GetAttribute(name)
+		end
+		return v
+	end
+	local navSpacing = mapAttr("NavSpacing")
+	local spacing = if type(navSpacing) == "number" and navSpacing >= 4 then navSpacing else Config.Monster.NavGridSpacing
 
 	local patrolList: { { n: number, pos: Vector3 } } = {}
 	local spawns: { Vector3 } = {}
@@ -137,15 +151,30 @@ function MapNav.Build(map: Instance): NavGraph
 		table.insert(points, snapToFloor(boundsCenter, centerY, params))
 	end
 
-	-- Malla de puntos sobre el suelo de la planta de los marcadores de patrulla (la más baja): sin ella los pocos marcadores no
-	-- se ven entre sí (paredes) y el grafo queda en islas. Solo puntos con hueco libre para el cuerpo y fuera de la zona segura.
+	-- Malla de puntos sobre el suelo: sin ella los pocos marcadores no se ven entre sí (paredes) y el grafo queda en islas. Solo puntos
+	-- con hueco libre para el cuerpo y fuera de la zona segura. Mapas de varias plantas: atributo NavFloors del mapa ("0,14": alturas
+	-- de cada planta sobre el suelo del acople, ElevatorDock - 6); el rayo baja desde 9 studs sobre cada planta (colinas y escalones
+	-- caen dentro, el techo de la planta inferior no). Sin el atributo: la planta de los marcadores de patrulla (la más baja).
 	local markerCount = #points
-	local floorY = math.huge
-	for _, entry in patrolList do
-		floorY = math.min(floorY, entry.pos.Y - centerY)
+	local floors: { { y: number, up: number, len: number } } = {}
+	local navFloors = mapAttr("NavFloors")
+	if type(navFloors) == "string" and dockPos then
+		for v in string.gmatch(navFloors, "[-%d%.]+") do
+			local off = tonumber(v)
+			if off then
+				table.insert(floors, { y = dockPos.Y - 6 + off, up = 9, len = 10 })
+			end
+		end
 	end
-	if floorY == math.huge then
-		floorY = points[1].Y - centerY
+	if #floors == 0 then
+		local floorY = math.huge
+		for _, entry in patrolList do
+			floorY = math.min(floorY, entry.pos.Y - centerY)
+		end
+		if floorY == math.huge then
+			floorY = points[1].Y - centerY
+		end
+		table.insert(floors, { y = floorY, up = 2, len = 4 })
 	end
 	local overlap = OverlapParams.new()
 	overlap.FilterType = Enum.RaycastFilterType.Include
@@ -157,35 +186,86 @@ function MapNav.Build(map: Instance): NavGraph
 		lo = boundsPart.Position - boundsPart.Size / 2
 		hi = boundsPart.Position + boundsPart.Size / 2
 	end
-	for x = lo.X + spacing / 2, hi.X, spacing do
-		for z = lo.Z + spacing / 2, hi.Z, spacing do
-			local hit = workspace:Raycast(Vector3.new(x, floorY + 2, z), Vector3.new(0, -4, 0), params)
-			if hit and hit.Normal.Y > 0.7 then
-				local p = hit.Position + Vector3.new(0, centerY, 0)
-				local box = workspace:GetPartBoundsInBox(CFrame.new(p + Vector3.new(0, 0.5, 0)), Vector3.new(radius * 2, centerY * 2 - 1, radius * 2), overlap)
-				if #box == 0 and not SafeZone.BarsMonster(p) and not isTooClose(points, p, spacing * 0.4) then
-					table.insert(points, p)
+	local scanned = 0
+	for _, fl in floors do
+		for x = lo.X + spacing / 2, hi.X, spacing do
+			for z = lo.Z + spacing / 2, hi.Z, spacing do
+				-- Si el centro está ocupado (un mueble arrimado a la pared invade la celda) se prueba desplazado: sin ese punto un
+				-- pasillo de una celda queda cortado en la red.
+				for _, o in NUDGES do
+					local ox, oz = x + o.X * spacing, z + o.Y * spacing
+					local hit = workspace:Raycast(Vector3.new(ox, fl.y + fl.up, oz), Vector3.new(0, -fl.len, 0), params)
+					if hit and hit.Normal.Y > 0.7 then
+						local p = hit.Position + Vector3.new(0, centerY, 0)
+						local box = workspace:GetPartBoundsInBox(CFrame.new(p + Vector3.new(0, 0.5, 0)), Vector3.new(radius * 2, centerY * 2 - 1, radius * 2), overlap)
+						if #box == 0 then
+							if not SafeZone.BarsMonster(p) then
+								table.insert(points, p)
+							end
+							break
+						end
+					end
+				end
+				scanned += 1
+				if scanned % 4000 == 0 then
+					task.wait() -- mapas grandes: no congelar el servidor al cargar el nivel
 				end
 			end
 		end
 	end
 
-	-- Aristas: entre marcadores, hasta 90 studs con vista despejada; con la malla, solo vecinos cercanos (barato y suficiente).
+	-- Aristas: entre marcadores, hasta 90 studs con vista despejada; con la malla, solo vecinos cercanos (rejilla hash: barato).
 	local adj: { { Edge } } = {}
 	for i = 1, #points do
 		adj[i] = {}
 	end
 	local gridReach = spacing * 1.6
-	for i = 1, #points do
-		for j = i + 1, #points do
-			local a, b = points[i], points[j]
-			local delta = b - a
-			local d = delta.Magnitude
-			local maxD = if i <= markerCount and j <= markerCount then 90 else gridReach
-			if d > 0.5 and d <= maxD and math.abs(delta.Y) <= 10 then
-				if workspace:Spherecast(a, radius, delta, params) == nil then
-					table.insert(adj[i], { to = j, d = d })
-					table.insert(adj[j], { to = i, d = d })
+	local function tryEdge(i: number, j: number, maxD: number)
+		local a, b = points[i], points[j]
+		local delta = b - a
+		local d = delta.Magnitude
+		if d > 0.5 and d <= maxD and math.abs(delta.Y) <= 10 then
+			if workspace:Spherecast(a, radius, delta, params) == nil then
+				table.insert(adj[i], { to = j, d = d })
+				table.insert(adj[j], { to = i, d = d })
+			end
+		end
+	end
+	for i = 1, markerCount do
+		for j = i + 1, markerCount do
+			tryEdge(i, j, 90)
+		end
+	end
+	local bucket: { [string]: { number } } = {}
+	local function keyOf(p: Vector3): (number, number)
+		return math.floor(p.X / gridReach), math.floor(p.Z / gridReach)
+	end
+	for i, p in points do
+		local kx, kz = keyOf(p)
+		local k = kx .. "," .. kz
+		local list = bucket[k]
+		if not list then
+			list = {}
+			bucket[k] = list
+		end
+		table.insert(list, i)
+	end
+	local tested = 0
+	for i, p in points do
+		local kx, kz = keyOf(p)
+		for dx = -1, 1 do
+			for dz = -1, 1 do
+				local list = bucket[(kx + dx) .. "," .. (kz + dz)]
+				if list then
+					for _, j in list do
+						if j > i and (i > markerCount or j > markerCount) then
+							tryEdge(i, j, gridReach)
+							tested += 1
+							if tested % 3000 == 0 then
+								task.wait()
+							end
+						end
+					end
 				end
 			end
 		end
