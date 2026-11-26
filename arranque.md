@@ -51,6 +51,17 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 - [x] Probado con 1 jugador: entra andando desde el spawn, cierre, partida; derrota → vuelta al lobby con la puerta abierta; segunda partida.
 - [ ] Probar con 2+ clientes (mensaje «Esperando jugadores (1/2)», reapertura si alguien sale) y la vuelta tras ganar (aviso «Sal del ascensor...»).
 
+## Resumen del 26/11/2026 (tarde)
+
+- **Lobby y ascensor:** se entra andando y aparece «Esperando jugadores (n/total)». Con todos dentro, la puerta se cierra y arranca la partida. Probado con 1 y 2 clientes, también la vuelta al lobby («Sal del ascensor y vuelve a entrar»).
+- **Turning:** compatible con `AnimationConstraint`; 0 errores. `Movement System.rbxm` y `legacy/` en `.gitignore`.
+- **Criaturas nuevas:** SujetoFeliz (mirada sostenida) y Acosador del tramo final, integradas en `MonsterService`. Probadas con 1 y 2 clientes: solo cuenta la mirada del objetivo, y el Acosador final cambia de objetivo cuando el suyo entra al ascensor.
+- **Teletransportes repartidos:** al salir, entrar, volver al lobby o subir rezagados, cada jugador va a un hueco distinto (antes uno caía al vacío). Probado con 2 clientes saliendo en el mismo segundo.
+- **Codex:** `Level_1` y `Level_2` rehechos con generador, y 4 biomas nuevos (Hospital, Escuela, Mansión y Centro comercial, el final con baliza). Escondites con vista desde dentro (`HidingView`), ambiente por nivel (`LevelAtmosphere`) y `MapNav` con varias plantas. Revisado en Play: cargan bien, la red se construye en 0,2–2,4 s sin congelar y no hay errores.
+- **Correcciones:** las criaturas no se crean si el nivel acaba mientras se construye la red.
+- **Docs:** reglas para Codex en [docs/reglas_codex.md](docs/reglas_codex.md) (enlazado desde `AGENTS.md`). Pendientes de mapas en [docs/niveles_generados.md](docs/niveles_generados.md).
+- **Mañana:** Codex sigue con piezas, ambientación y sonido de los mapas siguiendo `reglas_codex.md`. Después, Claude revisa los mapas (red y duplicados), decide con el usuario qué hacer con `Workspace.zona` y sigue con la lista de abajo.
+
 ## Siguiente sesión
 
 1. Probar con 4 clientes (y una caja fuerte con 2); criaturas con 2+ clientes.

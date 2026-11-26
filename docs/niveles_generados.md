@@ -97,6 +97,8 @@ El generador trabaja sobre una rejilla de celdas con dos plantas (`layout.py`):
 
 ## Contrato con el código
 
+Reglas completas para mapas, ambientación y sonido: [reglas_codex.md](reglas_codex.md).
+
 - Marcadores (los mismos de siempre):
   - `ElevatorDock` (PrimaryPart) y `Platform`;
   - `MachineSpawn`, 12 contra muros y repartidos;
