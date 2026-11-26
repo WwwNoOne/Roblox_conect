@@ -21,6 +21,7 @@ Remotes.List = table.freeze({
 	DescentFx = "Event", -- servidor -> cliente: (phase: "Start" | "End") efecto de cabina sellada (ascensor)
 	RunEnded = "Event", -- servidor -> cliente: (result: "Won" | "Lost", reason: string)
 	PlayerHit = "Event", -- servidor -> cliente: (damage: number) un enemigo te golpeó (impacto y temblor de cámara)
+	CreatureScreamer = "Event", -- servidor -> cliente: (payload) activa screamer 2D animado del Acechador
 	SetSprint = "Event", -- cliente -> servidor: (held: boolean) mantiene/suelta el sprint; la estamina es del servidor
 	SetStance = "Event", -- cliente -> servidor: (crouching: boolean) se agacha/levanta; el servidor lo publica en el atributo Crouching
 	-- Objetivos: generadores y cajas fuertes (ObjectiveService / PuzzleClient)

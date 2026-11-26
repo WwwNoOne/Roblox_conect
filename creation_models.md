@@ -36,19 +36,21 @@
 
 El resto de atributos (puntos de entrada/salida, `PromptAttachment`, escala 1.5 sobre la v2: interior 22,3 × 12 × 29,1 studs, puerta 9,3 × 9,6) se mantiene. Quitar toda estética de submarino (casco redondo, ojos de buey, remaches marinos): debe leerse como cabina/ascensor industrial.
 
-## Nombres que el código ya espera (2026-11-25)
-`Workspace.Elevator` (con `Body`, `Gate.Door/Frame`, `InteriorZone`, `SpawnPoint1…4`, `SellStation`, `ShopStation`, `StatusGauge.Screen`), `ElevatorDock` en cada mapa (`Workspace.Maps.<Nivel>`), y plantillas de criaturas/objetos en `ServerStorage.GameAssets` (`Creatures/creature_nextbot_01`, `Kit_Objetos_De_Recoleccion`, `Beacon`).
+## Nombres que el código ya espera (2026-11-26)
+`Workspace.Elevator` (con `Body`, `Gate.Door/Frame`, `InteriorZone`, `SpawnPoint1…4`, `SellStation`, `ShopStation`, `StatusGauge.Screen`), `ElevatorDock` en cada mapa (`Workspace.Maps.<Nivel>`), y plantillas de criaturas/objetos en `ServerStorage.GameAssets` (`Creatures/creature_agresivo_01`, `Creatures/creature_acosador_01`, `Creatures/creature_acechador_01`, `Kit_Objetos_De_Recoleccion`, `Beacon`).
 
 ## Prioridad 1 (primer prototipo)
-| Id | Descripción | Tris máx |
+| Id | Descripción | Presupuesto / Formato |
 | :-- | :-- | :-- |
-| `Elevator` | Re-exportar `submarine_A01_v2` con la tabla de renombrados y estética de ascensor | 8000 |
+| `Elevator` | Re-exportar `submarine_A01_v2` con la tabla de renombrados y estética de ascensor | 8000 tris |
 | `Level_1` | Primer nivel liminal de prueba (propuesta: oficinas/pasillos amarillos). Con `ElevatorDock`, `TreasureSpawn`, `MachineSpawn`, `CreatureSpawn`, `Patrol1…N` | — |
 | `Parada` | Mapa de parada: base y `ElevatorDock`. Nadie sale | — |
-| `machine_comm` | Máquina de comunicación reparable (radio/terminal/transmisor). Partes: `Body` (PrimaryPart), `PromptAttachment`, `Screen` (SurfaceGui), `StatusLight` (Neon, rojo→verde) | 3000 |
-| `puzzle_door` | Puerta bloqueada por puzzle. `Door` (Part móvil), `Frame`, `PromptAttachment`, `StatusLight` | 2500 |
-| `puzzle_chest` | Cofre/tesoro bloqueado por puzzle | 1500 |
-| `creature_nextbot_01` | Criatura mezclada tipo nextbot (**[POR DEFINIR]** diseño). Contrato abajo | 5000 |
+| `machine_comm` | Máquina de comunicación reparable (radio/terminal/transmisor). Partes: `Body` (PrimaryPart), `PromptAttachment`, `Screen` (SurfaceGui), `StatusLight` (Neon, rojo→verde) | 3000 tris |
+| `puzzle_door` | Puerta bloqueada por puzzle. `Door` (Part móvil), `Frame`, `PromptAttachment`, `StatusLight` | 2500 tris |
+| `puzzle_chest` | Cofre/tesoro bloqueado por puzzle | 1500 tris |
+| `creature_agresivo_01` | Criatura **Agresivo** (perseguidor letal, estilo *Cave Dweller/Nextbot*). Plano 2.5D + sprite sheet cuerpo/ojos. Ver [docs/criaturas.md](docs/criaturas.md) | 2 PNG ≤1024² + `.rbxmx` |
+| `creature_acosador_01` | Criatura **Acosador** (observador a distancia, estilo *Herobrine/Watcher*). Plano 2.5D + ojos emisivos. Ver [docs/criaturas.md](docs/criaturas.md) | 2 PNG ≤1024² + `.rbxmx` |
+| `creature_acechador_01` | Criatura **Acechador** (emboscada en esquinas/escondites con screamer 2D). Plano 2.5D + sprite sheet screamer. Ver [docs/criaturas.md](docs/criaturas.md) | 2-3 PNG ≤1024² + `.rbxmx` |
 
 ## Prioridad 2 **[POR DEFINIR]**
 `Level_2`, `Level_3` (propuesta de temáticas: piscina vacía / almacén / hotel / estacionamiento), más tipos de criaturas, kit modular de pasillos y salas, props de puzzle (palancas, teclados, fusibles), lobby y traje/linterna del jugador.
@@ -83,8 +85,9 @@ Los scripts buscan por **nombre exacto** (sensible a mayúsculas) con `FindFirst
 
 Opcional: `Bounds`. El ascensor debe quedar oculto en un nicho/cuarto de acople; `Gate.ExitPoint` da al área explorable.
 
-### Criaturas (`Model`)
-`Root` (PrimaryPart, frente = -Z), `Hitbox` (Part invisible), `Grab` (Attachment de captura en `Root`), `EyeLight` (opcional), `AnimationController` + `Animator` con clips `Idle`, `Walk`/`Run`, `Attack`.
+### Criaturas (`Model`, estándar 2.5D inicial — ver [docs/criaturas.md](docs/criaturas.md))
+* **Planos 2.5D (prototipo y primera línea):** `Root` (`Part` invisible, `PrimaryPart`, frente = `-Z`), `BodyBillboard` (`AlwaysOnTop = false`, `LightInfluence = 1`, hijo `Sprite` `ImageLabel`), `EyesBillboard` (`AlwaysOnTop = false`, `LightInfluence = 0`, hijo `Eyes` `ImageLabel`), opcionales `FloorShadow`, `AuraParticles`, `EyeLight`, `Grab` (`Attachment`). Atributos en el `Model`: `Category`, `BodyImage`, `EyesImage`, `SpriteCols`, `SpriteRows`, `AnimFps`, y para `Ambusher`: `ScreamerImage`, `ScreamerCols`, `ScreamerRows`, `ScreamerFrames`.
+* **Si más adelante pasan a 3D:** conservan `Root`, `Hitbox` y `Grab`, añadiendo `AnimationController` + `Animator` con clips `Idle`, `Walk`/`Run`, `Attack`.
 
 ### Máquinas y puzzles
 `machine_comm`: `Body`, `PromptAttachment`, `Screen`, `StatusLight`. `puzzle_door`: `Door`, `Frame`, `PromptAttachment`, `StatusLight`. `puzzle_chest`: `Handle`/`Lid`, `PromptAttachment`.

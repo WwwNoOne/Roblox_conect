@@ -39,58 +39,125 @@ local Run = table.freeze({
 	}),
 })
 
--- Enemigos agresivos del laberinto (MonsterService). Patrullan por la red de pasillos; al detectarte te persiguen (anticipándose a tu
--- movimiento), te encaran (Windup), se lanzan (Lunge, daña a quien toque su cuerpo) y se recuperan (Recover). Si te pierden rastrean
--- la zona (Search) y avisan a los demás. Los valores de abajo son los de partida; cada especie sobrescribe los suyos.
--- Los jugadores caminan a Sprint.WalkSpeed y corren a Sprint.Speed: la persecución (26-29) los alcanza caminando, pero no corriendo; el zarpazo se esquiva girando, corriendo o escondiéndose.
+-- Enemigos 2.5D del laberinto (MonsterService + CreatureFxClient; ver docs/criaturas.md).
+-- Categorías: Aggressive (perseguidor letal), Stalker (observa desde lejos; huye si lo miras o delata si lo ignoras),
+-- Ambusher (espera en esquinas/escondites, lanza screamer 2D, baja vida y huye).
+-- Los jugadores caminan a Sprint.WalkSpeed (16) y corren a Sprint.Speed (34).
 local Monster = table.freeze({
-	Length = 24, -- largo del modelo en studs (cabe en pasillos de 16 de ancho)
-	BodyRadius = 3, -- radio de la esfera de colisión contra paredes (pasillo interior 16)
+	Length = 8, -- alto de referencia del modelo 2.5D (Root 2x8x2)
+	KeepModelScale = true, -- respeta la escala de las plantillas 2.5D de Codex
+	BodyRadius = 2.0, -- radio de la esfera de colisión contra paredes y puertas
+	HeadOffset = 0, -- desplazamiento de la vista desde Root (ya está centrado a mitad de altura)
+	CenterHeight = 4, -- altura del centro de Root sobre el suelo
+	NavGridSpacing = 10, -- separación (studs) de la malla de puntos de navegación que MapNav añade sobre el suelo
 	WaypointRadius = 3, -- distancia a la que da por alcanzado un punto del camino
 	PatrolSpeed = 14, -- studs/s patrullando
-	ChaseSpeed = 26, -- persiguiendo (el sprint del jugador es 34, caminar 16)
+	ChaseSpeed = 27, -- persiguiendo (el sprint del jugador es 34, caminar 16)
 	FrenzyBonus = 0.08, -- +8% de velocidad tras FrenzySeconds persiguiendo sin parar
 	FrenzySeconds = 6,
 	Accel = 55, -- studs/s² al acelerar
 	Brake = 70, -- studs/s² al frenar
 	TurnRate = 10, -- giro suave (mayor = gira más rápido)
-	Carrot = 0.35, -- punto de mira del camino: velocidad x esto, en studs por delante (curvas suaves en vez de zigzag)
+	Carrot = 0.35, -- punto de mira del camino: velocidad x esto, en studs por delante
 	-- Detección
 	SightRange = 80, -- vista con línea de visión (la lámpara encendida lo multiplica)
 	LampSightMultiplier = 1.5,
 	HearRange = 14, -- te oye a esta distancia aunque no te vea (no si estás escondido)
-	NoiseRange = 32, -- si vas corriendo (Sprint) haces ruido y te oye desde esta distancia aunque no te vea
+	NoiseRange = 34, -- si vas corriendo (Sprint) haces ruido y te oye desde esta distancia
 	HiddenRange = 5, -- escondido solo te encuentra si está pegado a tu caja...
 	DiscoverSeconds = 2.5, -- ...y si se queda así este tiempo te descubre (te saca de la caja)
-	HiddenLoseSeconds = 1.5, -- si te escondes y no está pegado, pierde el rastro a los pocos segundos y rastrea donde te vio por última vez
-	LoseSeconds = 4, -- tras perderte de vista sigue persiguiendo tu rastro este tiempo antes de rastrear
-	SearchSeconds = 10, -- rastrea la zona del último punto visto este tiempo antes de volver a patrullar
-	LingerRadius = 45, -- radio de esa zona
-	SearchSpeedMul = 1.2, -- velocidad de rastreo (x PatrolSpeed): lento y amenazante
-	AvoidRadius = 90, -- tras rastrear, la nueva patrulla va a un punto al menos así de lejos del último punto visto
-	AlertRadius = 160, -- avisa de dónde te vio a los demás enemigos a esta distancia
-	LeadSeconds = 0.45, -- anticipación máxima sobre tu velocidad
-	-- Ataque (zarpazo en tres fases)
-	AttackStart = 16, -- empieza el zarpazo cuando tu distancia a su cabeza baja de esto (y te ve)
-	WindupSeconds = 0.3, -- te encara y se frena: tu aviso para esquivar
-	LungeSpeed = 48, -- velocidad de la embestida
-	LungeSeconds = 0.4, -- duración máxima de la embestida
-	HitRadius = 7, -- distancia de su cuerpo (cola-cabeza) a tu centro a la que te daña durante la embestida
-	AttackDamage = 50, -- daño por golpe
-	RecoverSeconds = 0.7, -- queda lento tras la embestida
-	AttackCooldown = 1.0, -- mínimo entre zarpazos
-	HitGap = 0.8, -- un jugador no recibe daño de enemigos más seguido que esto
-	StuckSeconds = 1.5, -- sin avanzar este tiempo = recalcula el camino
-	FirstDelay = 15, -- segundos desde el inicio del nivel hasta que aparece
-	MinSpawnDistance = 90, -- aparece al menos a esta distancia del Ascensor
+	HiddenLoseSeconds = 1.5,
+	LoseSeconds = 4,
+	SearchSeconds = 10,
+	LingerRadius = 45,
+	SearchSpeedMul = 1.2,
+	AvoidRadius = 85,
+	AlertRadius = 160,
+	LeadSeconds = 0.45,
+	-- Ataque del Agresivo (zarpazo letal en tres fases)
+	AttackStart = 12,
+	WindupSeconds = 0.28,
+	LungeSpeed = 48,
+	LungeSeconds = 0.38,
+	HitRadius = 5.5,
+	AttackDamage = 100, -- si atrapa al jugador lo mata
+	RecoverSeconds = 0.7,
+	AttackCooldown = 1.0,
+	HitGap = 0.8,
+	StuckSeconds = 1.5,
+	FirstDelay = 8, -- segundos desde el inicio del nivel hasta el primer enemigo
+	MinSpawnDistance = 65, -- aparece al menos a esta distancia del Ascensor
+	-- Acosador (Stalker)
+	StalkSpeed = 18,
+	StalkMinDist = 32,
+	StalkMaxDist = 85,
+	StalkLookDot = 0.72, -- coseno del cono de mirada del jugador para considerarlo "visto"
+	StalkBanishSeconds = 1.6, -- tiempo mirándolo/alumbrándolo para ahuyentarlo
+	StalkAlertSeconds = 5.5, -- tiempo observándote sin que lo mires antes de delatar tu posición
+	StalkTooClose = 20, -- si te acercas demasiado también huye
+	StalkCooldown = 12,
+	-- Acechador (Ambusher)
+	AmbushMoveSpeed = 20,
+	AmbushFleeSpeed = 30,
+	AmbushRange = 10.5, -- distancia de emboscada en esquina o pasillo
+	AmbushHideSpotRange = 8.5, -- distancia si está oculto junto a un HideSpot
+	AmbushDamage = 30, -- baja vida sin matar directo (salvo vida crítica)
+	AmbushScreamerSeconds = 0.95,
+	AmbushCooldown = 16,
+	AmbushRelocateSeconds = 35, -- si nadie pasa en este tiempo, cambia de esquina/escondite
 	Debug = true,
-	-- Cuántos enemigos salen por nivel (especies distintas al azar, según Weight) y con qué separación entre apariciones.
-	PerLevel = 2,
-	SpawnStagger = 25, -- segundos entre la aparición de un enemigo y el siguiente
-	-- Especies. TODO(GDD): tipos de criatura por definir. Plantilla esperada: ServerStorage.Assets.Creatures.<TemplateName> (Codex: creature_nextbot_01).
-	-- Mientras no exista la plantilla no sale ningún enemigo (pickSpecies la omite).
+	-- Cuántos enemigos salen por nivel (con 3 especies salen las 3 categorías para probar).
+	PerLevel = 3,
+	SpawnStagger = 8, -- segundos entre la aparición de un enemigo y el siguiente
+	-- Especies 2.5D de Codex (assets_build/exports/creatures/ -> ServerStorage.GameAssets.Creatures).
+	-- Si aún no se importan los .rbxmx en Studio, MonsterService construye el modelo 2.5D con estos mismos IDs.
 	Species = table.freeze({
-		table.freeze({ Name = "Nextbot01", TemplateName = "creature_nextbot_01", Weight = 1 }),
+		table.freeze({
+			Name = "Agresivo",
+			TemplateName = "creature_agresivo_01",
+			Category = "Aggressive",
+			Weight = 1,
+			AttackDamage = 100,
+			BodyImage = "rbxassetid://125416395009712",
+			EyesImage = "rbxassetid://92079012147493",
+			SpriteCols = 4,
+			SpriteRows = 4,
+			AnimFps = 12,
+			BillboardSize = Vector2.new(9.5, 9.5),
+			StudsOffset = Vector3.new(0, 0.2, 0),
+			LightColor = Color3.fromRGB(255, 110, 60),
+		}),
+		table.freeze({
+			Name = "Acosador",
+			TemplateName = "creature_acosador_01",
+			Category = "Stalker",
+			Weight = 1,
+			BodyImage = "rbxassetid://72237757733107",
+			EyesImage = "rbxassetid://85458595523316",
+			SpriteCols = 4,
+			SpriteRows = 4,
+			AnimFps = 10,
+			BillboardSize = Vector2.new(8.5, 8.5),
+			StudsOffset = Vector3.new(0, -0.42, 0),
+			LightColor = Color3.fromRGB(185, 225, 255),
+		}),
+		table.freeze({
+			Name = "Acechador",
+			TemplateName = "creature_acechador_01",
+			Category = "Ambusher",
+			Weight = 1,
+			BodyImage = "rbxassetid://117589415294503",
+			ScreamerImage = "rbxassetid://85806574415851",
+			SpriteCols = 4,
+			SpriteRows = 4,
+			AnimFps = 12,
+			ScreamerCols = 4,
+			ScreamerRows = 4,
+			ScreamerFrames = 12,
+			BillboardSize = Vector2.new(7.5, 7.5),
+			StudsOffset = Vector3.new(0, -1.05, 0),
+			LightColor = Color3.fromRGB(220, 175, 85),
+		}),
 	}),
 })
 
@@ -422,6 +489,10 @@ local ElevatorMarker = table.freeze({
 -- Prefijos de nombre (sin distinguir mayúsculas) de los sonidos en Workspace.sonidos. Ver Shared/Sfx.
 local Sfx = table.freeze({
 	Impact = "Impacto", -- sonido del golpe de un enemigo (añadir un Sound cuyo nombre empiece por esto a Workspace.sonidos; opcional)
+	CreatureRoar = "Criatura_Rugido",
+	CreatureAlert = "Criatura_Alerta",
+	CreatureWhisper = "Criatura_Susurro",
+	CreatureScreamer = "Criatura_Screamer",
 	-- Ascensor. Prefijos completos para no mezclar p. ej. Avanzar_1 con otros.
 	ElevatorEnter = "entrar", -- un jugador entra por la puerta
 	ElevatorExit = "Salir", -- un jugador sale por la puerta

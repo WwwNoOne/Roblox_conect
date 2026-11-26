@@ -1,5 +1,7 @@
 # Agent Orchestration Directive
 
+> **Rama de trabajo: `backrooms-cleanup`**, en el worktree `../Roblox_conect-backrooms`. Rojo sirve desde ahí, así que todo cambio de código, documentos o assets se hace en esa carpeta. Este worktree (`Roblox_conect`, rama `main`) es solo un espejo: no editar aquí. Al terminar, commit en `backrooms-cleanup`, `git merge --ff-only backrooms-cleanup` en `main` y push de las dos.
+
 ## Roles & Responsabilidades
 - **Claude Code (Lead Software Engineer):** Se encarga exclusivamente de escribir scripts en Luau (`src/`), configurar la arquitectura Cliente/Servidor, gestionar la persistencia cuando el GDD la requiera y mantener la integración con Rojo.
 - **Codex (Technical 3D Artist):** Se encarga de la creación, edición,de mapa,npc y otros

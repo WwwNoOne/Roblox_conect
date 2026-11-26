@@ -1,5 +1,7 @@
 # Estado del proyecto
 
+> **Rama de trabajo: `backrooms-cleanup`**, en el worktree `../Roblox_conect-backrooms`. Rojo sirve desde ahí, así que todo cambio de código, documentos o assets se hace en esa carpeta. Este worktree (`Roblox_conect`, rama `main`) es solo un espejo: no editar aquí. Al terminar, commit en `backrooms-cleanup`, `git merge --ff-only backrooms-cleanup` en `main` y push de las dos.
+
 Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de submarino/oceánico a Backrooms / espacios liminales**. Referencias vigentes: [GDD](game_designs/GDD.md), [manifiesto de modelos](creation_models.md), [plan](docs/plan.md). El material oceánico está archivado en `docs/archivo_oceano/` y `assets_build/archive_oceano/`. Al cerrar una tarea, actualizar su casilla y registrar la prueba aquí.
 
 ## Limpieza realizada (2026-11-25)
@@ -14,7 +16,7 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 
 ## Ramas y worktrees (2026-11-25)
 
-- `main` y `backrooms-cleanup` están sincronizadas con `origin` (`ede8f00`). El código vivo se edita en el worktree `Roblox_conect-backrooms` (Rojo sirve desde ahí); luego `git merge --ff-only backrooms-cleanup` en `main` y push de ambas.
+- `main` y `backrooms-cleanup` se mantienen iguales en `origin`. El código vivo se edita en el worktree `Roblox_conect-backrooms` (Rojo sirve desde ahí); luego `git merge --ff-only backrooms-cleanup` en `main` y push de ambas. **El 26/11 se trabajó por error en el worktree de `main` (criaturas): Studio no lo veía hasta copiarlo a `backrooms-cleanup`.**
 - Rama `claudette/confirm-roblox-mcp-connection` y su worktree eliminados (ya estaba fusionada en `main`).
 - Sistema de movimiento/cámara/sonido/HUD: completo y presente en ambas ramas (ver [movimiento_sonido_hud.md](docs/movimiento_sonido_hud.md)).
 - Añadidos: `AdminService` / `AdminPanel` (**temporales**, solo Studio; borrar antes de publicar), `LoadingScreen` ya no espera ningún nivel generado.
@@ -32,11 +34,22 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 1. [x] **2 clientes** (Test → Clients and Servers, 2 jugadores): sala compartida (CreateRoom/JoinRoom/StartRun), los dos llegan a `Level_1`; aparecen 3 generadores (2 necesarios), 2 cajas y 2 puertas. Un jugador repara G-02 y el otro G-03: el contador es común (1/2 → «Energía restablecida» en ambos), el HUD de los dos muestra `powerDone 2/2` y `RequestDescend` pasa a `ok`; al bajar se limpian los objetivos. Un objetivo ocupado rechaza al segundo jugador («Player1 ya está trabajando aquí»). La puerta abierta por uno se ve abierta en el otro. Sin errores en el servidor. `Config.Objectives` sin cambios (con 2 jugadores siguen siendo 2 necesarios; 3 a partir de 3 jugadores). **Pendiente:** probar con 4 y la caja fuerte con 2.
 2. [x] **Puertas con puzzle** en `Puerta01` (Taller) y `Puerta02` (Energía): persiana + panel de interruptores a cada lado. Ver [objetivos_nivel.md](docs/objetivos_nivel.md). Verificado en Play: vano medido 10 × 9 (pared de 1), cerrada bloquea el paso, cortocircuito al agotar las pulsaciones (se mezcla y bloquea 3 s), luces 3D = interfaz, se abre y se cruza.
 
+## Criaturas (26/11/2026, T05)
+
+Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [integracion_criaturas.md](docs/integracion_criaturas.md)). Revisión y pruebas en Play (1 cliente):
+- [x] Aparecen las 3 en `Level_1` (8/16/24 s), sin errores.
+- [x] Agresivo: detecta en 0,2 s, persigue, `Windup` → `Lunge` y mata (98 → 0).
+- [x] Acechador: emboscada a 8 studs, `AmbushStrike`, −30 de vida y screamer 2D (la `ScreenGui` se activa).
+- [x] Acosador: ignorado 5,4 s delata («Algo te está observando...») y huye; mirado de frente huye en ~1,5 s.
+- [x] Los 6 `HideSpot` tienen prompt para esconderse.
+- Corregido en la revisión: carrera de caminos (un camino vacío del grafo se daba por «llegado» y el Acechador se quedaba en su spawn); red de navegación fragmentada (14 islas → malla `NavGridSpacing` de 10 studs, 181 de 199 nodos conectados); nodos de escondites dentro de las taquillas; detección de «mirar» con la cabeza (la tuerce `Turning`; ahora con el cuerpo).
+
 ## Siguiente sesión
 
-1. Probar con 4 clientes (y una caja fuerte con 2).
-2. Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
-3. T05: red de navegación para criaturas sobre mapas fijos (`LevelState.nav`) y conectar `Noise.Emitted`. Las persianas cerradas (`RunObjectives.Door_*`) deben contar como obstáculo.
+1. Probar con 4 clientes (y una caja fuerte con 2); criaturas con 2+ clientes.
+2. Criaturas sin probar: `Noise.Emitted` → `Investigate` del Agresivo, olfateo de escondites, Acechador vigilando una taquilla ocupada.
+3. Sonidos `Criatura_*` en `Workspace.sonidos` (hoy suenan sustitutos); quitar `Config.Monster.Debug` antes de publicar; borrar las 7 criaturas oceánicas de `ServerStorage.GameAssets.Creatures`.
+4. Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
 
 ## Entregas
 
@@ -45,8 +58,8 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 | Reutilizable | Submarino transitable A01 v2 → renombrar a **Ascensor** (ver tabla en el manifiesto) | Codex |
 | Reutilizable | Tesoros small/medium/large (A03) | Codex |
 | Por revisar | Kits de salas y pasillos industriales como base liminal | Codex |
-| Pendiente | `Level_1` liminal, `Parada`, `machine_comm`, `puzzle_door`, `puzzle_chest`, `creature_nextbot_01` | Codex |
+| Pendiente | `Level_1` liminal, `Parada`, `machine_comm`, `puzzle_door`, `puzzle_chest`, `creature_agresivo_01`, `creature_acosador_01`, `creature_acechador_01` (2.5D + sprites, ver `docs/criaturas.md`) | Codex |
 | Hecho (sin probar) | Retirar agua/oxígeno/presión/casco del código; correr | Claude |
 | Hecho | Puertas con panel de interruptores (`Puerta*`) | Claude |
-| Pendiente | Máquinas de comunicación y criaturas | Claude |
-| Por definir | Mecánicas de criaturas, tipos de puzzle, reparación de máquinas, condición de victoria, temáticas de niveles 2+ | Usuario |
+| Pendiente | Máquinas de comunicación y criaturas (T05: 3 categorías 2.5D + screamer 2D) | Claude |
+| Por definir | Tipos de puzzle extra, reparación de máquinas, condición de victoria, temáticas de niveles 2+ | Usuario |

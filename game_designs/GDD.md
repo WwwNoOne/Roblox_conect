@@ -62,12 +62,17 @@ Cada nivel contiene: `ElevatorDock`, `TreasureSpawn`, `MachineSpawn`, `PuzzleDoo
 * **Puzzles:** desbloquean puertas y tesoros. Implementados: cajas fuertes con dial (tesoros) y **puertas-atajo con panel de interruptores** (cada palanca invierte su luz y las vecinas; agotar las pulsaciones provoca un cortocircuito ruidoso). **[POR DEFINIR]** más tipos (códigos, secuencias).
 * **Escondites:** `E` en una caja industrial para ocultarse; una criatura que se queda cerca te descubre tras unos segundos.
 
-### Criaturas (nuevo, sin combate)
-* Criaturas **mezcladas estilo nextbot** (híbridos de objetos, personas y formas distorsionadas). No hay armas: se sobrevive huyendo, escondiéndose y evitando ruido y luz.
-* **IA: pendiente de definir.** Existe una primera versión heredada (`MonsterService`: patrulla, persecución con anticipación, zarpazo, rastreo al perderte, aviso entre enemigos). **[POR DEFINIR]** tipos, velocidades, detección, cómo se evaden y cómo se adapta a mapas fijos.
+### Criaturas (sin combate)
+* **Representación inicial (2.5D + Screamer 2D):** planos animados mirando siempre a cámara (`BillboardGui` multicapa con sprite sheets, cuerpo sensible a la linterna y ojos emisivos en la oscuridad, más partículas/sombra en el piso). Los screamers usan secuencias 2D animadas (sprite sheet + flash + aberración cromática/glitch + sacudida de cámara). Especificación completa y guía de creación en [`docs/criaturas.md`](../docs/criaturas.md).
+* **No hay armas:** se sobrevive huyendo, apagando la linterna, agachándose (`C`), escondiéndose en cajas y evitando ruido.
+* **Categorías aprobadas para prototipo:**
+  1. **Agresivo:** patrulla por el mapa, detecta por vista (mayor con linterna) y oído (`Sprint`, fallos de máquinas/puertas), persigue con frenesí y **mata al atraparte** (con breve aviso previo `Windup` para poder esquivar). Olfatea escondites si te ve entrar o queda pegado.
+  2. **Acosador:** observa a distancia desde pasillos oscuros. Si lo miras/alumbras fijo unos segundos se retira a otro sector; si lo ignoras mientras te observa, delata tu posición atrayendo al Agresivo.
+  3. **Acechador:** espera en esquinas o junto a cajas `Escondite` (con pista sonora sutil de proximidad). Al pasar o interactuar, lanza un **screamer 2D animado**, **quita vida** (no letal directo) y huye a otra zona.
+* **Categorías futuras (en estudio):** Ciego/Sonoro (reacciona solo al ruido) y Estatua (solo se mueve cuando nadie la mira).
 * **Reglas técnicas ya fijadas:**
   * **Anti-camping en el Ascensor:** al estar todos los jugadores dentro del volumen seguro, los enemigos limpian su objetivo (`Target = nil`) y patrullan hacia nodos lejanos para no bloquear la puerta. Dentro del Ascensor no se puede ser detectado ni atacado.
-  * **`PathfindingModifier`:** costos de terreno (agua profunda, zonas oscuras) para diferenciar enemigos que siguen caminos normales de criaturas que emboscan por atajos.
+  * **`PathfindingModifier` / red de navegación:** navegación sobre los mapas fijos respetando puertas cerradas (`Puerta*`) como obstáculo hasta abrirse.
 * Muerto → **espectador**. Al recibir daño: sacudida corta de cámara y destello rojo; temblor leve creciente con la cercanía de un enemigo que persigue.
 
 ### Economía (solo dentro de la partida)

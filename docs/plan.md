@@ -12,4 +12,4 @@
 | [ ] | T02 | T01 | **Claude.** Salas, estado de partida y traslado entre niveles con `ElevatorDock`. | Dos clientes llegan al mismo nivel. |
 | [x] | T03 | T02, A03 | **Claude.** Generadores (calibración), cajas fuertes (dial) y puertas con panel de interruptores, servidor autoritativo; bajar exige energía. Detalle: [objetivos_nivel.md](objetivos_nivel.md). | Verificado en Play con 1 cliente (2026-11-25) y con 2 clientes (2026-11-26). Falta repetir con 4. |
 | [ ] | T04 | T02 | **Claude.** Tesoros, venta y tienda con fondo común. | Un tesoro paga una sola vez. |
-| [ ] | T05 | definición | **Claude + Codex.** Criaturas nextbot. **[POR DEFINIR]** | — |
+| [~] | T05 | T03 | **Claude + Codex.** Criaturas 2.5D (Agresivo, Acosador, Acechador con screamer 2D), navegación sobre mapas fijos (`LevelState.nav`), puertas cerradas como obstáculo y `Noise.Emitted`. Detalle: [criaturas.md](criaturas.md). | Verificado en Play con 1 cliente (2026-11-26): aparición, persecución letal, emboscada + screamer, Acosador (delata/huye). Falta ruido, escondites y 2+ clientes. |

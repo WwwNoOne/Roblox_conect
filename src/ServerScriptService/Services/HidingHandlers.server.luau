@@ -38,10 +38,14 @@ local function addPrompt(volume: BasePart)
 	end)
 end
 
+local function isHideVolume(d: Instance): boolean
+	return d:IsA("BasePart") and (d.Name == "Escondite" or d.Name == "HideSpot")
+end
+
 local function scan(level: Instance)
 	for _, d in level:GetDescendants() do
-		if d:IsA("BasePart") and d.Name == "Escondite" then
-			addPrompt(d)
+		if isHideVolume(d) then
+			addPrompt(d :: BasePart)
 		end
 	end
 end
@@ -52,8 +56,8 @@ local function start()
 	if maps then
 		scan(maps)
 		maps.DescendantAdded:Connect(function(d)
-			if d:IsA("BasePart") and d.Name == "Escondite" then
-				addPrompt(d)
+			if isHideVolume(d) then
+				addPrompt(d :: BasePart)
 			end
 		end)
 	end
