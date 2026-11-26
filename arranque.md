@@ -12,6 +12,14 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 - **Limitación conocida:** el generador de laberinto todavía entra por el pozo de la sala_0 (antes se bajaba nadando). Sin agua hay que rediseñar la entrada/pozos verticales (`Config.Maze.MaxVertical`, `Config.Level.VerticalMax`) cuando lleguen los mapas nuevos.
 - **Pendiente en Studio** (no automatizable desde aquí): limpiar el lugar `137133016631933` (ver [Launch.md](Launch.md)).
 
+## Ramas y worktrees (2026-11-25)
+
+- `main` y `backrooms-cleanup` están sincronizadas con `origin` (`ede8f00`). El código vivo se edita en el worktree `Roblox_conect-backrooms` (Rojo sirve desde ahí); luego `git merge --ff-only backrooms-cleanup` en `main` y push de ambas.
+- Rama `claudette/confirm-roblox-mcp-connection` y su worktree eliminados (ya estaba fusionada en `main`).
+- Sistema de movimiento/cámara/sonido/HUD: completo y presente en ambas ramas (ver [movimiento_sonido_hud.md](docs/movimiento_sonido_hud.md)).
+- Añadidos: `AdminService` / `AdminPanel` (**temporales**, solo Studio; borrar antes de publicar), `LoadingScreen` ya no espera `NivelGenerado` si el servidor no generó nivel.
+- Exports de Codex pendientes de revisar contra el manifiesto: `Elevator`, `Level_1`, `Lobby`, `Kit_Gris_Modular` (medidas en [medidas_kit_modular.md](docs/medidas_kit_modular.md)).
+
 ## Entregas
 
 | Estado | Entrega | Responsable |
