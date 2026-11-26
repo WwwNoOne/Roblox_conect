@@ -23,32 +23,48 @@ def _font(size):
     return ImageFont.load_default()
 
 
-def render(lay: Layout, path: str, title: str, cell_world: float, markers=None, labels=None, px: int = 9, theme=None):
+def render(lay: Layout, path: str, title: str, cell_world: float, markers=None, labels=None, px: int = 9, theme=None,
+           layer_h: float = 14.0):
     theme = theme or {}
     bg = theme.get("bg", (32, 34, 36))
+    layers = list(range(getattr(lay, "lmin", 0), getattr(lay, "lmax", 1) + 1))
+    cols = min(3, len(layers))
+    rows = (len(layers) + cols - 1) // cols
     W = lay.w * px
     H = lay.h * px
     pad = 40
-    img = Image.new("RGB", (W * 2 + pad * 3, H + pad * 2 + 30), bg)
+    img = Image.new("RGB", (W * cols + pad * (cols + 1), (H + pad) * rows + pad + 30), bg)
     dr = ImageDraw.Draw(img)
     f = _font(16)
     fs = _font(10)
     dr.text((pad, 8), title, fill=(240, 240, 230), font=f)
-    for l in range(2):
-        ox, oy = pad + l * (W + pad), pad + 20
+    names = {-1: "Sótano", 0: "Planta baja"}
+    for k, l in enumerate(layers):
+        ox, oy = pad + (k % cols) * (W + pad), pad + 20 + (k // cols) * (H + pad)
         dr.rectangle([ox, oy, ox + W, oy + H], outline=(80, 80, 80))
-        dr.text((ox, oy - 16), "Planta baja" if l == 0 else "Segundo piso / pasarelas", fill=(200, 200, 190), font=fs)
+        dr.text((ox, oy - 16), names.get(l, f"Planta {l}"), fill=(200, 200, 190), font=fs)
         for (cl, x, z), sid in lay.occ.items():
             if cl != l:
                 continue
             s = lay.spaces[sid]
             c = theme.get(s.kind, COL.get(s.kind, (200, 0, 200)))
+            if s.data.get("outdoor"):
+                c = theme.get("outdoor", (86, 120, 80)) if not s.data.get("roof") else (110, 110, 116)
             if (cl, x, z) in s.void:
                 c = tuple(int(v * 0.45) for v in c)
             dr.rectangle([ox + x * px, oy + z * px, ox + (x + 1) * px - 1, oy + (z + 1) * px - 1], fill=c)
-        # uniones con puerta
-        for k, kind in lay.links.items():
-            a, b = tuple(k)
+        for kk in getattr(lay, "blocked", ()):
+            a, b = sorted(tuple(kk))
+            if a[0] != l:
+                continue
+            if a[1] == b[1]:  # muro horizontal entre (x, z) y (x, z+1)
+                yy = oy + b[2] * px
+                dr.line([ox + a[1] * px, yy, ox + (a[1] + 1) * px, yy], fill=(20, 50, 20), width=2)
+            else:
+                xx = ox + b[1] * px
+                dr.line([xx, oy + a[2] * px, xx, oy + (a[2] + 1) * px], fill=(20, 50, 20), width=2)
+        for kk, kind in lay.links.items():
+            a, b = tuple(kk)
             if a[0] != l or b[0] != l or kind not in ("door", "puzzle"):
                 continue
             mx = ox + (a[1] + b[1] + 1) / 2 * px
@@ -57,10 +73,10 @@ def render(lay: Layout, path: str, title: str, cell_world: float, markers=None, 
             dr.rectangle([mx - 2, mz - 2, mx + 2, mz + 2], fill=col)
         if markers:
             for (name, wx, wy, wz) in markers:
-                ml = 1 if wy > 10 else 0
+                ml = int((wy + 4) // layer_h)
                 if ml != l:
                     continue
-                key = next((k for k in MARK if name.startswith(k)), None)
+                key = next((kk for kk in MARK if name.startswith(kk)), None)
                 if not key or key == "Patrol":
                     continue
                 mx, mz = ox + wx / cell_world * px, oy + wz / cell_world * px
@@ -69,7 +85,7 @@ def render(lay: Layout, path: str, title: str, cell_world: float, markers=None, 
             for (text, wx, wz, ll) in labels:
                 if ll == l:
                     dr.text((ox + wx / cell_world * px - 20, oy + wz / cell_world * px - 5), text, fill=(250, 250, 250), font=fs)
-    leg = "  ".join(f"● {k}" for k in MARK if k != "Patrol")
-    dr.text((pad, H + pad + 26), f"{lay.w * cell_world:.0f} × {lay.h * cell_world:.0f} studs · celda {cell_world:g} · {leg}",
+    leg = "  ".join(f"● {kk}" for kk in MARK if kk != "Patrol")
+    dr.text((pad, img.size[1] - 24), f"{lay.w * cell_world:.0f} × {lay.h * cell_world:.0f} studs · celda {cell_world:g} · {leg}",
             fill=(200, 200, 190), font=fs)
     img.save(path)

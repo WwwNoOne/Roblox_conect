@@ -162,7 +162,7 @@ function MapNav.Build(map: Instance): NavGraph
 		for v in string.gmatch(navFloors, "[-%d%.]+") do
 			local off = tonumber(v)
 			if off then
-				table.insert(floors, { y = dockPos.Y - 6 + off, up = 9, len = 10 })
+				table.insert(floors, { y = dockPos.Y - 6 + off, up = 9, len = 9.5 }) -- hasta 0,5 bajo el suelo: no toca los tejados de abajo (-0,8)
 			end
 		end
 	end

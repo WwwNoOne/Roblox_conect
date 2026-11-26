@@ -480,7 +480,7 @@ class Level1:
                 while xx < 3.0:
                     w = self.rng.uniform(0.9, 2.0)
                     h = self.rng.uniform(0.8, 2.2)
-                    if self.rng.random() < 0.75:
+                    if self.rng.random() < 0.45:
                         col = self.rng.choice([(170, 130, 80), (150, 112, 70), (90, 120, 160), (180, 70, 60), (200, 190, 160)])
                         fr.part(m, "Caja", (xx + w / 2, y + 0.12 + h / 2, self.rng.uniform(-0.2, 0.2)), (w, h, 1.8), col,
                                 collide=False)
@@ -525,9 +525,8 @@ class Level1:
             return
         m = rbx.model(p, "Archivador")
         fr.part(m, "Cuerpo", (0, 2.6, 0), (2.2, 5.2, 2.2), (120, 128, 120))
-        for i in range(4):
-            fr.part(m, "Cajon", (0, 0.8 + i * 1.2, -1.12), (1.9, 1.0, 0.06), (140, 150, 140), collide=False)
-            fr.part(m, "Tirador", (0, 0.8 + i * 1.2, -1.18), (0.6, 0.12, 0.08), (200, 200, 190), "Metal", collide=False)
+        for i in range(2):
+            fr.part(m, "Cajon", (0, 1.4 + i * 2.4, -1.12), (1.9, 2.0, 0.06), (140, 150, 140), collide=False)
 
     def boiler(self, p, fr, l):
         if not self.take(fr, 6.5, 6.5, l):
@@ -548,7 +547,7 @@ class Level1:
         m = rbx.model(p, "Consola")
         fr.part(m, "Base", (0, 1.6, 0.2), (7, 3.2, 2.6), (90, 96, 104))
         fr.part(m, "Pupitre", (0, 3.5, -0.2), (7, 0.4, 2.4), (70, 74, 82), lrot=rbx.rot_x(-18))
-        for i in range(10):
+        for i in range(4):
             col = self.rng.choice([(255, 60, 50), (60, 255, 120), (255, 200, 40), (60, 160, 255)])
             fr.part(m, "Boton", (-3 + (i % 5) * 1.5, 3.75, -0.8 + (i // 5) * 0.8), (0.35, 0.12, 0.35), col, "Neon",
                     collide=False, shadow=False, lrot=rbx.rot_x(-18))

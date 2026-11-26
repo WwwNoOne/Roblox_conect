@@ -1,11 +1,49 @@
-# Niveles generados (Level_1 y Level_2)
+# Niveles generados (Level_1 a Level_6)
 
 Los dos niveles salen de un generador en Python ([tools/levelgen](../tools/levelgen)) que escribe `assets_build/exports/Level_N.rbxmx` y la planta `Level_N_Planta.png`. Rehechos el 26/11/2026 porque los mapas anteriores eran pequeños, con forma de cuadrado y salas abiertas.
 
 ```
-python3 tools/levelgen/gen.py all                # los dos
+python3 tools/levelgen/gen.py all                # los seis
+python3 tools/levelgen/gen.py arch               # solo hospital, escuela, mansión y centro comercial
 python3 tools/levelgen/gen.py level1 --seed 31   # otra variante de la fábrica
 ```
+
+Los mapas son **fijos**: la semilla está en el código y el resultado se guarda en Studio. La variedad entre partidas la dan los biomas
+(un nivel distinto por etapa), y sobre un mapa fijo se pueden añadir detalles a mano más adelante.
+
+## Recorrido de la partida (Config.Run.Stages)
+
+| Etapa | Mapa | Bioma | Cuota |
+| --- | --- | --- | ---: |
+| 1 | Level_1 | Complejo Fabril | 400 |
+| 2 | Level_2 | Pantano de la Esclusa | 200 |
+| 3 | Level_3 | Hospital San Judas | 500 |
+| 4 | Level_4 | Escuela | 600 |
+| 5 | Level_5 | Mansión Valcárcel | 700 |
+| 6 | Level_6 | Centro comercial (final, `BeaconSite`) | — |
+
+Hay una Parada entre cada nivel. Las cuotas son valores de prueba (T08).
+
+## Niveles de arquitectura (Level_3 a Level_6)
+
+Estos cuatro no crecen en raíz: se dibujan en `tools/levelgen/<mapa>.py` con el marco `arch.py`. El marco hace lo siguiente:
+- Define el `Plan` con áreas, uniones y cajas de escalera en zigzag de 2 × 5 celdas que suben cualquier número de plantas.
+- Construye alas de edificio con `wing()`: pasillo, bandas de salas, escaleras en los extremos y azotea con pretil.
+- Valida que todo se alcance desde el ascensor (si no, falla con el nombre del espacio).
+- Genera la geometría para N plantas (sótano negativo y ático de techo bajo incluidos), las fachadas con ventanas, vallas, setos, tapias y pretiles.
+- Pone los marcadores del manifiesto.
+
+Los muebles nuevos están en `props.py`.
+
+| | Hospital (L3) | Escuela (L4) | Mansión (L5) | Centro comercial (L6) |
+| --- | --- | --- | --- | --- |
+| Forma | 4 pabellones de 4 plantas + azotea alrededor del parque; pasarelas acristaladas en las esquinas | Edificio en L de 3 plantas + azotea; patio cerrado por tapia | 3 plantas + sótano + ático; jardín con tapia | Dos edificios unidos en H; aparcamientos a ambos lados del cuerpo central |
+| Lugares | Urgencias, pabellones, quirófanos, UCI, morgue, psiquiatría (celdas), radiología, farmacia, capilla, cafetería; helipuerto | Aulas, biblioteca, laboratorio, informática, música, arte, comedor, cocina, gimnasio, dirección | Vestíbulo de doble altura con escalera imperial y galería, comedor, biblioteca, salón de baile, bodega, calderas, celda, desván | Atrio con pasarelas y escaleras mecánicas, tiendas, supermercado, patio de comidas, cine |
+| Exterior | Parque de rehabilitación: paralelas, rampas, fuente, puestos y carritos de comida, picnic | Pista de baloncesto, columpios, tobogán, balancín, arenero, **autobús abandonado** | **Laberinto de setos** (con bucles y templete central), **piscina** entre setos, fuente, estatuas | Aparcamientos con plazas pintadas, coches y carritos |
+| Escondites | taquillas, cubículos de baño, cámaras de la morgue, arbustos | taquillas de pasillo, cubículos, arbustos, el autobús | armarios, cubículos, arbustos del laberinto y la piscina | probadores, cubículos, taquillas, arbustos |
+| Límite 2.5D | ciudad de siluetas con ventanas encendidas | casas y árboles-silueta | bosque-silueta y verja | ciudad y valla publicitaria luminosa |
+
+Los suelos exteriores decorativos rodean el mapa sin cruzarlo, para no atravesar el sótano.
 
 La misma semilla da siempre el mismo mapa. Por defecto, Level_1 usa la semilla 27 y Level_2 la 5.
 

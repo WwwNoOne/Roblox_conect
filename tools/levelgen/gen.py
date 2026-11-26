@@ -42,6 +42,19 @@ def run(which: str, seed: int | None, out_dir: str):
         plan.render(lvl.lay, os.path.join(out_dir, "Level_2_Planta.png"), "Level_2 · Pantano de la Esclusa", level2.C, B.markers,
                     lvl.labels, theme=level2.PLAN_THEME)
         report("Level_2", lvl, B)
+    arch_levels = {"level3": ("hospital", "Hospital", "Level_3", "Level_3 · Hospital San Judas"),
+                   "level4": ("school", "School", "Level_4", "Level_4 · Escuela"),
+                   "level5": ("mansion", "Mansion", "Level_5", "Level_5 · Mansión"),
+                   "level6": ("mall", "Mall", "Level_6", "Level_6 · Centro comercial")}
+    for key, (mod, cls, name, title) in arch_levels.items():
+        if which not in (key, "all", "arch"):
+            continue
+        m = __import__(mod)
+        lvl = getattr(m, cls)(seed or 3)
+        B = lvl.build()
+        rbx.write_rbxmx(B.root, os.path.join(out_dir, f"{name}.rbxmx"), primary=lvl.dock)
+        plan.render(lvl.lay, os.path.join(out_dir, f"{name}_Planta.png"), title, 10, B.markers, lvl.labels, px=6)
+        report(name, lvl, B)
 
 
 if __name__ == "__main__":

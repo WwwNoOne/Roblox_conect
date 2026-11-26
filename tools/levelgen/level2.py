@@ -302,10 +302,9 @@ class Level2(Level1):
                     rbx.part(parent, "Tirante", (cx + sgn * 3.3, H + 1.6, z * C + 2 + k * 4), (0.15, 3.2, 0.15), (176, 150, 100),
                              "Fabric", collide=False, query=False)
 
-    def gable(self, parent, X0, X1, Z0, Z1, y, slate=False):
+    def gable(self, parent, X0, X1, Z0, Z1, y, slate=False, rise=4.5):
         """Tejado a dos aguas con dos WedgePart (cumbrera a lo largo del lado largo)."""
         col = (84, 90, 96) if slate else (96, 60, 44)
-        rise = 4.5
         if (X1 - X0) >= (Z1 - Z0):
             half = (Z1 - Z0) / 2
             zc = (Z0 + Z1) / 2

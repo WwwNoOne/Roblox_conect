@@ -91,8 +91,8 @@ def locker(B: Builder, parent, fr: Frame, idx: int, body=(92, 112, 120), trim=(5
     m = rbx.model(parent, f"{name}{idx:02d}")
     fr.part(m, "Cuerpo", (0, 3.7, 0.2), (3.2, 7.4, 2.6), body)
     fr.part(m, "Puerta", (0, 3.6, -1.15), (2.9, 6.9, 0.15), tuple(min(255, c + 14) for c in body), collide=False)
-    for i in range(5):
-        fr.part(m, "Rejilla", (0, 5.9 - i * 0.32, -1.25), (1.9, 0.1, 0.06), trim, collide=False, shadow=False)
+    for i in range(2):
+        fr.part(m, "Rejilla", (0, 5.9 - i * 0.5, -1.25), (1.9, 0.18, 0.06), trim, collide=False, shadow=False)
     fr.part(m, "Asa", (1.0, 3.6, -1.28), (0.18, 0.9, 0.12), (190, 190, 180), "Metal", collide=False)
     fr.part(m, "Placa", (0, 6.9, -1.27), (1.0, 0.35, 0.05), (220, 220, 200), collide=False, shadow=False)
     if hideable:

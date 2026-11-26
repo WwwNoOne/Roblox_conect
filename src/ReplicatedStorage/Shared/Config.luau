@@ -15,7 +15,8 @@ local Upgrades = table.freeze({
 })
 
 -- Partida (T03). TODOS son valores de prueba a calibrar en T08.
--- Etapas en orden: Nivel 1 -> Parada -> Nivel 2 -> Parada -> Nivel 3 (final). Map = carpeta en Workspace.Maps.
+-- Etapas en orden: Fábrica -> Pantano -> Hospital -> Escuela -> Mansión -> Centro comercial (final), con una Parada entre cada
+-- nivel. Map = carpeta en Workspace.Maps.
 -- Kind "Level": se sale a explorar (puerta abierta). Kind "Parada": nadie sale; se vende/compra desde dentro.
 -- Beacon = true: el nivel tiene el objetivo final (victoria al activarlo). TODO(GDD): condición de victoria por definir.
 -- Quota (opcional): valor de tesoros a depositar en ese nivel; el último nivel no tiene cuota.
@@ -35,7 +36,13 @@ local Run = table.freeze({
 		table.freeze({ Kind = "Parada", Map = "Parada" }),
 		table.freeze({ Kind = "Level", Map = "Level_2", Quota = 200 }),
 		table.freeze({ Kind = "Parada", Map = "Parada" }),
-		table.freeze({ Kind = "Level", Map = "Level_3", Beacon = true }),
+		table.freeze({ Kind = "Level", Map = "Level_3", Quota = 500 }), -- Hospital
+		table.freeze({ Kind = "Parada", Map = "Parada" }),
+		table.freeze({ Kind = "Level", Map = "Level_4", Quota = 600 }), -- Escuela
+		table.freeze({ Kind = "Parada", Map = "Parada" }),
+		table.freeze({ Kind = "Level", Map = "Level_5", Quota = 700 }), -- Mansión
+		table.freeze({ Kind = "Parada", Map = "Parada" }),
+		table.freeze({ Kind = "Level", Map = "Level_6", Beacon = true }), -- Centro comercial (final)
 	}),
 })
 
@@ -267,6 +274,90 @@ local LevelAtmosphere = table.freeze({
 			BloomIntensity = 0.8,
 			BloomSize = 34,
 			BloomThreshold = 1.2,
+		}),
+		Level_3 = table.freeze({ -- hospital: fluorescente frío, niebla gris azulada sobre la ciudad
+			ClockTime = 0.5,
+			Brightness = 0.6,
+			Ambient = { 40, 44, 48 },
+			OutdoorAmbient = { 52, 60, 72 },
+			EnvironmentDiffuseScale = 0.2,
+			EnvironmentSpecularScale = 0.4,
+			ExposureCompensation = 0,
+			Density = 0.46,
+			Offset = 0.1,
+			Haze = 2.4,
+			Glare = 0.1,
+			Color = { 84, 92, 104 },
+			Decay = { 44, 50, 58 },
+			Tint = { 220, 236, 240 },
+			Contrast = 0.12,
+			Saturation = -0.25,
+			BloomIntensity = 0.7,
+			BloomSize = 30,
+			BloomThreshold = 1.3,
+		}),
+		Level_4 = table.freeze({ -- escuela: farolas sodio, niebla templada
+			ClockTime = 23.5,
+			Brightness = 0.8,
+			Ambient = { 42, 38, 36 },
+			OutdoorAmbient = { 60, 58, 70 },
+			EnvironmentDiffuseScale = 0.2,
+			EnvironmentSpecularScale = 0.35,
+			ExposureCompensation = 0,
+			Density = 0.42,
+			Offset = 0.1,
+			Haze = 2,
+			Glare = 0.1,
+			Color = { 96, 88, 84 },
+			Decay = { 52, 46, 44 },
+			Tint = { 240, 228, 214 },
+			Contrast = 0.12,
+			Saturation = -0.12,
+			BloomIntensity = 0.7,
+			BloomSize = 30,
+			BloomThreshold = 1.3,
+		}),
+		Level_5 = table.freeze({ -- mansión: luna fría y niebla densa entre los setos
+			ClockTime = 1,
+			Brightness = 0.9,
+			Ambient = { 34, 32, 40 },
+			OutdoorAmbient = { 56, 64, 84 },
+			EnvironmentDiffuseScale = 0.25,
+			EnvironmentSpecularScale = 0.4,
+			ExposureCompensation = 0,
+			Density = 0.55,
+			Offset = 0.15,
+			Haze = 3,
+			Glare = 0.2,
+			Color = { 80, 86, 104 },
+			Decay = { 40, 42, 56 },
+			Tint = { 214, 220, 240 },
+			Contrast = 0.16,
+			Saturation = -0.2,
+			BloomIntensity = 0.8,
+			BloomSize = 34,
+			BloomThreshold = 1.2,
+		}),
+		Level_6 = table.freeze({ -- centro comercial: neones de tiendas, niebla urbana anaranjada
+			ClockTime = 0,
+			Brightness = 0.5,
+			Ambient = { 42, 40, 44 },
+			OutdoorAmbient = { 60, 54, 58 },
+			EnvironmentDiffuseScale = 0.2,
+			EnvironmentSpecularScale = 0.5,
+			ExposureCompensation = 0,
+			Density = 0.44,
+			Offset = 0.08,
+			Haze = 2.6,
+			Glare = 0.1,
+			Color = { 104, 88, 80 },
+			Decay = { 60, 46, 40 },
+			Tint = { 244, 230, 224 },
+			Contrast = 0.14,
+			Saturation = -0.05,
+			BloomIntensity = 0.9,
+			BloomSize = 34,
+			BloomThreshold = 1.1,
 		}),
 	}),
 })
@@ -613,6 +704,9 @@ local Audio = table.freeze({
 			Level_1 = "Nivel(1)",
 			Level_2 = "Nivel(2)",
 			Level_3 = "Pendiente(2)",
+			Level_4 = "Nivel(1)",
+			Level_5 = "Nivel(2)",
+			Level_6 = "Pendiente(2)",
 		}),
 		Volume = 0.35,
 		FadeSeconds = 2.5, -- cruce entre pistas; en la Parada y los viajes la música se desvanece
