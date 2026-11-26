@@ -26,8 +26,9 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 - Generadores, cajas fuertes con dial, animaciones y panel de energía: ver [objetivos_nivel.md](docs/objetivos_nivel.md). Verificado en Play (1 cliente): aparecen 3 generadores (2 necesarios) y 2 cajas; bajar da `POWER_OFF` hasta reparar 2; validación de fases y de combinación; botín dentro de la caja; recogida con vuelo; sonidos cargados.
 - Corregido: `SellStation`/`ShopStation` están en `Elevator.Equipment` y no se encontraban (no se podía depositar).
 
-## Siguiente sesión
+## Siguiente sesión (26/11/2026)
 
+0. Al empezar: `rojo serve default.project.json` desde el worktree `Roblox_conect-backrooms` y conectar el plugin de Rojo en Studio. Comprobar que el lugar se guardó con `Workspace.Maps.Level_1` y `ServerStorage.GameAssets` (si no, repetir: mover `Level_1` a `Maps` y renombrar `AbismoAssets`).
 1. Probar con 2-4 clientes (Studio → Test → Clients) y ajustar `Config.Objectives` a gusto.
 2. Puertas con puzzle en `Puerta01/02` (`PuzzleSpawn`).
 3. Borrar `Workspace.Sala_0` del lugar de Studio si sigue (ya nadie la usa). Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
