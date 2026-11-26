@@ -3,7 +3,7 @@
 > **Estado:** Aprobado para prototipo y pruebas en `Level_1` (2026-11-26).
 > **Referencias:** [GDD](../game_designs/GDD.md) · [Manifiesto de modelos](../creation_models.md) · [Plan (T05)](plan.md) · [Directivas de Codex](../Docs/CODEX.md)
 
-Este documento define las **3 categorías de criaturas** iniciales, su **enfoque visual 2.5D** (planos animados mirando a cámara con trucos de luz y profundidad), la **animación 2D de screamer** y el **contrato exacto** que Codex debe entregar en `assets_build/exports/`.
+Este documento define las **3 categorías de criaturas** iniciales, las variantes **SujetoFeliz** y **Acosador del Tramo Final**, el enfoque visual **2.5D**, la animación de screamer y el contrato de entrega en `assets_build/exports/`.
 
 ---
 
@@ -64,7 +64,26 @@ Cuando el **Acechador** embosca a un jugador, el cliente dispara una secuencia d
     2. **Baja vida** (`25–35` HP, daño no letal salvo vida crítica).
     3. Entra en estado `Flee` / `Cooldown` y se reubica en otro punto lejano para no campear la misma esquina.
 
-### 2.4 Categorías futuras (en estudio, no implementar aún)
+### 2.4 Variante agresiva — SujetoFeliz (`sujetoFeliz`)
+
+Máscara flotante de yeso resquebrajado, cuencas oscuras y sonrisa abierta. Combina la aparición silenciosa del Acosador con una embestida más rápida que el sprint del jugador.
+
+* **Aparición.** Elige un jugador objetivo fuera de la zona segura y aparece a distancia en un punto navegable con línea de visión. Se queda quieto, orientado hacia ese jugador, durante `Stalk`.
+* **Mirada sostenida.** Si el objetivo lo mira directamente y sin interrupciones durante el umbral, SujetoFeliz pasa a `Lunge` y se abalanza a gran velocidad. Una vez iniciada la embestida, apartar la mirada deja de cancelarla. La ruta respeta paredes, puertas cerradas y el Ascensor.
+* **Mirada apartada.** Si el objetivo aparta la mirada antes de activar la embestida, el contador se reinicia. Si la aparta de forma sostenida, o nunca lo mira durante la ventana inicial, la criatura desaparece sin atacar. Una pared interpuesta cuenta como pérdida de visión. En cooperativo, solo la mirada del jugador objetivo cuenta.
+* **Valores de prototipo ajustables.** Distancia de aparición de 50 a 90 studs, observación inicial de hasta 5 s si el jugador objetivo aún no lo ha mirado, 3 s de mirada continua para activar el ataque, 0.6 s mirando hacia otro lado para desaparecer y velocidad de embestida de 44 studs/s.
+* **Contrato visual.** `sujetoFeliz` usa `Category = "Aggressive"` y `Behavior = "SujetoFeliz"`. La grilla 4 × 4 aporta poses de reposo, observación, avance y ataque. La muestra de `Workspace.sujetoFeliz` sirve para revisar el arte. La integración debe registrar el comportamiento en `MonsterService` antes de incluir el asset en el grupo de criaturas que aparecen durante la partida.
+
+### 2.5 Variante — Acosador del Tramo Final (`creature_acosador_final_01`)
+
+Conserva la silueta de la referencia adjunta: rostro negro con ojos blancos, torso pálido y brazos largos. El sprite mantiene el encuadre de la ilustración. La capa de ojos sigue visible en penumbra.
+
+* **Antes del tramo final.** Conserva el acecho del Acosador base. Observa desde lejos, se retira ante una mirada sostenida y puede delatar al jugador si lo ignoran.
+* **Al quedar poco tiempo.** A **30 s** del final, valor ajustable para el prototipo, aparece en un punto navegable fuera del Ascensor si estaba oculto. Pasa de `Stalk` a `Chase` y avanza a **6 studs/s**, también ajustables. La mirada y la linterna dejan de hacerlo retroceder durante esta fase.
+* **Persecución persistente.** Mantiene la persecución hasta que termina el nivel. Si pierde de vista a su objetivo, busca una ruta hacia su última posición conocida y reanuda la persecución al recuperarlo. Si ese jugador muere o entra al Ascensor, cambia a otro jugador válido. Respeta puertas cerradas, paredes y la zona segura.
+* **Contrato visual.** `Category = "Stalker"`, `Behavior = "FinalPursuit"`. Dos PNG 4 × 4 alineados, para cuerpo y ojos. La muestra en `Workspace.creature_acosador_final_01` permite comprobar el arte. La transición de fase depende del temporizador del servidor y queda en la integración de `MonsterService`.
+
+### 2.6 Categorías futuras (en estudio, no implementar aún)
 * **Ciego / Sensible al ruido** (*The Warden*): sin visión (ignora linterna), pero reacciona a larga distancia ante cualquier ruido (`Sprint`, generador, puerta); refuerza el uso de agacharse (`C`).
 * **Estatua / Reverso de mirada** (*The Creaking* / *SCP-173*): avanza rápido solo cuando ningún jugador la mira o alumbra; se congela bajo contacto visual.
 
@@ -93,6 +112,8 @@ Entregar un archivo `.rbxmx` por criatura en `assets_build/exports/` (o dentro d
   * `creature_agresivo_01`
   * `creature_acosador_01`
   * `creature_acechador_01`
+  * `sujetoFeliz` (variante agresiva)
+  * `creature_acosador_final_01` (variante del Acosador)
 * **Jerarquía obligatoria dentro del `Model`:**
   * `Root` (`Part`, `PrimaryPart` del `Model`):
     * `Size`: aprox. `Vector3.new(2, 8, 2)` (se ajusta al escalado de pasillos de 16 studs).

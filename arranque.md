@@ -44,6 +44,13 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 - [x] Los 6 `HideSpot` tienen prompt para esconderse.
 - Corregido en la revisión: carrera de caminos (un camino vacío del grafo se daba por «llegado» y el Acechador se quedaba en su spawn); red de navegación fragmentada (14 islas → malla `NavGridSpacing` de 10 studs, 181 de 199 nodos conectados); nodos de escondites dentro de las taquillas; detección de «mirar» con la cabeza (la tuerce `Turning`; ahora con el cuerpo).
 
+## Lobby: entrar al ascensor andando (26/11/2026)
+
+- El ascensor estaba fuera del lobby, detrás de `Lateral_1` y con la puerta hacia fuera: no había forma de llegar. Se movió (−32, 0, −34) para encajar su puerta en la pared norte, donde estaba la persiana decorativa `ElevatorPreview` (retirada, igual que `Pilaster_25`). `NorthWall` se partió en `NorthWall_West` + `NorthWall_Lintel`. Es un cambio del place: **guardar en Studio**.
+- `BoardingService` reescrito (ya no hay `BoardPrompt`): en el lobby la puerta está abierta; quien entra en `InteriorZone` queda apuntado (`Boarded`) y ve «Esperando jugadores (n/total)» (`BoardingHud.client`). Con todos dentro, la puerta se cierra (`Config.Boarding.DoorSeconds`), pausa `StartDelay` y empieza la partida. Si alguien sale o entra alguien nuevo durante el cierre, se reabre. Quien vuelve de una partida dentro del ascensor debe salir y volver a entrar.
+- [x] Probado con 1 jugador: entra andando desde el spawn, cierre, partida; derrota → vuelta al lobby con la puerta abierta; segunda partida.
+- [ ] Probar con 2+ clientes (mensaje «Esperando jugadores (1/2)», reapertura si alguien sale) y la vuelta tras ganar (aviso «Sal del ascensor...»).
+
 ## Siguiente sesión
 
 1. Probar con 4 clientes (y una caja fuerte con 2); criaturas con 2+ clientes.
@@ -51,6 +58,7 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 3. Sonidos `Criatura_*` en `Workspace.sonidos` (hoy suenan sustitutos); quitar `Config.Monster.Debug` antes de publicar; borrar las 7 criaturas oceánicas de `ServerStorage.GameAssets.Creatures`.
 4. ~~Ruido de `Turning`~~ (hecho 26/11): el rig usa `AnimationConstraint`, con `C0` de solo lectura; `Turning` escribía `C0` cada frame, fallaba y nunca giraba el cuerpo. Ahora escribe `Attachment0.CFrame` (o `C0` si es `Motor6D`): 0 errores, giro de cadera de 21° al moverse de lado.
 5. `assets_build/*Movement System.rbxm` y `legacy/` quedan en `.gitignore` (decisión del 26/11).
+6. Integrar las variantes de Codex (26/11): `sujetoFeliz` (`Behavior = "SujetoFeliz"`) y `creature_acosador_final_01` (`Behavior = "FinalPursuit"`), ver `docs/criaturas.md` §2.4–2.5. Los assets están en `assets_build/exports/creatures/`; falta el comportamiento en `MonsterService`.
 
 ## Entregas
 

@@ -537,6 +537,13 @@ return table.freeze({
 	HudUpdateInterval = 0.25, -- 4 Hz, muy por debajo del límite de 20 Hz
 
 	MinPlayers = 1, -- pruebas; GDD: 2-4
+	-- Abordaje en el lobby (BoardingService): la puerta está abierta, se entra andando y, con todos dentro, se cierra y arranca.
+	Boarding = table.freeze({
+		DoorSeconds = 1.6, -- lo que tarda la puerta en abrirse o cerrarse
+		StartDelay = 1.5, -- pausa entre la puerta cerrada y el inicio de la partida
+		PollInterval = 0.2, -- cada cuánto se mira quién está dentro de InteriorZone
+		DoorwayClear = 2.5, -- studs: quien esté en el umbral al cerrar se mete dentro (no queda atrapado en la hoja)
+	}),
 	MaxPlayers = 4,
 	RoomCodeLength = 4,
 

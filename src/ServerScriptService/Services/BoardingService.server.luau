@@ -1,17 +1,21 @@
 --!strict
--- Inicio de partida: con E se entra al ascensor (en el lobby). Cuando todos los jugadores del servidor
--- están dentro, empieza la partida y el ascensor viaja (Runs lo coloca en el ElevatorDock del Nivel 1).
+-- Inicio de partida en el lobby: la puerta del ascensor está abierta y se entra andando. Quien está dentro de InteriorZone
+-- queda apuntado a la sala del servidor (atributo Boarded) y ve "Esperando jugadores". Con todos los jugadores del servidor
+-- dentro, la puerta se cierra y, tras una pausa, empieza la partida (Runs lleva el ascensor al Nivel 1).
+-- Si alguien sale o llega un jugador nuevo antes del arranque, la puerta se vuelve a abrir.
+-- Estado para los clientes (BoardingHud), en atributos del Model del ascensor: BoardPhase, BoardCount, BoardTotal.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
+local Sfx = require(Shared:WaitForChild("Sfx"))
+local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 local Rooms = require(script.Parent:WaitForChild("Rooms"))
 local Runs = require(script.Parent:WaitForChild("Runs"))
 
-local WorldRefs = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("WorldRefs"))
-
-local START_DELAY = 2 -- segundos entre el último en entrar y el inicio
+local Cfg = Config.Boarding
 
 local sub = WorldRefs.WaitElevator(30)
 if not sub then
@@ -19,51 +23,75 @@ if not sub then
 	return
 end
 local gate = sub:WaitForChild("Gate")
-local outsideAtt = gate:FindFirstChild("OutsidePrompt", true) :: Attachment
+local door = gate:WaitForChild("Door") :: BasePart
+local doorClosed = gate:FindFirstChild("DoorClosed", true) :: Attachment
+local doorOpen = gate:FindFirstChild("DoorOpen", true) :: Attachment
+local entryAtt = gate:FindFirstChild("EntryPoint", true) :: Attachment?
+local zone = sub:FindFirstChild("InteriorZone", true) :: BasePart
 
-local prompt = Instance.new("ProximityPrompt")
-prompt.Name = "BoardPrompt"
-prompt.ActionText = "Entrar al ascensor"
-prompt.ObjectText = "Ascensor"
-prompt.KeyboardKeyCode = Enum.KeyCode.E
-prompt.HoldDuration = 0.3
-prompt.MaxActivationDistance = 10
-prompt.RequiresLineOfSight = false
-prompt.Parent = outsideAtt
+-- El botón de abordaje antiguo (teletransporte) ya no se usa: se entra por la puerta.
+local oldPrompt = gate:FindFirstChild("BoardPrompt", true)
+if oldPrompt then
+	oldPrompt:Destroy()
+end
 
+type Phase = "Waiting" | "Closing" | "Starting" | "Away"
+
+local phase: Phase = "Waiting"
 local lobbyCode: string? = nil
-local lobbyWasOpen = true -- para reconocer la vuelta al lobby tras una partida
-local starting = false
+local doorTween: Tween? = nil
+local doorIsOpen = false
+local cycle = 0 -- invalida cierres en curso cuando se reabre la puerta
+-- Quien vuelve de una partida dentro del ascensor debe salir y volver a entrar (si no, arrancaría otra partida sola).
+local mustExit: { [Player]: boolean } = {}
 
-local function boardedCount(): number
-	local n = 0
-	for _, p in Players:GetPlayers() do
-		if p:GetAttribute("Boarded") == true then
-			n += 1
-		end
-	end
-	return n
-end
-
-local function allBoarded(): boolean
-	local total = #Players:GetPlayers()
-	return total > 0 and boardedCount() == total and total >= Config.MinPlayers
-end
-
-local function tryStart()
-	if starting or not lobbyCode or not allBoarded() then
+local function moveDoor(open: boolean)
+	if doorIsOpen == open and not doorTween then
 		return
 	end
-	starting = true
-	task.delay(START_DELAY, function()
-		starting = false
-		local code = lobbyCode
-		local room = code and Rooms.Get(code)
-		if not room or room.state ~= "Lobby" or not allBoarded() then
-			return -- alguien salió o se desconectó durante la espera
+	doorIsOpen = open
+	if doorTween then
+		doorTween:Cancel()
+	end
+	local target = if open then doorOpen.WorldCFrame else doorClosed.WorldCFrame
+	local info = TweenInfo.new(Cfg.DoorSeconds, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+	local tween = TweenService:Create(door, info, { CFrame = target })
+	doorTween = tween
+	tween.Completed:Connect(function()
+		if doorTween == tween then
+			doorTween = nil
 		end
-		Rooms.Start(room.host)
 	end)
+	tween:Play()
+	local sound = if open then Config.Sfx.ElevatorExit else Config.Sfx.ElevatorEnter
+	Sfx.Play(sound, door, Config.Audio.ElevatorVolume, Config.Audio.ElevatorRollOff)
+end
+
+local function aliveRoot(player: Player): BasePart?
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if humanoid and humanoid.Health > 0 and root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+local function isInside(root: BasePart): boolean
+	local rel = zone.CFrame:PointToObjectSpace(root.Position)
+	local half = zone.Size / 2 + Vector3.new(0.5, 1, 0.5)
+	return math.abs(rel.X) <= half.X and math.abs(rel.Y) <= half.Y and math.abs(rel.Z) <= half.Z
+end
+
+-- Jugadores que cuentan para el abordaje: los que no están en una partida.
+local function lobbyPlayers(): { Player }
+	local list = {}
+	for _, p in Players:GetPlayers() do
+		if not Runs.GetByUser(p.UserId) then
+			table.insert(list, p)
+		end
+	end
+	return list
 end
 
 -- Una sola sala abierta en el servidor: el primero la crea, los demás se unen.
@@ -82,70 +110,174 @@ local function enterRoom(player: Player): boolean
 	return result.ok
 end
 
-prompt.Triggered:Connect(function(player: Player)
-	if Runs.GetByUser(player.UserId) or player:GetAttribute("Boarded") == true then
-		return
-	end
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if not humanoid or humanoid.Health <= 0 or not root then
-		return
-	end
-	if not enterRoom(player) then
-		return -- sala llena o ya hay una partida
-	end
+local function leaveRoom(player: Player)
 	local room = Rooms.GetByUser(player.UserId)
-	local index = if room then table.find(room.members, player.UserId) or 1 else 1
-	local spawn = sub:FindFirstChild("SpawnPoint" .. index, true)
-	if spawn and spawn:IsA("BasePart") then
-		root.CFrame = spawn.CFrame + Vector3.new(0, 3, 0)
-		root.AssemblyLinearVelocity = Vector3.zero
+	if room and room.state == "Lobby" then
+		Rooms.Leave(player.UserId)
 	end
-	player:SetAttribute("Boarded", true)
-	tryStart()
+end
+
+local function setPhase(p: Phase)
+	phase = p
+	sub:SetAttribute("BoardPhase", p)
+end
+
+local function reopen()
+	cycle += 1
+	setPhase("Waiting")
+	moveDoor(true)
+end
+
+local function allBoarded(list: { Player }): boolean
+	if #list == 0 or #list < Config.MinPlayers then
+		return false
+	end
+	for _, p in list do
+		if p:GetAttribute("Boarded") ~= true then
+			return false
+		end
+	end
+	return true
+end
+
+-- Quien esté en el umbral al cerrar pasa dentro: la hoja es anclada y lo dejaría atrapado.
+local function clearDoorway(list: { Player })
+	if not entryAtt then
+		return
+	end
+	for _, p in list do
+		local root = aliveRoot(p)
+		if root then
+			local rel = doorClosed.WorldCFrame:PointToObjectSpace(root.Position)
+			if math.abs(rel.Z) < Cfg.DoorwayClear and math.abs(rel.X) < door.Size.X / 2 + 1 then
+				root.CFrame = entryAtt.WorldCFrame
+				root.AssemblyLinearVelocity = Vector3.zero
+			end
+		end
+	end
+end
+
+local function beginClose(list: { Player })
+	cycle += 1
+	local myCycle = cycle
+	setPhase("Closing")
+	clearDoorway(list)
+	moveDoor(false)
+	task.delay(Cfg.DoorSeconds + Cfg.StartDelay, function()
+		if cycle ~= myCycle or phase ~= "Closing" then
+			return
+		end
+		local room = lobbyCode and Rooms.Get(lobbyCode)
+		if not room or room.state ~= "Lobby" or not allBoarded(lobbyPlayers()) then
+			reopen() -- alguien salió o llegó un jugador nuevo durante el cierre
+			return
+		end
+		setPhase("Starting")
+		local result = Rooms.Start(room.host)
+		if not result.ok then
+			warn("[Boarding] No se pudo iniciar:", result.err)
+			reopen()
+		end
+	end)
+end
+
+local function poll()
+	if phase == "Away" or phase == "Starting" then
+		return
+	end
+	local list = lobbyPlayers()
+	local count = 0
+	for _, p in list do
+		local root = aliveRoot(p)
+		local inside = root ~= nil and isInside(root :: BasePart)
+		if not inside and mustExit[p] then
+			mustExit[p] = nil
+			p:SetAttribute("BoardMustExit", nil)
+		end
+		local boarded = p:GetAttribute("Boarded") == true
+		if inside and not boarded and not mustExit[p] then
+			if enterRoom(p) then
+				p:SetAttribute("Boarded", true)
+				boarded = true
+			end
+		elseif not inside and boarded then
+			leaveRoom(p)
+			p:SetAttribute("Boarded", false)
+			boarded = false
+		end
+		if boarded then
+			count += 1
+		end
+	end
+	sub:SetAttribute("BoardCount", count)
+	sub:SetAttribute("BoardTotal", #list)
+
+	local ready = allBoarded(list)
+	if phase == "Waiting" and ready then
+		beginClose(list)
+	elseif phase == "Closing" and not ready then
+		reopen()
+	end
+end
+
+-- Partida en marcha: el ascensor se va; la puerta la controla ElevatorService.
+Runs.StateChanged:Connect(function(_code: string, state: string)
+	if state == "Descending" or state == "Level" or state == "Stopover" then
+		cycle += 1
+		if doorTween then
+			doorTween:Cancel()
+			doorTween = nil
+		end
+		doorIsOpen = false
+		setPhase("Away")
+	end
 end)
 
--- El botón solo funciona en el lobby; al terminar la partida se vuelve a abrir.
+-- Vuelta al lobby tras una partida: se reabre la puerta y quien llega dentro tiene que salir y volver a entrar.
 Rooms.Changed:Connect(function(room)
 	if room.code ~= lobbyCode then
 		return
 	end
 	if #room.members == 0 then
 		lobbyCode = nil
-		prompt.Enabled = true
 		return
 	end
-	local inLobby = room.state == "Lobby"
-	prompt.Enabled = inLobby
-	local reopened = inLobby and not lobbyWasOpen
-	lobbyWasOpen = inLobby
-	if reopened then
-		for _, userId in room.members do
-			local p = Players:GetPlayerByUserId(userId)
-			if p and not Runs.GetByUser(userId) then
-				p:SetAttribute("Boarded", false)
-			end
+	if room.state ~= "Lobby" or phase ~= "Away" then
+		return
+	end
+	-- Primero se suelta la sala (los Leave de abajo vuelven a disparar Changed y deben ignorarse).
+	lobbyCode = nil
+	setPhase("Waiting")
+	for _, userId in table.clone(room.members) do
+		local p = Players:GetPlayerByUserId(userId)
+		if p and not Runs.GetByUser(userId) then
+			p:SetAttribute("Boarded", false)
+			local root = aliveRoot(p)
+			local inside = root ~= nil and isInside(root :: BasePart)
+			mustExit[p] = if inside then true else nil
+			p:SetAttribute("BoardMustExit", if inside then true else nil)
+			Rooms.Leave(userId) -- sala nueva para la siguiente partida
 		end
 	end
-end)
-
--- Durante una partida el botón de abordaje debe estar apagado: comparte tecla con el de la puerta (GatePrompt) y,
--- si sigue activo junto a la puerta, "gana" al estar más cerca y el de la puerta no responde.
-Runs.StateChanged:Connect(function(_code: string, state: string)
-	if state == "Descending" or state == "Level" or state == "Stopover" then
-		prompt.Enabled = false
-	end
-end)
-
-Players.PlayerRemoving:Connect(function(player)
-	player:SetAttribute("Boarded", false)
-	task.defer(tryStart) -- puede que quien faltaba fuera el que se fue
+	task.defer(reopen) -- deja que Runs termine de devolver el ascensor antes de mover la puerta
 end)
 
 Players.PlayerAdded:Connect(function(player)
 	player:SetAttribute("Boarded", false)
 end)
+Players.PlayerRemoving:Connect(function(player)
+	player:SetAttribute("Boarded", false)
+	mustExit[player] = nil
+end)
 for _, p in Players:GetPlayers() do
 	p:SetAttribute("Boarded", false)
 end
+
+door.CFrame = doorClosed.WorldCFrame
+reopen()
+task.spawn(function()
+	while true do
+		task.wait(Cfg.PollInterval)
+		poll()
+	end
+end)

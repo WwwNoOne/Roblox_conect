@@ -51,12 +51,14 @@ El resto de atributos (puntos de entrada/salida, `PromptAttachment`, escala 1.5 
 | `creature_agresivo_01` | Criatura **Agresivo** (perseguidor letal, estilo *Cave Dweller/Nextbot*). Plano 2.5D + sprite sheet cuerpo/ojos. Ver [docs/criaturas.md](docs/criaturas.md) | 2 PNG ≤1024² + `.rbxmx` |
 | `creature_acosador_01` | Criatura **Acosador** (observador a distancia, estilo *Herobrine/Watcher*). Plano 2.5D + ojos emisivos. Ver [docs/criaturas.md](docs/criaturas.md) | 2 PNG ≤1024² + `.rbxmx` |
 | `creature_acechador_01` | Criatura **Acechador** (emboscada en esquinas/escondites con screamer 2D). Plano 2.5D + sprite sheet screamer. Ver [docs/criaturas.md](docs/criaturas.md) | 2-3 PNG ≤1024² + `.rbxmx` |
+| `sujetoFeliz` | Variante agresiva de máscara flotante. Observa inmóvil, embiste ante una mirada sostenida y desaparece si el objetivo aparta la vista. `Category = "Aggressive"`, `Behavior = "SujetoFeliz"`. Ver [docs/criaturas.md](docs/criaturas.md#24-variante-agresiva--sujetofeliz-sujetofeliz). | 1 PNG 1024² + `.rbxmx` |
+| `creature_acosador_final_01` | Variante 2.5D del Acosador con persecución lenta y persistente en el tramo final. `Category = "Stalker"`, `Behavior = "FinalPursuit"`. Ver [docs/criaturas.md](docs/criaturas.md#25-variante--acosador-del-tramo-final-creature_acosador_final_01). | 2 PNG 1024² + `.rbxmx` |
 
 ## Prioridad 2 **[POR DEFINIR]**
 `Level_2`, `Level_3` (propuesta de temáticas: piscina vacía / almacén / hotel / estacionamiento), más tipos de criaturas, kit modular de pasillos y salas, props de puzzle (palancas, teclados, fusibles), lobby y traje/linterna del jugador.
 
 ## Lobby
-Escena simple con `LobbySpawn1…4`, `RoomTerminal` (+ `Screen`, `PromptAttachment`) y `ElevatorPreview` (Ascensor decorativo).
+Escena simple con `LobbySpawn1…4` y `RoomTerminal` (+ `Screen`, `PromptAttachment`). El Ascensor real (`Workspace.Inicial.Elevator`) está encajado en la pared norte (`NorthWall_West` + `NorthWall_Lintel`) y se entra andando por su `Gate.Door` (26/11: sustituye al antiguo `ElevatorPreview` decorativo).
 
 ## Contrato de nombres (Claude -> Codex)
 Los scripts buscan por **nombre exacto** (sensible a mayúsculas) con `FindFirstChild(..., true)`. No renombrar. Los `ProximityPrompt`, `SurfaceGui` y sonidos los añade el script. Partes decorativas: `CanCollide = false`. Partes de control: transparentes, `CanCollide = false`, `Anchored = true`.
@@ -93,4 +95,4 @@ Opcional: `Bounds`. El ascensor debe quedar oculto en un nicho/cuarto de acople;
 `machine_comm`: `Body`, `PromptAttachment`, `Screen`, `StatusLight`. `puzzle_door`: `Door`, `Frame`, `PromptAttachment`, `StatusLight`. `puzzle_chest`: `Handle`/`Lid`, `PromptAttachment`.
 
 ### Lobby (`Workspace.Lobby`)
-`LobbySpawn1…4`, `RoomTerminal` (`Screen`, `PromptAttachment`), `ElevatorPreview`.
+`LobbySpawn1…4`, `RoomTerminal` (`Screen`, `PromptAttachment`). Ascensor: `Gate.Door` con `Gate.Frame.DoorClosed` / `DoorOpen` / `EntryPoint` / `ExitPoint` e `InteriorZone`.
