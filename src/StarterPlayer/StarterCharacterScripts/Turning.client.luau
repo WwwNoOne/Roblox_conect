@@ -32,6 +32,24 @@ local UPPER_TURN_RATIO = 0.65
 
 local characterData = {}
 
+-- El rig usa AnimationConstraint (C0 de solo lectura, refleja Attachment0.CFrame) o Motor6D (C0 escribible).
+local function getC0(joint)
+	if joint:IsA("AnimationConstraint") then
+		return joint.Attachment0 and joint.Attachment0.CFrame or CFrame.identity
+	end
+	return joint.C0
+end
+
+local function setC0(joint, cf)
+	if joint:IsA("AnimationConstraint") then
+		if joint.Attachment0 then
+			joint.Attachment0.CFrame = cf
+		end
+	else
+		joint.C0 = cf
+	end
+end
+
 local function getCharacterData(char)
 	if characterData[char] then return characterData[char] end
 
@@ -52,11 +70,11 @@ local function getCharacterData(char)
 	if not (root and waist and neck and rh and lh) then return nil end
 
 	local data = {
-		rootC0 = root.C0,
-		waistC0 = waist.C0,
-		neckC0 = neck.C0,
-		rightHipC0 = rh.C0,
-		leftHipC0 = lh.C0,
+		rootC0 = getC0(root),
+		waistC0 = getC0(waist),
+		neckC0 = getC0(neck),
+		rightHipC0 = getC0(rh),
+		leftHipC0 = getC0(lh),
 	}
 	characterData[char] = data
 	return data
@@ -98,11 +116,11 @@ function Calculate(dt, hrp, humanoid, char)
 	-- Reset to neutral when not moving
 	if speed < 0.5 then
 		local LerpTime = 1 - LerpSpeed ^ dt
-		rootMotor.C0 = rootMotor.C0:Lerp(data.rootC0, LerpTime)
-		waist.C0 = waist.C0:Lerp(data.waistC0, LerpTime)
-		neck.C0 = neck.C0:Lerp(data.neckC0, LerpTime)
-		rightHipJ.C0 = rightHipJ.C0:Lerp(data.rightHipC0, LerpTime)
-		leftHipJ.C0 = leftHipJ.C0:Lerp(data.leftHipC0, LerpTime)
+		setC0(rootMotor, getC0(rootMotor):Lerp(data.rootC0, LerpTime))
+		setC0(waist, getC0(waist):Lerp(data.waistC0, LerpTime))
+		setC0(neck, getC0(neck):Lerp(data.neckC0, LerpTime))
+		setC0(rightHipJ, getC0(rightHipJ):Lerp(data.rightHipC0, LerpTime))
+		setC0(leftHipJ, getC0(leftHipJ):Lerp(data.leftHipC0, LerpTime))
 		return
 	end
 
@@ -203,11 +221,11 @@ function Calculate(dt, hrp, humanoid, char)
 	-- Apply smoothing
 	local LerpTime = 1 - LerpSpeed ^ dt
 
-	rootMotor.C0 = rootMotor.C0:Lerp(RootResult, LerpTime)
-	waist.C0 = waist.C0:Lerp(WaistResult, LerpTime)
-	neck.C0 = neck.C0:Lerp(NeckResult, LerpTime)
-	rightHipJ.C0 = rightHipJ.C0:Lerp(RightHipResult, LerpTime)
-	leftHipJ.C0 = leftHipJ.C0:Lerp(LeftHipResult, LerpTime)
+	setC0(rootMotor, getC0(rootMotor):Lerp(RootResult, LerpTime))
+	setC0(waist, getC0(waist):Lerp(WaistResult, LerpTime))
+	setC0(neck, getC0(neck):Lerp(NeckResult, LerpTime))
+	setC0(rightHipJ, getC0(rightHipJ):Lerp(RightHipResult, LerpTime))
+	setC0(leftHipJ, getC0(leftHipJ):Lerp(LeftHipResult, LerpTime))
 end
 
 RunService.RenderStepped:Connect(function(dt)

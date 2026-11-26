@@ -49,7 +49,8 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 1. Probar con 4 clientes (y una caja fuerte con 2); criaturas con 2+ clientes.
 2. Criaturas sin probar: `Noise.Emitted` → `Investigate` del Agresivo, olfateo de escondites, Acechador vigilando una taquilla ocupada.
 3. Sonidos `Criatura_*` en `Workspace.sonidos` (hoy suenan sustitutos); quitar `Config.Monster.Debug` antes de publicar; borrar las 7 criaturas oceánicas de `ServerStorage.GameAssets.Creatures`.
-4. Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
+4. ~~Ruido de `Turning`~~ (hecho 26/11): el rig usa `AnimationConstraint`, con `C0` de solo lectura; `Turning` escribía `C0` cada frame, fallaba y nunca giraba el cuerpo. Ahora escribe `Attachment0.CFrame` (o `C0` si es `Motor6D`): 0 errores, giro de cadera de 21° al moverse de lado.
+5. `assets_build/*Movement System.rbxm` y `legacy/` quedan en `.gitignore` (decisión del 26/11).
 
 ## Entregas
 

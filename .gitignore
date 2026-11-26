@@ -1,0 +1,3 @@
+# Packs de movimiento importados y scripts retirados: se guardan en local, fuera del repo.
+assets_build/*Movement System.rbxm
+legacy/
