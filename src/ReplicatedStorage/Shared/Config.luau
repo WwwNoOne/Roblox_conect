@@ -149,6 +149,25 @@ local Objectives = table.freeze({
 		OpenSeconds = 1.6, -- duración de la animación de la puerta
 		HoldSeconds = 0.3,
 	}),
+	-- Puertas con puzzle (atajos): persiana en el vano de cada PuzzleSpawn cuyo Part padre empieza por SpawnPrefix. Se abre con un
+	-- panel de interruptores (uno a cada lado): cada palanca invierte su luz y las vecinas; hay que encenderlas todas. El vano se mide
+	-- con rayos (jambas y dintel); el Part del marcador puede fijarlo con los atributos Width / Height (studs).
+	Door = table.freeze({
+		SpawnPrefix = "Puerta",
+		Levers = 5,
+		Scramble = 3, -- pulsaciones al azar desde la solución (siempre tiene solución en <= Scramble pulsaciones)
+		MinPresses = 2, -- se vuelve a mezclar si se resuelve con menos (no puede pasar de Scramble)
+		Budget = 10, -- pulsaciones antes del cortocircuito (se vuelve a mezclar y bloquea el panel)
+		LockoutSeconds = 3,
+		PressCooldown = 0.18,
+		PressNoiseRadius = 30, -- cada palanca hace ruido
+		ShortNoiseRadius = 80, -- el cortocircuito, mucho más
+		OpenSeconds = 2.2, -- la persiana sube
+		DefaultWidth = 10,
+		DefaultHeight = 9,
+		MaxJamb = 9, -- studs máx. del marcador a cada jamba al medir el vano
+		HoldSeconds = 0.3,
+	}),
 	-- Sonidos (ids de la Creator Store; cámbialos aquí). Volumen por sonido.
 	Sounds = table.freeze({
 		GeneratorHum = { Id = "rbxassetid://85901761858902", Volume = 0.55 },
@@ -159,6 +178,8 @@ local Objectives = table.freeze({
 		Wrong = { Id = "rbxassetid://134343807114403", Volume = 0.5 },
 		SafeOpen = { Id = "rbxassetid://9118837996", Volume = 0.9 },
 		Pickup = { Id = "rbxassetid://76809333017046", Volume = 0.7 },
+		Lever = { Id = "rbxassetid://92873453090584", Volume = 0.6 }, -- provisional: el de Lock
+		Shutter = { Id = "rbxassetid://9118837996", Volume = 1 }, -- provisional: el de SafeOpen
 	}),
 })
 

@@ -26,13 +26,17 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 - Generadores, cajas fuertes con dial, animaciones y panel de energía: ver [objetivos_nivel.md](docs/objetivos_nivel.md). Verificado en Play (1 cliente): aparecen 3 generadores (2 necesarios) y 2 cajas; bajar da `POWER_OFF` hasta reparar 2; validación de fases y de combinación; botín dentro de la caja; recogida con vuelo; sonidos cargados.
 - Corregido: `SellStation`/`ShopStation` están en `Elevator.Equipment` y no se encontraban (no se podía depositar).
 
-## Siguiente sesión (26/11/2026)
+## Sesión del 26/11/2026
 
-0. Al empezar: `rojo serve default.project.json` desde el worktree `Roblox_conect-backrooms` y conectar el plugin de Rojo en Studio. Comprobar que el lugar se guardó con `Workspace.Maps.Level_1` y `ServerStorage.GameAssets` (si no, repetir: mover `Level_1` a `Maps` y renombrar `AbismoAssets`).
-1. Probar con 2-4 clientes (Studio → Test → Clients) y ajustar `Config.Objectives` a gusto.
-2. Puertas con puzzle en `Puerta01/02` (`PuzzleSpawn`).
-3. Borrar `Workspace.Sala_0` del lugar de Studio si sigue (ya nadie la usa). Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
-4. T05: red de navegación para criaturas sobre mapas fijos (`LevelState.nav`) y conectar `Noise.Emitted`.
+0. [x] `rojo serve` desde `Roblox_conect-backrooms`; el plugin sincroniza (fuentes de Studio = disco). El lugar ya tenía `Workspace.Maps.Level_1` y `ServerStorage.GameAssets`; `Workspace.Sala_0` ya no existe.
+1. [x] **2 clientes** (Test → Clients and Servers, 2 jugadores): sala compartida (CreateRoom/JoinRoom/StartRun), los dos llegan a `Level_1`; aparecen 3 generadores (2 necesarios), 2 cajas y 2 puertas. Un jugador repara G-02 y el otro G-03: el contador es común (1/2 → «Energía restablecida» en ambos), el HUD de los dos muestra `powerDone 2/2` y `RequestDescend` pasa a `ok`; al bajar se limpian los objetivos. Un objetivo ocupado rechaza al segundo jugador («Player1 ya está trabajando aquí»). La puerta abierta por uno se ve abierta en el otro. Sin errores en el servidor. `Config.Objectives` sin cambios (con 2 jugadores siguen siendo 2 necesarios; 3 a partir de 3 jugadores). **Pendiente:** probar con 4 y la caja fuerte con 2.
+2. [x] **Puertas con puzzle** en `Puerta01` (Taller) y `Puerta02` (Energía): persiana + panel de interruptores a cada lado. Ver [objetivos_nivel.md](docs/objetivos_nivel.md). Verificado en Play: vano medido 10 × 9 (pared de 1), cerrada bloquea el paso, cortocircuito al agotar las pulsaciones (se mezcla y bloquea 3 s), luces 3D = interfaz, se abre y se cruza.
+
+## Siguiente sesión
+
+1. Probar con 4 clientes (y una caja fuerte con 2).
+2. Ruido de `Turning` (`C0` de solo lectura con `AnimationConstraint`) inunda la salida: revisar.
+3. T05: red de navegación para criaturas sobre mapas fijos (`LevelState.nav`) y conectar `Noise.Emitted`. Las persianas cerradas (`RunObjectives.Door_*`) deben contar como obstáculo.
 
 ## Entregas
 
@@ -43,5 +47,6 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 | Por revisar | Kits de salas y pasillos industriales como base liminal | Codex |
 | Pendiente | `Level_1` liminal, `Parada`, `machine_comm`, `puzzle_door`, `puzzle_chest`, `creature_nextbot_01` | Codex |
 | Hecho (sin probar) | Retirar agua/oxígeno/presión/casco del código; correr | Claude |
-| Pendiente | Máquinas de comunicación, puzzles y criaturas | Claude |
+| Hecho | Puertas con panel de interruptores (`Puerta*`) | Claude |
+| Pendiente | Máquinas de comunicación y criaturas | Claude |
 | Por definir | Mecánicas de criaturas, tipos de puzzle, reparación de máquinas, condición de victoria, temáticas de niveles 2+ | Usuario |

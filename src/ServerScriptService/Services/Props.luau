@@ -273,6 +273,151 @@ local function buildSafe(): Model
 	return m
 end
 
+-- ===== Puerta con puzzle (persiana enrollable + panel de interruptores a cada lado) =====
+-- Construida en el espacio del vano: origen en el centro del suelo, X a lo largo de la pared, Z normal a ella. `w`, `h`: vano;
+-- `t`: grosor de la pared. Contrato: Door (Model: Plate, BottomBar, Slat*), StatusLightA/B (+PointLight), PanelA/PanelB (Model:
+-- Back.PromptAttachment, Lever1..N con atributos Index y HingeRel, Lamp1..N con Index), Hum/Shutter/Lever/Spark (Sound).
+local DOOR_STEEL = Color3.fromRGB(104, 110, 104)
+local DOOR_RIB = Color3.fromRGB(72, 78, 74)
+local LAMP_OFF = Color3.fromRGB(120, 34, 26)
+Props.LampOn = Color3.fromRGB(110, 230, 120)
+Props.LampOff = LAMP_OFF
+local LEVER_LEN = 0.42
+local LEVER_OFF = math.rad(-30) -- arriba, inclinada hacia fuera
+local LEVER_ON = math.rad(-150) -- abajo
+
+function Props.BuildDoor(w: number, h: number, t: number, levers: number): Model
+	local m = Instance.new("Model")
+	m.Name = "PuzzleDoor"
+	local railW = 0.35
+
+	-- Persiana
+	local door = Instance.new("Model")
+	door.Name = "Door"
+	door.Parent = m
+	local plate = part(door, "Plate", Vector3.new(w - railW, h, 0.3), CFrame.new(0, h / 2, 0), DOOR_STEEL, Enum.Material.Metal)
+	plate.CanCollide = true
+	local n = math.floor((h - 0.6) / 0.6)
+	for i = 1, n do
+		local y = 0.6 + i * 0.6
+		for _, z in { -0.17, 0.17 } do
+			local slat = part(door, "Slat", Vector3.new(w - railW - 0.1, 0.09, 0.05), CFrame.new(0, y, z), DOOR_RIB)
+			slat:SetAttribute("Y", y)
+		end
+	end
+	local bar = part(door, "BottomBar", Vector3.new(w - railW, 0.45, 0.42), CFrame.new(0, 0.225, 0), DARK, Enum.Material.Metal)
+	for i = 0, math.floor((w - railW) / 0.7) - 1 do
+		local x = -(w - railW) / 2 + 0.35 + i * 0.7
+		for _, z in { -0.215, 0.215 } do
+			local stripe = part(door, "Hazard", Vector3.new(0.35, 0.43, 0.02), CFrame.new(x, 0.225, z), HAZARD, Enum.Material.SmoothPlastic)
+			stripe:SetAttribute("Y", 0.225)
+		end
+	end
+	door.PrimaryPart = plate
+
+	-- Guías laterales y cajón superior (por fuera del dintel, a cada lado)
+	for _, sx in { -1, 1 } do
+		part(m, "Rail", Vector3.new(railW, h, t + 0.3), CFrame.new(sx * (w / 2 - railW / 2), h / 2, 0), DARK)
+	end
+	for side, sz in { A = -1, B = 1 } do
+		part(m, "Housing", Vector3.new(w + 0.6, 1.1, 0.6), CFrame.new(0, h + 0.55, sz * (t / 2 + 0.3)), DOOR_RIB)
+		local status = part(m, "StatusLight" .. side, Vector3.new(0.9, 0.22, 0.06), CFrame.new(0, h + 0.55, sz * (t / 2 + 0.63)), Color3.fromRGB(220, 50, 40), Enum.Material.Neon)
+		local light = Instance.new("PointLight")
+		light.Color = status.Color
+		light.Range = 9
+		light.Brightness = 1.4
+		light.Shadows = false
+		light.Parent = status
+
+		-- Panel de interruptores en la pared, junto al vano, mirando hacia fuera (-Z del panel = sz en el vano)
+		local pm = Instance.new("Model")
+		pm.Name = "Panel" .. side
+		pm.Parent = m
+		local panelW = 0.5 + levers * 0.42
+		local px = w / 2 + 0.45 + panelW / 2
+		local pcf = CFrame.lookAt(Vector3.new(px, 4.2, sz * (t / 2 + 0.1)), Vector3.new(px, 4.2, sz * (t / 2 + 5)))
+		local back = part(pm, "Back", Vector3.new(panelW, 2.3, 0.15), pcf * CFrame.new(0, 0, 0.075), DARK)
+		part(pm, "Face", Vector3.new(panelW - 0.16, 2.14, 0.04), pcf * CFrame.new(0, 0, -0.02), Color3.fromRGB(54, 58, 55))
+		part(pm, "Label", Vector3.new(panelW - 0.4, 0.22, 0.03), pcf * CFrame.new(0, 0.86, -0.05), HAZARD, Enum.Material.SmoothPlastic)
+		part(pm, "Conduit", Vector3.new(0.18, 1.6, 0.18), pcf * CFrame.new(-panelW / 2 + 0.2, 1.95, 0.05), DARK, Enum.Material.Metal)
+		for i = 1, levers do
+			local x = (levers - 1) * 0.21 - (i - 1) * 0.42 -- +X del panel = izquierda de quien lo mira: la 1 a la izquierda
+			local lamp = part(pm, "Lamp" .. i, Vector3.new(0.24, 0.24, 0.08), pcf * CFrame.new(x, 0.45, -0.06), LAMP_OFF, Enum.Material.SmoothPlastic)
+			lamp:SetAttribute("Index", i)
+			part(pm, "Slot", Vector3.new(0.14, 0.9, 0.04), pcf * CFrame.new(x, -0.35, -0.05), Color3.fromRGB(20, 20, 20))
+			local hinge = pcf * CFrame.new(x, -0.35, -0.08)
+			local handle = part(pm, "Lever" .. i, Vector3.new(0.12, LEVER_LEN, 0.12), hinge * CFrame.Angles(LEVER_OFF, 0, 0) * CFrame.new(0, LEVER_LEN / 2, 0), Color3.fromRGB(150, 150, 140), Enum.Material.Metal)
+			handle:SetAttribute("Index", i)
+			handle:SetAttribute("HingeRel", hinge) -- relativo al pivote del modelo (origen de construcción)
+			part(pm, "Knob", Vector3.new(0.2, 0.2, 0.2), handle.CFrame * CFrame.new(0, LEVER_LEN / 2, 0), Color3.fromRGB(190, 40, 30), Enum.Material.SmoothPlastic, Enum.PartType.Ball).Name = "Knob" .. i
+		end
+		attachment(back, "PromptAttachment", (pcf * CFrame.new(0, -0.2, -1.4)).Position)
+		attachment(back, "SparkPoint", (pcf * CFrame.new(0, 0.2, -0.2)).Position)
+		sound(back, "Lever", Config.Objectives.Sounds.Lever, false, 40)
+		sound(back, "Spark", Config.Objectives.Sounds.Spark, false, 60)
+	end
+	sound(plate, "Shutter", Config.Objectives.Sounds.Shutter, false, 70)
+	-- Pivote fijo (la placa cambia de tamaño al abrirse).
+	local root = part(m, "Root", Vector3.new(0.2, 0.2, 0.2), CFrame.new(), DARK)
+	root.Transparency = 1
+	root.CanQuery = false
+	root.CanTouch = false
+	setPivot(m, root)
+	return m
+end
+
+-- Pone la palanca `i` de los dos paneles arriba (apagada) o abajo (encendida) y su luz.
+function Props.SetDoorLever(model: Model, i: number, on: boolean)
+	local pivot = model:GetPivot()
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("Index") == i then
+			if string.sub(d.Name, 1, 4) == "Lamp" then
+				d.Color = if on then Props.LampOn else LAMP_OFF
+				d.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+			elseif string.sub(d.Name, 1, 5) == "Lever" then
+				local rel = d:GetAttribute("HingeRel")
+				if typeof(rel) == "CFrame" then
+					local cf = pivot * rel * CFrame.Angles(if on then LEVER_ON else LEVER_OFF, 0, 0) * CFrame.new(0, LEVER_LEN / 2, 0)
+					d.CFrame = cf
+					local knob = d.Parent and d.Parent:FindFirstChild("Knob" .. i)
+					if knob and knob:IsA("BasePart") then
+						knob.CFrame = cf * CFrame.new(0, LEVER_LEN / 2, 0)
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Enrolla la persiana (alpha 0 = cerrada, 1 = abierta): la placa encoge desde abajo y las lamas que quedan por debajo se ocultan.
+function Props.SetDoorOpen(model: Model, h: number, alpha: number)
+	local door = model:FindFirstChild("Door")
+	local plate = door and door:FindFirstChild("Plate")
+	if not door or not plate or not plate:IsA("BasePart") then
+		return
+	end
+	local pivot = model:GetPivot()
+	local bottom = alpha * (h - 0.45)
+	local size = plate.Size
+	plate.Size = Vector3.new(size.X, math.max(0.05, h - bottom), size.Z)
+	plate.CFrame = pivot * CFrame.new(0, (bottom + h) / 2, 0)
+	plate.CanCollide = alpha < 0.6
+	for _, d in door:GetDescendants() do
+		if d:IsA("BasePart") and d ~= plate then
+			local y = d:GetAttribute("Y")
+			if d.Name == "BottomBar" then
+				d.CFrame = pivot * CFrame.new(0, bottom + 0.225, 0)
+				d.CanCollide = alpha < 0.6
+			elseif d.Name == "Hazard" and type(y) == "number" then
+				local p = pivot:PointToObjectSpace(d.Position)
+				d.CFrame = pivot * CFrame.new(p.X, bottom + 0.225, p.Z)
+			elseif type(y) == "number" then
+				d.Transparency = if y < bottom + 0.3 then 1 else 0
+			end
+		end
+	end
+end
+
 -- Plantilla de GameAssets si existe; si no, el modelo de piezas.
 function Props.Make(kind: "Generator" | "Safe"): Model
 	local def = (Config.Objectives :: any)[kind]

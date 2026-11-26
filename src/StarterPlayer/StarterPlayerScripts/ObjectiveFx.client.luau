@@ -54,19 +54,20 @@ local function sparkEmitter(att: Attachment): ParticleEmitter
 	return p
 end
 
+-- Chispas en cada SparkPoint del modelo (la puerta tiene uno por panel).
 local function burst(model: Model, count: number)
-	local att = model:FindFirstChild("SparkPoint", true)
-	if not att or not att:IsA("Attachment") then
-		return
-	end
-	local e = sparkEmitter(att)
-	e:Emit(count)
-	local flash = att:FindFirstChild("FxFlash")
-	if flash and flash:IsA("PointLight") then
-		flash.Brightness = 4
-		task.delay(0.08, function()
-			flash.Brightness = 0
-		end)
+	for _, att in model:GetDescendants() do
+		if att:IsA("Attachment") and att.Name == "SparkPoint" then
+			local e = sparkEmitter(att)
+			e:Emit(count)
+			local flash = att:FindFirstChild("FxFlash")
+			if flash and flash:IsA("PointLight") then
+				flash.Brightness = 4
+				task.delay(0.08, function()
+					flash.Brightness = 0
+				end)
+			end
+		end
 	end
 end
 
@@ -153,6 +154,11 @@ local function onObjective(child: Instance)
 		trackGenerator(child)
 	elseif string.sub(child.Name, 1, 5) == "Safe_" then
 		trackSafe(child)
+	elseif string.sub(child.Name, 1, 5) == "Door_" then
+		-- Puerta con puzzle: el cortocircuito del panel suelta chispas.
+		child:GetAttributeChangedSignal("SparkAt"):Connect(function()
+			burst(child, 50)
+		end)
 	end
 end
 

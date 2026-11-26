@@ -3,6 +3,7 @@
 -- Config.Objectives. Al empezar un nivel (Runs.StateChanged "Level") coloca los modelos (Props) en los marcadores del mapa cargado:
 --   * MachineSpawn -> generador. Se reparan Needed (según jugadores) de los que aparecen; hasta entonces Runs no deja bajar (POWER_OFF).
 --   * PuzzleSpawn cuyo Part padre empieza por "Cofre" -> caja fuerte con combinación aleatoria y botín dentro (TreasureSpawner).
+--   * PuzzleSpawn cuyo Part padre empieza por "Puerta" -> persiana en el vano, con panel de interruptores a cada lado (atajo).
 -- El minijuego lo dibuja PuzzleClient; aquí se valida cada acción (PuzzleAction). Un objeto solo lo usa un jugador a la vez.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -20,6 +21,7 @@ local Noise = require(script.Parent:WaitForChild("Noise"))
 local O = Config.Objectives
 local G = O.Generator
 local S = O.Safe
+local D = O.Door
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local puzzleOpen = remotes:WaitForChild("PuzzleOpen") :: RemoteEvent
@@ -61,7 +63,23 @@ type Safe = {
 	probes: { [Player]: { t: number, n: number } },
 }
 
-type Objective = Generator | Safe
+type Door = {
+	kind: "Door",
+	id: string,
+	label: string,
+	model: Model,
+	prompt: ProximityPrompt,
+	prompts: { ProximityPrompt },
+	height: number,
+	lights: { boolean },
+	presses: number,
+	opened: boolean,
+	operator: Player?,
+	lockedUntil: number,
+	lastPress: number,
+}
+
+type Objective = Generator | Safe | Door
 
 local objectives: { [string]: Objective } = {}
 local activeRun: string? = nil -- código de la partida dueña del nivel cargado
@@ -98,14 +116,22 @@ local function rootOf(player: Player): BasePart?
 	return nil
 end
 
-local function promptPoint(o: Objective): Vector3
-	local att = o.model:FindFirstChild("PromptAttachment", true)
-	return if att and att:IsA("Attachment") then att.WorldPosition else o.model:GetPivot().Position
-end
-
+-- Una puerta tiene un panel (y un PromptAttachment) a cada lado: vale cualquiera.
 local function inReach(player: Player, o: Objective, extra: number): boolean
 	local root = rootOf(player)
-	return root ~= nil and (root.Position - promptPoint(o)).Magnitude <= O.UseDistance + extra
+	if not root then
+		return false
+	end
+	local any = false
+	for _, d in o.model:GetDescendants() do
+		if d:IsA("Attachment") and d.Name == "PromptAttachment" then
+			any = true
+			if (root.Position - d.WorldPosition).Magnitude <= O.UseDistance + extra then
+				return true
+			end
+		end
+	end
+	return not any and (root.Position - o.model:GetPivot().Position).Magnitude <= O.UseDistance + extra
 end
 
 local function setLight(model: Model, color: Color3)
@@ -403,6 +429,228 @@ local function safeLock(s: Safe, player: Player, value: unknown): { [string]: an
 	return { ok = true, correct = false, step = 1, lockedUntil = s.lockedUntil }
 end
 
+-- ===== Puertas con panel de interruptores =====
+local function allOn(lights: { boolean }): boolean
+	for _, on in lights do
+		if not on then
+			return false
+		end
+	end
+	return true
+end
+
+local function toggle(lights: { boolean }, i: number)
+	for j = i - 1, i + 1 do
+		if lights[j] ~= nil then
+			lights[j] = not lights[j]
+		end
+	end
+end
+
+-- Mínimo de pulsaciones para encenderlas todas (fuerza bruta: 2^Levers combinaciones; pulsar dos veces la misma no sirve).
+local function minPresses(lights: { boolean }): number
+	local n = #lights
+	local best = math.huge
+	for mask = 0, 2 ^ n - 1 do
+		local test = table.clone(lights)
+		local count = 0
+		for i = 1, n do
+			if bit32.extract(mask, i - 1) == 1 then
+				toggle(test, i)
+				count += 1
+			end
+		end
+		if count < best and allOn(test) then
+			best = count
+		end
+	end
+	return best
+end
+
+-- Se parte de la solución y se aplican pulsaciones al azar: siempre tiene solución. Nunca se resuelve con menos de MinPresses.
+local function scramble(): { boolean }
+	local lights: { boolean }
+	repeat
+		lights = table.create(D.Levers, true)
+		local order = {}
+		for i = 1, D.Levers do
+			order[i] = i
+		end
+		for i = #order, 2, -1 do
+			local j = rng:NextInteger(1, i)
+			order[i], order[j] = order[j], order[i]
+		end
+		for k = 1, math.min(D.Scramble, D.Levers) do
+			toggle(lights, order[k])
+		end
+	until minPresses(lights) >= D.MinPresses
+	return lights
+end
+
+local function setDoorLight(d: Door, color: Color3)
+	for _, name in { "StatusLightA", "StatusLightB" } do
+		local light = d.model:FindFirstChild(name)
+		if light and light:IsA("BasePart") then
+			light.Color = color
+			local pl = light:FindFirstChildOfClass("PointLight")
+			if pl then
+				pl.Color = color
+			end
+		end
+	end
+end
+
+local function refreshDoor(d: Door)
+	for i, on in d.lights do
+		Props.SetDoorLever(d.model, i, on)
+	end
+	local lit = 0
+	for _, on in d.lights do
+		if on then
+			lit += 1
+		end
+	end
+	d.model:SetAttribute("Lit", lit)
+	d.model:SetAttribute("State", if d.opened then "Open" else "Locked")
+end
+
+local function playAll(model: Model, name: string)
+	for _, s in model:GetDescendants() do
+		if s:IsA("Sound") and s.Name == name then
+			s:Play()
+		end
+	end
+end
+
+local function completeDoor(d: Door, by: Player)
+	d.opened = true
+	for _, p in d.prompts do
+		p.Enabled = false
+	end
+	refreshDoor(d)
+	setDoorLight(d, GREEN)
+	playSound(d.model, "Shutter")
+	local alpha = Instance.new("NumberValue")
+	local conn = alpha.Changed:Connect(function(a: number)
+		Props.SetDoorOpen(d.model, d.height, a)
+	end)
+	local tween = TweenService:Create(alpha, TweenInfo.new(D.OpenSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, 0, false, 0.3), { Value = 1 })
+	tween.Completed:Once(function()
+		Props.SetDoorOpen(d.model, d.height, 1)
+		conn:Disconnect()
+		alpha:Destroy()
+	end)
+	tween:Play()
+	Noise.Emit(d.model:GetPivot().Position, D.ShortNoiseRadius, "Door")
+	notice(by, d.label .. " abierta")
+end
+
+local function openDoor(d: Door, player: Player)
+	local data: Types.DoorOpen = {
+		label = d.label,
+		lights = table.clone(d.lights),
+		presses = d.presses,
+		budget = D.Budget,
+		lockedUntil = d.lockedUntil,
+	}
+	puzzleOpen:FireClient(player, "Door", d.id, data)
+end
+
+local function doorPress(d: Door, player: Player, value: unknown): { [string]: any }
+	if d.opened or type(value) ~= "number" or value ~= value then
+		return { ok = false }
+	end
+	local i = math.floor(value)
+	if i < 1 or i > D.Levers then
+		return { ok = false }
+	end
+	local t = now()
+	if t < d.lockedUntil then
+		return { ok = false, err = "LOCKED", lockedUntil = d.lockedUntil }
+	end
+	if t - d.lastPress < D.PressCooldown then
+		return { ok = false, err = "TOO_FAST" }
+	end
+	d.lastPress = t
+	toggle(d.lights, i)
+	d.presses += 1
+	playAll(d.model, "Lever")
+	Noise.Emit(d.model:GetPivot().Position, D.PressNoiseRadius, "Door")
+	if allOn(d.lights) then
+		completeDoor(d, player)
+		release(d, "Done")
+		return { ok = true, lights = table.clone(d.lights), presses = d.presses, solved = true }
+	end
+	if d.presses >= D.Budget then
+		-- Cortocircuito: chispas, mucho ruido, se mezcla de nuevo y se bloquea el panel.
+		d.presses = 0
+		d.lights = scramble()
+		d.lockedUntil = t + D.LockoutSeconds
+		d.model:SetAttribute("SparkAt", t)
+		playAll(d.model, "Spark")
+		setDoorLight(d, AMBER)
+		task.delay(D.LockoutSeconds, function()
+			if not d.opened then
+				setDoorLight(d, RED)
+			end
+		end)
+		Noise.Emit(d.model:GetPivot().Position, D.ShortNoiseRadius, "Door")
+		refreshDoor(d)
+		return { ok = true, lights = table.clone(d.lights), presses = 0, short = true, lockedUntil = d.lockedUntil }
+	end
+	refreshDoor(d)
+	return { ok = true, lights = table.clone(d.lights), presses = d.presses }
+end
+
+-- Mide el vano del marcador con rayos: jambas a ambos lados (en X o en Z) y dintel. Devuelve el marco del vano (origen en el centro
+-- del suelo, X a lo largo de la pared, Z normal), ancho, alto y grosor de la pared.
+local function measureOpening(marker: Attachment, ignore: { Instance }): (CFrame, number, number, number)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	local p = marker.WorldPosition
+	local down = workspace:Raycast(p + Vector3.new(0, 2, 0), Vector3.new(0, -8, 0), params)
+	local floorY = if down then down.Position.Y else p.Y
+	local mid = Vector3.new(p.X, floorY + 3, p.Z)
+	local best: { axis: Vector3, a: RaycastResult, b: RaycastResult }? = nil
+	for _, axis in { Vector3.xAxis, Vector3.zAxis } do
+		local a = workspace:Raycast(mid, axis * D.MaxJamb, params)
+		local b = workspace:Raycast(mid, -axis * D.MaxJamb, params)
+		if a and b and (not best or a.Distance + b.Distance < best.a.Distance + best.b.Distance) then
+			best = { axis = axis, a = a, b = b }
+		end
+	end
+	local owner = marker.Parent
+	local attrW = owner and owner:GetAttribute("Width")
+	local attrH = owner and owner:GetAttribute("Height")
+	local axis = if best then best.axis else Vector3.xAxis
+	local normal = axis:Cross(Vector3.yAxis)
+	local center = Vector3.new(p.X, floorY, p.Z)
+	local width = D.DefaultWidth
+	local thickness = 1
+	if best then
+		width = best.a.Distance + best.b.Distance
+		center += axis * (best.a.Distance - best.b.Distance) / 2
+		-- Grosor y plano medio de la pared, a partir de la jamba (caja alineada a los ejes).
+		local jamb = best.a.Instance
+		if jamb:IsA("BasePart") then
+			local cf, h = jamb.CFrame, jamb.Size / 2
+			local ext = math.abs(cf.RightVector:Dot(normal)) * h.X + math.abs(cf.UpVector:Dot(normal)) * h.Y + math.abs(cf.LookVector:Dot(normal)) * h.Z
+			thickness = ext * 2
+			center += normal * (jamb.Position - center):Dot(normal)
+		end
+	end
+	local up = workspace:Raycast(center + Vector3.new(0, 0.5, 0), Vector3.new(0, 30, 0), params)
+	local height = if up then up.Position.Y - floorY else D.DefaultHeight
+	if type(attrW) == "number" then
+		width = attrW
+	end
+	if type(attrH) == "number" then
+		height = attrH
+	end
+	return CFrame.fromMatrix(center, axis, Vector3.yAxis, normal), width, height, thickness
+end
+
 -- ===== Colocación por nivel =====
 local function clearAll()
 	for _, o in objectives do
@@ -413,8 +661,8 @@ local function clearAll()
 	workspace:SetAttribute("PowerRestored", nil)
 end
 
-local function makePrompt(o: Objective, action: string, hold: number): ProximityPrompt
-	local att = o.model:FindFirstChild("PromptAttachment", true)
+local function makePrompt(o: Objective, action: string, hold: number, at: Instance?): ProximityPrompt
+	local att = at or o.model:FindFirstChild("PromptAttachment", true)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = action
 	prompt.ObjectText = o.label
@@ -448,8 +696,10 @@ local function tryUse(o: Objective, player: Player)
 	o.model:SetAttribute("Operator", player.UserId)
 	if o.kind == "Generator" then
 		openGenerator(o :: Generator, player)
-	else
+	elseif o.kind == "Safe" then
 		openSafe(o :: Safe, player)
+	else
+		openDoor(o :: Door, player)
 	end
 end
 
@@ -506,11 +756,14 @@ local function spawnObjectives(run: Runs.Run)
 	local ignore, solids = placementLists()
 	local machines: { Attachment } = {}
 	local safes: { Attachment } = {}
+	local doors: { Attachment } = {}
 	for _, m in markerParts() do
 		if m.att.Name == "MachineSpawn" then
 			table.insert(machines, m.att)
 		elseif m.owner and string.sub(m.owner.Name, 1, #S.SpawnPrefix) == S.SpawnPrefix then
 			table.insert(safes, m.att)
+		elseif m.owner and string.sub(m.owner.Name, 1, #D.SpawnPrefix) == D.SpawnPrefix then
+			table.insert(doors, m.att)
 		end
 	end
 	shuffle(machines)
@@ -571,7 +824,42 @@ local function spawnObjectives(run: Runs.Run)
 		model:SetAttribute("Step", 0)
 		objectives[s.id] = s
 	end
-	print(string.format("[Objectives] %d generadores (%d necesarios), %d cajas fuertes", count, needed, #safes))
+	for i, att in doors do
+		local frame, width, height, thickness = measureOpening(att, ignore)
+		local model = Props.BuildDoor(width, height, thickness, D.Levers)
+		model.Name = "Door_" .. i
+		model:PivotTo(frame)
+		model.Parent = folder
+		local d: Door = {
+			kind = "Door",
+			id = model.Name,
+			label = string.format("Persiana de seguridad %s-%d", string.char(64 + i), rng:NextInteger(10, 99)),
+			model = model,
+			prompt = nil :: any,
+			prompts = {},
+			height = height,
+			lights = scramble(),
+			presses = 0,
+			opened = false,
+			operator = nil,
+			lockedUntil = 0,
+			lastPress = 0,
+		}
+		for _, a in model:GetDescendants() do
+			if a:IsA("Attachment") and a.Name == "PromptAttachment" then
+				local prompt = makePrompt(d, "Usar panel", D.HoldSeconds, a)
+				prompt.Triggered:Connect(function(player)
+					tryUse(d, player)
+				end)
+				table.insert(d.prompts, prompt)
+			end
+		end
+		d.prompt = d.prompts[1]
+		setDoorLight(d, RED)
+		refreshDoor(d)
+		objectives[d.id] = d
+	end
+	print(string.format("[Objectives] %d generadores (%d necesarios), %d cajas fuertes, %d puertas", count, needed, #safes, #doors))
 end
 
 Runs.StateChanged:Connect(function(code: string, state)
@@ -607,6 +895,8 @@ puzzleAction.OnServerInvoke = function(player: Player, id: unknown, action: unkn
 		return safeProbe(o :: Safe, player, arg)
 	elseif o.kind == "Safe" and action == "Lock" then
 		return safeLock(o :: Safe, player, arg)
+	elseif o.kind == "Door" and action == "Press" then
+		return doorPress(o :: Door, player, arg)
 	end
 	return { ok = false }
 end

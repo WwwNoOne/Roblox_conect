@@ -4,6 +4,8 @@
 --     pierde una fase. Config.Objectives.Generator.Steps fases lo reparan.
 --   * Caja fuerte: dial de 0 a Numbers-1. [A]/[D], flechas o rueda giran; al pasar por el número correcto suena un clic y se enciende
 --     el piloto. [Espacio]/[E] fija el número. Un número incorrecto reinicia la combinación y bloquea el dial unos segundos.
+--   * Puerta: panel de interruptores. Cada palanca invierte su luz y las de al lado; hay que encenderlas todas antes de gastar las
+--     pulsaciones (si no, cortocircuito: se mezcla y se bloquea). [1]-[5] o clic accionan; [A]/[D] eligen y [Espacio] acciona.
 -- [Q] o [Retroceso] salen. Mientras está abierto el ratón queda libre y el personaje no se mueve. Estética de SurvivalHud.
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -111,7 +113,7 @@ if workspace.CurrentCamera then
 end
 
 type Session = {
-	kind: "Generator" | "Safe",
+	kind: "Generator" | "Safe" | "Door",
 	id: string,
 	root: Frame,
 	onKey: (key: Enum.KeyCode, down: boolean) -> (),
@@ -136,9 +138,13 @@ end
 local function setOwnPrompt(id: string, enabled: boolean)
 	local folder = workspace:FindFirstChild("RunObjectives")
 	local model = folder and folder:FindFirstChild(id)
-	local prompt = model and model:FindFirstChildWhichIsA("ProximityPrompt", true)
-	if prompt and model:GetAttribute("State") ~= "Repaired" and model:GetAttribute("State") ~= "Open" then
-		prompt.Enabled = enabled
+	if not model or model:GetAttribute("State") == "Repaired" or model:GetAttribute("State") == "Open" then
+		return
+	end
+	for _, prompt in model:GetDescendants() do
+		if prompt:IsA("ProximityPrompt") then
+			prompt.Enabled = enabled
+		end
 	end
 end
 
@@ -148,6 +154,8 @@ local KEYS = {
 	Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right,
 	Enum.KeyCode.Space, Enum.KeyCode.E, Enum.KeyCode.Q, Enum.KeyCode.Backspace, Enum.KeyCode.Return,
 	Enum.KeyCode.LeftShift, Enum.KeyCode.C, Enum.KeyCode.LeftControl,
+	Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five,
+	Enum.KeyCode.Six, Enum.KeyCode.Seven, Enum.KeyCode.Eight, Enum.KeyCode.Nine,
 	Enum.KeyCode.ButtonA, Enum.KeyCode.ButtonB, Enum.KeyCode.DPadLeft, Enum.KeyCode.DPadRight, Enum.KeyCode.Thumbstick1,
 }
 
@@ -622,11 +630,183 @@ local function openSafe(id: string, data: Types.SafeOpen)
 	})
 end
 
+-- ===== Puerta: panel de interruptores =====
+local DIGITS = {
+	[Enum.KeyCode.One] = 1, [Enum.KeyCode.Two] = 2, [Enum.KeyCode.Three] = 3, [Enum.KeyCode.Four] = 4, [Enum.KeyCode.Five] = 5,
+	[Enum.KeyCode.Six] = 6, [Enum.KeyCode.Seven] = 7, [Enum.KeyCode.Eight] = 8, [Enum.KeyCode.Nine] = 9,
+}
+
+local function openDoor(id: string, data: Types.DoorOpen)
+	local n = #data.lights
+	local colW = 96
+	local width = math.max(560, n * colW + 80)
+	local root = panel({ Name = "Door", AnchorPoint = Vector2.new(0.5, 0.5), Size = UDim2.fromOffset(width, 380) }, gui)
+	text({ Text = string.upper(data.label) .. " · PANEL DE CONTROL", TextSize = 18, FontFace = MONO_BOLD, TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.fromOffset(24, 18), Size = UDim2.fromOffset(width - 170, 22) }, root)
+	text({ Text = "Cada palanca cambia su luz y las de al lado. Enciéndelas todas.", TextSize = 13, TextColor3 = DIM, TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.fromOffset(24, 44), Size = UDim2.fromOffset(width - 48, 18) }, root)
+	local closeBtn = button("SALIR [Q]", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -18, 0, 16), Size = UDim2.fromOffset(110, 30) }, root)
+
+	local row = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 80), Size = UDim2.fromOffset(n * colW, 190), BackgroundTransparency = 1 }, root)
+	local lamps: { Frame } = {}
+	local levers: { TextButton } = {}
+	local handles: { Frame } = {}
+	local cols: { Frame } = {}
+	for i = 1, n do
+		local col = new("Frame", { Position = UDim2.fromOffset((i - 1) * colW + 8, 0), Size = UDim2.fromOffset(colW - 16, 190), BackgroundColor3 = Color3.fromRGB(30, 29, 25), BorderSizePixel = 0 }, row)
+		new("UICorner", { CornerRadius = UDim.new(0, 3) }, col)
+		new("UIStroke", { Name = "Sel", Color = AMBER, Transparency = 1, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, col)
+		cols[i] = col
+		local lamp = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 12), Size = UDim2.fromOffset(34, 34), BackgroundColor3 = Color3.fromRGB(70, 26, 20), BorderSizePixel = 0 }, col)
+		new("UICorner", { CornerRadius = UDim.new(1, 0) }, lamp)
+		new("UIStroke", { Color = INK, Thickness = 3 }, lamp)
+		lamps[i] = lamp
+		-- Ranura y palanca: arriba = apagada, abajo = encendida.
+		local lever = new("TextButton", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 58), Size = UDim2.fromOffset(46, 96), BackgroundColor3 = Color3.fromRGB(18, 18, 16), BorderSizePixel = 0, Text = "", AutoButtonColor = false }, col)
+		new("UICorner", { CornerRadius = UDim.new(0, 6) }, lever)
+		new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(0, 8, 1, -16), BackgroundColor3 = Color3.fromRGB(8, 8, 8), BorderSizePixel = 0 }, lever)
+		local handle = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.25), Size = UDim2.fromOffset(38, 22), BackgroundColor3 = RED, BorderSizePixel = 0 }, lever)
+		new("UICorner", { CornerRadius = UDim.new(0, 4) }, handle)
+		levers[i] = lever
+		handles[i] = handle
+		text({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 160), Size = UDim2.fromOffset(60, 20), Text = string.format("[%d]", i), TextSize = 14, FontFace = MONO_BOLD, TextColor3 = DIM }, col)
+	end
+
+	local budgetLabel = text({ Text = "", TextSize = 13, TextColor3 = DIM, TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.fromOffset(24, 286), Size = UDim2.fromOffset(260, 16) }, root)
+	local barBack = new("Frame", { Position = UDim2.fromOffset(24, 306), Size = UDim2.new(1, -48, 0, 8), BackgroundColor3 = PAPER, BackgroundTransparency = 0.85, BorderSizePixel = 0 }, root)
+	local bar = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = AMBER, BorderSizePixel = 0 }, barBack)
+	local status = text({ Text = "", TextSize = 15, FontFace = MONO_BOLD, Position = UDim2.fromOffset(24, 326), Size = UDim2.new(1, -48, 0, 34) }, root)
+
+	local lights = table.clone(data.lights)
+	local presses = data.presses
+	local lockedUntil = data.lockedUntil
+	local selected = 1
+	local busy = false
+	local solved = false
+
+	local function setStatus(t: string, color: Color3)
+		status.Text = t
+		status.TextColor3 = color
+	end
+	local function refresh()
+		for i = 1, n do
+			local on = lights[i]
+			lamps[i].BackgroundColor3 = if on then GREEN else Color3.fromRGB(70, 26, 20)
+			TweenService:Create(handles[i], TweenInfo.new(0.12, Enum.EasingStyle.Quad), { Position = UDim2.fromScale(0.5, if on then 0.75 else 0.25), BackgroundColor3 = if on then GREEN else RED }):Play()
+			local sel = cols[i]:FindFirstChild("Sel") :: UIStroke
+			sel.Transparency = if i == selected then 0.1 else 1
+		end
+		local left = data.budget - presses
+		budgetLabel.Text = string.format("PULSACIONES ANTES DEL CORTOCIRCUITO: %d", left)
+		bar.Size = UDim2.fromScale(math.clamp(left / data.budget, 0, 1), 1)
+		bar.BackgroundColor3 = if left <= 3 then RED else AMBER
+	end
+	refresh()
+	setStatus("Elige una palanca", PAPER)
+
+	local function press(i: number)
+		if busy or solved or i < 1 or i > n then
+			return
+		end
+		if workspace:GetServerTimeNow() < lockedUntil then
+			return
+		end
+		selected = i
+		busy = true
+		local ok, result = pcall(function()
+			return puzzleAction:InvokeServer(id, "Press", i)
+		end)
+		busy = false
+		if not session or session.id ~= id or not ok or type(result) ~= "table" then
+			return
+		end
+		if result.err == "LOCKED" then
+			lockedUntil = result.lockedUntil or lockedUntil
+			return
+		end
+		if not result.ok then
+			refresh()
+			return
+		end
+		lights = result.lights or lights
+		presses = result.presses or presses
+		play("Lever", 0.9 + math.random() * 0.2)
+		if result.solved then
+			solved = true
+			refresh()
+			setStatus("ACCESO CONCEDIDO · PERSIANA SUBIENDO", GREEN)
+			play("Lock", 0.9)
+			task.delay(1.0, function()
+				if session and session.id == id then
+					close(false)
+				end
+			end)
+			return
+		end
+		if result.short then
+			lockedUntil = result.lockedUntil or (workspace:GetServerTimeNow() + O.Door.LockoutSeconds)
+			play("Spark")
+			shake(root, 16)
+		end
+		refresh()
+	end
+
+	local conns: { RBXScriptConnection } = {}
+	table.insert(conns, closeBtn.Activated:Connect(function()
+		close(true)
+	end))
+	for i, lever in levers do
+		table.insert(conns, lever.Activated:Connect(function()
+			task.spawn(press, i)
+		end))
+	end
+
+	begin({
+		kind = "Door",
+		id = id,
+		root = root,
+		closing = false,
+		onKey = function(key, down)
+			if not down then
+				return
+			end
+			local digit = DIGITS[key]
+			if digit then
+				task.spawn(press, digit)
+			elseif key == Enum.KeyCode.A or key == Enum.KeyCode.Left or key == Enum.KeyCode.DPadLeft then
+				selected = math.max(1, selected - 1)
+				refresh()
+			elseif key == Enum.KeyCode.D or key == Enum.KeyCode.Right or key == Enum.KeyCode.DPadRight then
+				selected = math.min(n, selected + 1)
+				refresh()
+			elseif key == Enum.KeyCode.Space or key == Enum.KeyCode.E or key == Enum.KeyCode.Return or key == Enum.KeyCode.ButtonA then
+				task.spawn(press, selected)
+			end
+		end,
+		onStep = function(_dt)
+			if solved then
+				return
+			end
+			local wait = lockedUntil - workspace:GetServerTimeNow()
+			if wait > 0 then
+				setStatus(string.format("¡CORTOCIRCUITO! Panel bloqueado %.1f s", wait), RED)
+			elseif status.TextColor3 == RED then
+				setStatus("Panel reiniciado: vuelve a intentarlo", PAPER)
+			end
+		end,
+		cleanup = function()
+			for _, c in conns do
+				c:Disconnect()
+			end
+		end,
+	})
+end
+
 puzzleOpen.OnClientEvent:Connect(function(kind: string, id: string, data: any)
 	if kind == "Generator" then
 		openGenerator(id, data)
 	elseif kind == "Safe" then
 		openSafe(id, data)
+	elseif kind == "Door" then
+		openDoor(id, data)
 	end
 end)
 

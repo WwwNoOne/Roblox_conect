@@ -59,7 +59,7 @@ Cada nivel contiene: `ElevatorDock`, `TreasureSpawn`, `MachineSpawn`, `PuzzleDoo
 * **Tesoros:** objetos con valor y peso, capacidad de carga limitada. Se depositan en el Ascensor para alcanzar la cuota.
 * **Generadores de energía / máquinas de comunicación:** se reparan manteniendo `E` o con minijuego; al repararse emiten ruido mecánico progresivo que atrae patrullas cercanas. **[POR DEFINIR]** pasos, piezas necesarias y si exigen cooperación.
 * **Terminales y cajas fuertes (hackeo):** minijuego breve que requiere concentración; fallar activa una alerta local.
-* **Puzzles:** desbloquean puertas y tesoros. **[POR DEFINIR]** tipos (códigos, palancas, interruptores, secuencias).
+* **Puzzles:** desbloquean puertas y tesoros. Implementados: cajas fuertes con dial (tesoros) y **puertas-atajo con panel de interruptores** (cada palanca invierte su luz y las vecinas; agotar las pulsaciones provoca un cortocircuito ruidoso). **[POR DEFINIR]** más tipos (códigos, secuencias).
 * **Escondites:** `E` en una caja industrial para ocultarse; una criatura que se queda cerca te descubre tras unos segundos.
 
 ### Criaturas (nuevo, sin combate)

@@ -20,6 +20,8 @@ export type HudPayload = {
 export type GeneratorChallenge = { t0: number, period: number, center: number, width: number }
 export type GeneratorOpen = { label: string, steps: number, done: number, challenge: GeneratorChallenge }
 export type SafeOpen = { label: string, numbers: number, steps: number, step: number, lockedUntil: number }
+-- Puerta con panel de interruptores: lights[i] encendida; presses usadas de budget antes del cortocircuito.
+export type DoorOpen = { label: string, lights: { boolean }, presses: number, budget: number, lockedUntil: number }
 
 -- Level = explorando (puerta abierta); Stopover = en la Parada (puerta cerrada); Descending = viaje sellado.
 export type ShopItem = { id: string, name: string, level: number, maxLevel: number, price: number? }

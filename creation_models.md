@@ -70,7 +70,7 @@ Los scripts buscan por **nombre exacto** (sensible a mayúsculas) con `FindFirst
 | :-- | :-- | :-- |
 | `TreasureSpawn` | Attachment | Atributo `Size` = `Small`/`Medium`/`Large` |
 | `MachineSpawn` | Attachment | Dónde va una `machine_comm` |
-| `PuzzleSpawn` | Attachment | Atributo `Kind` **[POR DEFINIR]** |
+| `PuzzleSpawn` | Attachment | Según el nombre del Part padre: `Cofre*` → caja fuerte; `Puerta*` → persiana con panel de interruptores en el vano (atributos opcionales `Width`/`Height` en el Part). Otros tipos **[POR DEFINIR]** |
 | `CreatureSpawn` | Attachment | Origen de una criatura |
 | `Patrol1…N` | Attachment | Ruta de patrulla, orden numérico |
 | `HideSpot` | Part (volumen) | Zona donde esconderse **[POR DEFINIR]** |
