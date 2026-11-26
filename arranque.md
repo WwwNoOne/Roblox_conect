@@ -18,7 +18,14 @@ Actualizado el 25 de noviembre de 2026. El proyecto cambió de temática: **de s
 - Rama `claudette/confirm-roblox-mcp-connection` y su worktree eliminados (ya estaba fusionada en `main`).
 - Sistema de movimiento/cámara/sonido/HUD: completo y presente en ambas ramas (ver [movimiento_sonido_hud.md](docs/movimiento_sonido_hud.md)).
 - Añadidos: `AdminService` / `AdminPanel` (**temporales**, solo Studio; borrar antes de publicar), `LoadingScreen` ya no espera ningún nivel generado.
-- Exports de Codex pendientes de revisar contra el manifiesto: `Elevator`, `Level_1`, `Lobby`, `Kit_Gris_Modular` (medidas en [medidas_kit_modular.md](docs/medidas_kit_modular.md)).
+- Exports de Codex pendientes de revisar contra el manifiesto: `Elevator`, `Level_1`, `Level_1_Terror` (variante con vista previa `Level_1_Terror_Vista.png`), `Lobby`, `Kit_Gris_Modular` (medidas en [medidas_kit_modular.md](docs/medidas_kit_modular.md)).
+
+## Siguiente sesión
+
+1. Reconectar el MCP de Studio (`list_roblox_studios` se colgó en la última sesión) y probar en Play que la eliminación de `MazeGenerator`/`RoomGenerator` no rompe nada (pantalla de carga, viaje por el Ascensor, escondites, tesoros).
+2. Integrar `Level_1`/`Level_1_Terror` en `Workspace.Maps` y comprobar que llevan `ElevatorDock`, `TreasureSpawn` y `Escondite`.
+3. Borrar `Workspace.Sala_0` del lugar de Studio (ya nadie la usa).
+4. T05: red de navegación para criaturas sobre mapas fijos (`LevelState.nav`).
 
 ## Entregas
 
