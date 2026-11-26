@@ -145,12 +145,16 @@ local function clearDoorway(list: { Player })
 	if not entryAtt then
 		return
 	end
+	local n = 0
 	for _, p in list do
 		local root = aliveRoot(p)
 		if root then
 			local rel = doorClosed.WorldCFrame:PointToObjectSpace(root.Position)
 			if math.abs(rel.Z) < Cfg.DoorwayClear and math.abs(rel.X) < door.Size.X / 2 + 1 then
-				root.CFrame = entryAtt.WorldCFrame
+				-- Cada uno en un hueco distinto: dos personajes en el mismo punto se solapan y uno cae al vacío.
+				local offset = Vector3.new(((n % 3) - 1) * 2.5, 0, -math.floor(n / 3) * 2.5)
+				n += 1
+				root.CFrame = entryAtt.WorldCFrame * CFrame.new(offset)
 				root.AssemblyLinearVelocity = Vector3.zero
 			end
 		end

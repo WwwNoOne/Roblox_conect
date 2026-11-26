@@ -1152,6 +1152,7 @@ local function vanish(m: Monster, delay: number)
 	m.pathReq += 1
 	m.pending = false
 	m.target = nil
+	m.model:SetAttribute("Target", nil)
 	place(m)
 	m.timer = delay
 	setState(m, "Hidden")
@@ -1206,6 +1207,7 @@ local function stepSujetoFeliz(m: Monster, dt: number, now: number)
 		m.dir = if face.Magnitude > 0.1 then face.Unit else m.dir
 		m.stuckPos, m.stuckAt = spot, now
 		m.target = chosen.player
+		m.model:SetAttribute("Target", chosen.player.Name)
 		m.gazeT, m.awayT, m.seenOnce = 0, 0, false
 		place(m)
 		setState(m, "Stare")
@@ -1328,6 +1330,7 @@ local function stepFinalPursuit(m: Monster, dt: number, now: number)
 			place(m)
 		end
 		m.target = player
+		m.model:SetAttribute("Target", player.Name)
 		m.lastSeen = root.Position
 		m.repathAt = 0
 		Sfx.Play(Config.Sfx.CreatureAlert, m.root, 0.95, 160)
@@ -1342,6 +1345,7 @@ local function stepFinalPursuit(m: Monster, dt: number, now: number)
 	if not player or not root then
 		player, root = nearestEligible(m)
 		m.target = player
+		m.model:SetAttribute("Target", if player then player.Name else nil)
 		if root then
 			m.lastSeen = root.Position
 			m.repathAt = 0
@@ -1599,7 +1603,12 @@ Runs.StateChanged:Connect(function(code: string, state: Types.RunState)
 			end
 			local map = findLoadedMap(now)
 			if map then
-				MapNav.Build(map)
+				MapNav.Build(map) -- en mapas grandes cede el hilo (task.wait): la partida puede haber cambiado mientras tanto
+				local after = Runs.Get(code)
+				if not after or after.state ~= "Level" or after.ended or not map:IsDescendantOf(workspace) then
+					MapNav.Clear()
+					return
+				end
 			end
 			if LevelState.nav and LevelState.container then
 				for idx, spec in pickSpecies(K.PerLevel) do

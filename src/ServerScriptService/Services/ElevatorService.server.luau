@@ -47,6 +47,37 @@ local function setGate(open: boolean)
 	door.CanCollide = true
 end
 
+-- Punto libre junto a `att`: si otro jugador ya está ahí, prueba al lado y un paso más allá. Dos personajes teletransportados al
+-- mismo punto se solapan y la física expulsa a uno bajo el suelo (cae al vacío y pierde el HumanoidRootPart).
+local SPREAD = 2.5
+local SPOT_OFFSETS = {
+	Vector3.zero,
+	Vector3.new(SPREAD, 0, 0),
+	Vector3.new(-SPREAD, 0, 0),
+	Vector3.new(0, 0, -SPREAD),
+	Vector3.new(SPREAD, 0, -SPREAD),
+	Vector3.new(-SPREAD, 0, -SPREAD),
+}
+
+local function freeSpot(att: Attachment, self: Player): CFrame
+	local base = att.WorldCFrame
+	for _, offset in SPOT_OFFSETS do
+		local cf = base * CFrame.new(offset)
+		local taken = false
+		for _, other in Players:GetPlayers() do
+			local r = other ~= self and other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if r and r:IsA("BasePart") and (r.Position - cf.Position).Magnitude < SPREAD - 0.3 then
+				taken = true
+				break
+			end
+		end
+		if not taken then
+			return cf
+		end
+	end
+	return base
+end
+
 local function cross(player: Player, to: Attachment)
 	local run = Runs.GetByUser(player.UserId)
 	if not run or run.state ~= "Level" or not gateOpen then
@@ -58,7 +89,7 @@ local function cross(player: Player, to: Attachment)
 	if not humanoid or humanoid.Health <= 0 or not root then
 		return
 	end
-	root.CFrame = to.WorldCFrame
+	root.CFrame = freeSpot(to, player)
 	Sfx.Play(if to == entryAtt then Config.Sfx.ElevatorEnter else Config.Sfx.ElevatorExit, to.Parent, Config.Audio.ElevatorVolume, Config.Audio.ElevatorRollOff)
 	root.AssemblyLinearVelocity = Vector3.zero
 end

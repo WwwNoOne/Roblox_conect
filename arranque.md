@@ -58,8 +58,11 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 3. Sonidos `Criatura_*` en `Workspace.sonidos` (hoy suenan sustitutos); quitar `Config.Monster.Debug` antes de publicar; borrar las 7 criaturas oceánicas de `ServerStorage.GameAssets.Creatures`.
 4. ~~Ruido de `Turning`~~ (hecho 26/11): el rig usa `AnimationConstraint`, con `C0` de solo lectura; `Turning` escribía `C0` cada frame, fallaba y nunca giraba el cuerpo. Ahora escribe `Attachment0.CFrame` (o `C0` si es `Motor6D`): 0 errores, giro de cadera de 21° al moverse de lado.
 5. `assets_build/*Movement System.rbxm` y `legacy/` quedan en `.gitignore` (decisión del 26/11).
-6. ~~Integrar las variantes de Codex~~ (hecho 26/11): SujetoFeliz y Acosador del Tramo Final en `MonsterService` (campo `Behavior`), probados con 1 cliente; ver `docs/integracion_criaturas.md` §5. Falta probarlos con 2+ clientes. `Config.Monster.PerLevel = 5` para pruebas: bajarlo antes de publicar.
+6. ~~Integrar las variantes de Codex~~ (hecho 26/11): SujetoFeliz y Acosador del Tramo Final en `MonsterService` (campo `Behavior`), probados con 1 cliente; ver `docs/integracion_criaturas.md` §5. Probados también con 2 clientes (26/11). `Config.Monster.PerLevel = 5` para pruebas: bajarlo antes de publicar.
 7. **Guardar el place en Studio**: ascensor del lobby movido y plantillas nuevas en `GameAssets.Creatures`.
+8. **Salidas y entradas simultáneas** (hecho 26/11): dos personajes teletransportados al mismo punto se solapaban y uno caía al vacío. `ElevatorService` (`freeSpot`), `Runs` (`spreadCFrame` en la vuelta al lobby y al subir rezagados) y `BoardingService` (`clearDoorway`) reparten ahora a cada jugador en un hueco distinto. Probado con 2 clientes saliendo en el mismo segundo (6 ms de diferencia).
+9. **`Workspace.zona`**: pieza suelta de 700×1×700, visible y con colisión, a altura 49,5. Atraviesa el Nivel 1 a la altura de la cabeza y bloquea a los jugadores. Ningún script la usa. Borrarla o moverla (decisión del usuario).
+10. Retocar los mapas generados: zonas sueltas en la red de criaturas (Pantano: 340 de 2150 puntos) y piezas duplicadas (Pantano 764, Mansión 430, Escuela 151, Centro comercial 14). Ver `docs/niveles_generados.md`, «Pendiente de retocar».
 
 ## Entregas
 

@@ -367,6 +367,20 @@ function Runs.Close(code: string)
 	showOnlyMap(nil) -- de vuelta en el lobby no hace falta ningún nivel cargado
 end
 
+-- Hueco n-ésimo junto a un punto de entrada/salida: varios jugadores teletransportados al mismo punto se solapan y la física
+-- expulsa a alguno bajo el suelo (cae al vacío).
+local SPREAD_OFFSETS = {
+	Vector3.zero,
+	Vector3.new(2.5, 0, 0),
+	Vector3.new(-2.5, 0, 0),
+	Vector3.new(0, 0, -2.5),
+	Vector3.new(2.5, 0, -2.5),
+	Vector3.new(-2.5, 0, -2.5),
+}
+local function spreadCFrame(att: Attachment, n: number): CFrame
+	return att.WorldCFrame * CFrame.new(SPREAD_OFFSETS[(n - 1) % #SPREAD_OFFSETS + 1])
+end
+
 -- Devuelve el ascensor al lobby; quien estaba dentro viaja con él y quien estaba fuera aparece en la salida.
 function Runs.ReturnHome(members: { number })
 	local sub = elevator()
@@ -388,9 +402,9 @@ function Runs.ReturnHome(members: { number })
 		root.CFrame = delta * root.CFrame
 	end
 	local exitAtt = sub:FindFirstChild("ExitPoint", true)
-	for _, root in outside do
+	for n, root in outside do
 		if exitAtt and exitAtt:IsA("Attachment") then
-			root.CFrame = exitAtt.WorldCFrame
+			root.CFrame = spreadCFrame(exitAtt, n)
 		end
 	end
 end
@@ -418,10 +432,12 @@ end
 local function boardStragglers(run: Run)
 	local sub = elevator()
 	local entry = sub and sub:FindFirstChild("EntryPoint", true)
+	local n = 0
 	for _, id in aliveMembers(run) do
 		local root = aliveRoot(id)
 		if root and not isInsideElevator(root) and entry and entry:IsA("Attachment") then
-			root.CFrame = entry.WorldCFrame
+			n += 1
+			root.CFrame = spreadCFrame(entry, n)
 			root.AssemblyLinearVelocity = Vector3.zero
 		end
 	end

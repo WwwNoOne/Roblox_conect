@@ -116,3 +116,36 @@ El generador trabaja sobre una rejilla de celdas con dos plantas (`layout.py`):
 - Dejarlo un momento en una carpeta que sirva Rojo y clonarlo desde Studio. **Ojo:** borrar con `rm -r` una carpeta vigilada tumba `rojo serve` (error en `change_processor.rs`). Hay que borrar solo el archivo.
 
 Los mapas antiguos están en `ServerStorage.MapsBackup`. Los mapas son ediciones del lugar (no van por Rojo), así que **hay que guardar el lugar en Studio**.
+
+## Pendiente de retocar (revisión del 2026-11-26)
+
+Medido en Studio con los 6 mapas importados. No bloquea la partida, pero hay que limpiarlo en el generador.
+
+**Zonas sueltas en la red de las criaturas.** Puntos de la malla de `MapNav` que no conectan con el resto. Una criatura que aparezca o persiga hasta ahí normalmente usa PathfindingService, pero si este falla se queda sin ruta.
+
+| Mapa | Puntos | Componente mayor | Sueltos | Construcción |
+|---|---|---|---|---|
+| Level_1 Fábrica | 2664 | 2664 | 0 | 0,22 s |
+| Level_2 Pantano | 2150 | 1810 | **340** (1 aislado) | 0,17 s |
+| Level_3 Hospital | 7950 | 7945 | 5 | 2,43 s |
+| Level_4 Escuela | 4374 | 4374 | 0 | 0,87 s |
+| Level_5 Mansión | 7134 | 7134 | 0 | 1,29 s |
+| Level_6 Centro comercial | 9004 | 8972 | 32 (14 aislados) | 1,57 s |
+
+- El Pantano es el caso grave. Probablemente sean las casas del árbol y los puentes colgantes, o sus escaleras, que no enlazan con la malla del suelo (diferencia de altura > 10 studs o el rayo de la planta no los toca). Revisar `NavFloors` y las uniones.
+- Para medirlo: en Play (servidor), sacar cada mapa de `ServerStorage.MapStorage` a `Workspace.Maps`, `MapNav.Build(map)` y contar el componente conexo mayor de `nav.adj`.
+
+**Piezas superpuestas.** Piezas visibles con la misma posición y tamaño que otra (doble geometría, parpadeo y piezas de más):
+
+| Mapa | Visibles | Duplicadas | Ejemplos |
+|---|---|---|---|
+| Level_1 | 9730 | 0 | — |
+| Level_2 | 14133 | **764** | `Casa_del_árbol_*.Alacena.Tarro`, `Vegetacion.Siluetas.Silueta` |
+| Level_3 | 16909 | 0 | — |
+| Level_4 | 8018 | 151 | `Limites.Silueta` |
+| Level_5 | 5950 | 430 | `Estructura.Vanos.Barandilla.Poste` |
+| Level_6 | 14175 | 14 | `Estructura.Vanos.Barandilla.Poste` |
+
+- Los postes de barandilla salen repetidos donde se juntan dos tramos. Se arregla en `arch.py` deduplicando por posición al emitir.
+- Solo se contaron duplicados exactos. Faltan los solapes parciales (suelos o muros que se pisan a medias y parpadean); hay que revisarlos a ojo o con `GetPartsInPart`.
+- Las cajas de los mapas 3 a 6 se solapan entre sí en el lugar. En partida no importa, porque solo hay uno cargado a la vez, pero en el editor se ven mezclados.

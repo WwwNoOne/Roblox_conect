@@ -107,4 +107,9 @@ Diseño en [criaturas.md](criaturas.md) §2.4–2.5. Plantillas `sujetoFeliz` y 
 - [x] El Acosador final acecha como el Acosador y pasa a `FinalChase` a 30 s del final, desde 74 studs. Te alcanza en zona abierta.
 - [x] Las criaturas se borran al acabar el nivel. Sin errores en la salida.
 - Junto a la salida del Ascensor ninguna criatura llega a tocarte: `SafeZone.PlanePad` (6 studs) veta ese margen. Es intencionado.
-- [ ] Sin probar: 2+ clientes (solo cuenta la mirada del objetivo; cambio de objetivo del Acosador final) y esconderse durante `FinalChase`.
+- [ ] Sin probar: esconderse durante `FinalChase`.
+
+**Probado en Play (2 clientes, modo dios, nivel de 150 s, Fábrica y Pantano):**
+- [x] SujetoFeliz con 2 jugadores: el modelo publica el atributo `Target`. Con el objetivo mirando a otro lado y el otro jugador mirándolo fijo, desaparece a los 5 s sin cargar (3 apariciones seguidas). La mirada de otro jugador no cuenta.
+- [x] Acosador final: `FinalChase` sobre Player1. Al entrar Player1 al Ascensor cambia en el acto a Player2 (a 9 studs).
+- Un cambio en `MonsterService`: `MapNav.Build` cede el hilo en mapas grandes, así que tras construir la red se vuelve a comprobar que el nivel sigue activo. Si no lo está, se borra la red y no se crean criaturas.
