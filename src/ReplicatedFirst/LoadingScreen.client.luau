@@ -78,7 +78,10 @@ local function waitReady()
 		end
 		label.Text = L.Text
 	end
-	workspace:WaitForChild("NivelGenerado", 10)
+	-- Solo se espera el nivel generado si el servidor llegó a generarlo (LevelSeed); sin mapa (mapas nuevos aún por modelar) no hay nada que esperar.
+	if workspace:GetAttribute("LevelSeed") ~= nil then
+		workspace:WaitForChild("NivelGenerado", 10)
+	end
 
 	local assets: { Instance } = {}
 	local function collect(root: Instance?)

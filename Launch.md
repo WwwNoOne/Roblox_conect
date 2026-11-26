@@ -13,22 +13,36 @@
 
 En Linux, el selector de archivos de Studio bajo Wine muestra rutas `Z:/home/…`.
 
-## Plugin de Rojo en Linux (instalado 2026-11-25)
+## Plugin de Rojo en Linux (instalado y verificado 2026-11-25)
 
-`rojo plugin install` **no funciona en Linux** (`Your platform is not currently supported`): solo conoce las rutas de Windows y macOS. El plugin se copia a mano en la carpeta de plugins de Studio, que bajo Vinegar es `%LOCALAPPDATA%\Roblox\Plugins`:
+`rojo plugin install` **no funciona en Linux** (`Your platform is not currently supported`): solo conoce las rutas de Windows y macOS. El plugin se copia a mano en:
 
 ```
-~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/Plugins/Rojo.rbxm
+~/.var/app/org.vinegarhq.Vinegar/data/vinegar/prefixes/studio/drive_c/users/miranda/AppData/Local/Roblox/Plugins/Rojo.rbxm
 ```
 
-Instalado **Rojo 7.7.1**, la misma versión que el CLI de `/home/miranda/.rokit/bin/rojo`. La versión del plugin y la del CLI deben coincidir; para actualizar:
+Instalado **Rojo 7.7.1**, la misma versión que el CLI de `/home/miranda/.rokit/bin/rojo`. Plugin y CLI deben coincidir; para actualizar:
 
 ```sh
 curl -sSL -o /tmp/Rojo.rbxm https://github.com/rojo-rbx/rojo/releases/download/v<X.Y.Z>/Rojo.rbxm
-cp /tmp/Rojo.rbxm ~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/Plugins/Rojo.rbxm
+cp /tmp/Rojo.rbxm ~/.var/app/org.vinegarhq.Vinegar/data/vinegar/prefixes/studio/drive_c/users/miranda/AppData/Local/Roblox/Plugins/Rojo.rbxm
 ```
 
-Studio carga los plugins **solo al arrancar**: hay que reiniciarlo para que aparezca la pestaña *Rojo* en la toolbar. Si tras reiniciar no aparece, revisar el log más reciente en `…/appdata/Roblox/logs/` buscando `Roblox\Plugins`.
+### Trampa: Wine tiene dos `%LOCALAPPDATA%`
+
+En este equipo `Local AppData` está redirigido en el registro a `…/data/vinegar/appdata`, y ahí van los logs, `OTAPlugins`, `mcp.bat` y `LocalStorage`. Pero los datos de plugins por usuario (`Roblox/<userId>/InstalledPlugins`, `CustomRibbonTabs`) viven en el prefijo. **La carpeta de plugins que Studio escanea es la del prefijo**, no `…/appdata/Roblox/Plugins`: una copia en `appdata` se ignora en silencio (el log muestra `Loading Plugins in 0 total`).
+
+### Los plugins locales cargan al abrir un lugar
+
+No al arrancar Studio. Con la pantalla de inicio abierta y sin lugar, la lista está vacía y parece que no se instaló nada.
+
+Para comprobarlo sin mirar la interfaz:
+
+```sh
+grep -i "user_Rojo" ~/.var/app/org.vinegarhq.Vinegar/data/vinegar/appdata/Roblox/logs/*_last.log | tail -3
+```
+
+Debe aparecer `loadPlugin user_Rojo.rbxm` y `Running plugin user_Rojo.rbxm`. El botón está en la pestaña **Plugins** de la cinta (barra propia "Rojo"), no crea una pestaña nueva. Ojo: `list_plugin_actions` del MCP no sirve para esto, solo lista toggles de ventanas, no botones de toolbar.
 
 ### Servir el proyecto
 
@@ -37,4 +51,4 @@ cd /home/miranda/.claudette/workspaces/Roblox_conect/burnished-lilac   # worktre
 rojo serve            # escucha en localhost:34872
 ```
 
-En Studio: pestaña **Rojo** → *Connect*. Sin `rojo serve` corriendo el botón falla con un error de conexión, no de plugin.
+En Studio: pestaña **Plugins** → botón **Rojo** → *Connect*. Sin `rojo serve` corriendo, el botón falla con un error de conexión, no de plugin.

@@ -93,9 +93,17 @@ La key que muestra Creator Hub no es una cadena opaca: es `keyid` (48 caracteres
 | keyid de 48 caracteres solo | `401 Invalid API Key` |
 | string completo | `404` (autentica) |
 
-Es decir, lo que hay que guardar es el **string completo**, y la caducidad viaja dentro de su firma: `iat` era la hora de creación y `exp` exactamente una hora después.
+Es decir, lo que hay que guardar es el **string completo**; el `keyid` suelto no sirve.
 
-Si la key caduca, todo responde `401` aunque el archivo de credenciales esté intacto. Al crear la key en Creator Hub pon la **Expiration** en *Never* o en una fecha lejana, y verifica el `exp` del string nuevo antes de darlo por bueno:
+### El `exp` del token NO es la vida de la key (medido)
+
+La primera lectura fue equivocada: el `exp` está a `iat + 3600 s` (una hora), pero **la key sigue autenticando después de esa hora**. Comprobado el 2026-11-25 con el MCP: a las 17:10 UTC, 6 minutos después de su `exp`, `GET /assets/v1/assets/1` seguía devolviendo `404` (autenticado) en vez de `401`.
+
+Conclusión: ese JWT es una aserción de corta vida que Roblox valida contra el registro de la key, y la caducidad real es la que pusiste en Creator Hub (*Never*). El `exp` del string no sirve para predecir cuándo deja de funcionar.
+
+Si algún día empieza a responder `401`, en ese orden: caducidad/revocación de la key en Creator Hub → allowlist de IP → scope `assets:write`. No asumas que es el `exp` del token.
+
+Aun así, para tener la fecha real del registro sin adivinar, puedes mirar el `exp` como referencia y confirmar con una subida de prueba:
 
 ```sh
 python3 -c "
@@ -103,10 +111,9 @@ import base64,json,datetime
 k=open('/home/miranda/.config/opencode/roblox-opencloud.env').read().split('ROBLOX_API_KEY=')[1].split()[0]
 p=k[48:]; p=base64.b64decode(p+'='*(-len(p)%4)).decode().split('.')[1]
 c=json.loads(base64.urlsafe_b64decode(p+'='*(-len(p)%4)))
-print('expira:', datetime.datetime.fromtimestamp(c['exp']), '| owner:', c.get('ownerId'))"
+print('exp del token:', datetime.datetime.fromtimestamp(c['exp']), '| owner:', c.get('ownerId'))"
 ```
 
-Cambiar la caducidad de una key ya creada **no reescribe el `exp` del string que ya tienes**: la firma se generó al crearla. Si el `exp` del string ya pasó, genera una key nueva.
 
 ## Guardrails
 - **Carpeta permitida**: solo se suben archivos dentro del repo (`ROBLOX_UPLOAD_ROOT`, separado por `:` para añadir más). La ruta se resuelve con `realpath`, así que un symlink no escapa. Así un agente no puede mandar `~/.ssh/id_rsa` a un servicio externo.

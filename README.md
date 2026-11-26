@@ -1,6 +1,6 @@
 # Backrooms Coop (título provisional)
 
-Juego cooperativo de terror para Roblox, de 2 a 4 jugadores, ambientado en espacios liminales tipo Backrooms. El equipo busca tesoros, repara máquinas de comunicación, resuelve puzzles y huye de criaturas tipo nextbot.
+Juego cooperativo de terror para Roblox, de 1 a 5 jugadores, ambientado en espacios liminales tipo Backrooms. El equipo busca tesoros, repara máquinas de comunicación, resuelve puzzles y huye de criaturas tipo nextbot.
 
 > La temática oceánica (proyecto "Abismo") fue retirada el 2026-11-25. Su material está archivado en `docs/archivo_oceano/` y `assets_build/archive_oceano/` y no es vigente.
 
