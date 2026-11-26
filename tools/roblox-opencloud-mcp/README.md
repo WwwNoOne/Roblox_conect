@@ -97,7 +97,12 @@ Es decir, lo que hay que guardar es el **string completo**; el `keyid` suelto no
 
 ### El `exp` del token NO es la vida de la key (medido)
 
-La primera lectura fue equivocada: el `exp` está a `iat + 3600 s` (una hora), pero **la key sigue autenticando después de esa hora**. Comprobado el 2026-11-25 con el MCP: a las 17:10 UTC, 6 minutos después de su `exp`, `GET /assets/v1/assets/1` seguía devolviendo `404` (autenticado) en vez de `401`.
+La primera lectura fue equivocada: el `exp` está a `iat + 3600 s` (una hora), pero **la key sigue autenticando después de esa hora**. Medido con el MCP, dos veces sobre la misma key:
+
+| Momento | Tiempo desde el `exp` | Resultado |
+| --- | --- | --- |
+| 2026-11-25 17:10 UTC | +6 min | `404` en `GET /assets/v1/assets/1` (autenticado) |
+| 2026-11-26 15:00 UTC | +22 h | `404` igualmente |
 
 Conclusión: ese JWT es una aserción de corta vida que Roblox valida contra el registro de la key, y la caducidad real es la que pusiste en Creator Hub (*Never*). El `exp` del string no sirve para predecir cuándo deja de funcionar.
 
