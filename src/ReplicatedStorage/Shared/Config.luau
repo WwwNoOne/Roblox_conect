@@ -39,42 +39,6 @@ local Run = table.freeze({
 	}),
 })
 
--- Laberinto (MazeGenerator, Level.Mode = "maze"): piezas de pasillo en Workspace.Pasillo.Pasillos (cada una con Conexiones y Escondites).
-local Maze = table.freeze({
-	Count = 28, -- piezas por nivel (sin contar el marco del pozo)
-	MaxLinearRun = 2, -- tramos rectos seguidos (pasillo lineal o pozo recto): el recto y 1 más
-	MaxVertical = 5, -- pozos verticales por nivel (incluida la pieza bajo la sala_0)
-	MaxRooms = 3, -- salas por nivel
-	-- Piezas: Name = Model dentro de Workspace.Pasillo (Pasillos, Pasillos_V) o Workspace.Salas (salas agrupadas por bioma: Salas/Bioma(frabrica)); Kind agrupa las reglas
-	-- ("linear"/"shaft" = rectos, "room" = sala); Weight = probabilidad relativa al elegir.
-	Pieces = table.freeze({
-		table.freeze({ Name = "Pasillo_Lineal", Kind = "linear", Weight = 3 }),
-		table.freeze({ Name = "Pasillo_L", Kind = "elbow", Weight = 3 }),
-		table.freeze({ Name = "Pasillo_T", Kind = "tee", Weight = 2 }),
-		table.freeze({ Name = "Pasillo_Cruz_4", Kind = "cross", Weight = 1 }),
-		table.freeze({ Name = "Pozo_Recto_48", Kind = "shaft", Weight = 1 }),
-		table.freeze({ Name = "Pozo_L", Kind = "shaftL", Weight = 1 }),
-		table.freeze({ Name = "Pozo_T", Kind = "shaftT", Weight = 1 }),
-		table.freeze({ Name = "Pozo_Cruz_4", Kind = "shaftCross", Weight = 1 }),
-		table.freeze({ Name = "Sala_01_70x70x70", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_02_84x72x132", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_03_110x76x90", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_04_92x128x76", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_05_74x170x106", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_06_132x96x148", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_07_156x110x82", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_08_104x145x174", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_09_176x90x200", Kind = "room", Weight = 1 }),
-		table.freeze({ Name = "Sala_10_200x200x158", Kind = "room", Weight = 1 }),
-	}),
-	Inner = 16, -- sección interior libre del pasillo
-	Outer = 20, -- sección exterior (con paredes)
-	-- Pit (opcional): lado de un pozo más ancho que el pasillo; la sala_0 actual tiene un agujero de 16 × 16 y no lo necesita
-	-- Caja de la sala_0 respecto a su ElevatorDock (por encima del suelo del pozo): las piezas no pueden entrar
-	Sala0BoxCenter = Vector3.new(5.4, 18.2, 48.9),
-	Sala0BoxHalf = Vector3.new(41, 18.2, 55),
-})
-
 -- Enemigos agresivos del laberinto (MonsterService). Patrullan por la red de pasillos; al detectarte te persiguen (anticipándose a tu
 -- movimiento), te encaran (Windup), se lanzan (Lunge, daña a quien toque su cuerpo) y se recuperan (Recover). Si te pierden rastrean
 -- la zona (Search) y avisan a los demás. Los valores de abajo son los de partida; cada especie sobrescribe los suyos.
@@ -118,7 +82,7 @@ local Monster = table.freeze({
 	HitGap = 0.8, -- un jugador no recibe daño de enemigos más seguido que esto
 	StuckSeconds = 1.5, -- sin avanzar este tiempo = recalcula el camino
 	FirstDelay = 15, -- segundos desde el inicio del nivel hasta que aparece
-	MinSpawnDistance = 90, -- aparece al menos a esta distancia del pozo de la sala_0
+	MinSpawnDistance = 90, -- aparece al menos a esta distancia del Ascensor
 	Debug = true,
 	-- Cuántos enemigos salen por nivel (especies distintas al azar, según Weight) y con qué separación entre apariciones.
 	PerLevel = 2,
@@ -141,27 +105,11 @@ local Hiding = table.freeze({
 	Cooldown = 0.6, -- segundos entre usos del mismo jugador (evita rebotes)
 })
 
--- Generación del mundo (LevelService + RoomGenerator, ver game_designs/Generacion_Cuevas.md).
--- Las plantillas están en Workspace (Salas_grandes, Salas_normales, Pasillo) y LevelService las mueve a ServerStorage al arrancar.
+-- Preparación del mundo (LevelService). Los niveles son mapas fijos en Workspace.Maps (los carga Runs).
 local Level = table.freeze({
-	Mode = "maze", -- "maze" = laberinto de pasillos (MazeGenerator); "rooms" = salas grandes unidas por pasillos largos (RoomGenerator, versión anterior)
-	Seed = nil :: number?, -- nil = aleatoria en cada servidor (se publica en el atributo de Workspace LevelSeed)
-	Smalls = 10, -- salas pequeñas además de la grande
-	Scale = 0.6, -- escala con la que se instancian salas y pasillo (las plantillas no se tocan); 1 = tamaño modelado
-	Corridor = 140, -- largo del pasillo modelado (de puerta a puerta), antes de aplicar Scale
-	BigDoors = 3, -- las primeras salas pequeñas se pegan a la grande
-	VerticalMax = 2, -- pasillos verticales extra (además del de la sala_0)
-	BigName = "Sala_Grande", -- plantilla de la sala grande
-	-- Carpetas de Workspace que se apartan a ServerStorage.Plantillas al arrancar (assets de pruebas, suelo de pruebas...) para que no
-	-- estorben ni se carguen en la partida.
-	Stash = { "Assets", "Zona_Prueba", "LeadPipes" },
-	-- Sala_0 (relativo a su ElevatorDock): puerto del pozo y caja aproximada
-	-- medido con rayos (2026-11-18): agujero de ~17 × 16 en el suelo (Y = 14), centro (563,5, 36,9); el puerto queda en la cara inferior del suelo
-	Sala0Port = Vector3.new(2.5, -9, 72.9),
-	Sala0Half = Vector3.new(47, 28, 104),
-	-- Grosor de pared de cada tipo de sala
-	BigWall = 8,
-	SmallWall = 7,
+	-- Carpetas de Workspace que se apartan a ServerStorage.Plantillas al arrancar (assets de pruebas, plantillas de criaturas...) para que
+	-- no estorben ni se carguen en la partida.
+	Stash = { "Assets", "Zona_Prueba", "LeadPipes", "Creatures" },
 })
 
 local Economy = table.freeze({
@@ -189,13 +137,6 @@ local Economy = table.freeze({
 		MaxOver = 1.6, -- el total repartido no pasa de cuota x margen x esto (evita niveles regalados)
 		FillFraction = 0.35, -- fracción de huecos que se llenan (antes de ajustar al valor objetivo)
 		MinCount = 10, -- mínimo de tesoros por nivel (si hay huecos)
-		SlotCandidates = 48, -- huecos que se buscan por nivel
-		SlotAttempts = 900, -- intentos máximos de búsqueda
-		SlotSpacing = 16, -- separación mínima entre huecos
-		SlotMinEntryDistance = 60, -- no a menos de esto del pozo de la sala_0 (el primer tramo queda libre)
-		RoomWeight = 8, -- una sala atrae tantas veces más huecos que un tramo de pasillo (~la mitad acaba en salas)
-		EdgeMargin = 9, -- se queda a esta distancia de las paredes de una sala (los pasillos usan menos)
-		ClearRadius = 1.6, -- radio libre exigido en el punto de partida del rayo (no dentro de geometría)
 	}),
 	-- Cuota por nivel: se deposita en el ascensor durante el nivel y se cobra al cerrarlo.
 	Quota = table.freeze({
@@ -372,10 +313,9 @@ local Hud = table.freeze({
 	Glyphs = table.freeze({ report = "DOC", disk = "DAT", gauge = "EQP" }), -- respaldo en texto si no está la hoja de iconos de Codex
 })
 
--- Zona segura (SafeZone.luau): la sala_0 por encima de su suelo. Dentro no hay enemigos ni ataques y no se corre.
+-- Zona segura (SafeZone.luau): el interior del Ascensor. Dentro no hay enemigos ni ataques y no se corre.
 local SafeZone = table.freeze({
-	MonsterBuffer = 20, -- studs bajo el suelo de la sala_0 hasta donde puede llegar el centro de un enemigo (su cuerpo mide 16-30)
-	PlanePad = 6, -- margen horizontal alrededor de la sala_0 vetado a los enemigos
+	PlanePad = 6, -- margen alrededor del interior del Ascensor vetado a los enemigos
 })
 
 -- Impacto y temblor de cámara (CameraFxClient). Impacto: sacudida corta + destello rojo cuando un enemigo te golpea (remoto PlayerHit).
@@ -526,7 +466,6 @@ return table.freeze({
 	Economy = Economy,
 	Level = Level,
 	Hiding = Hiding,
-	Maze = Maze,
 	Monster = Monster,
 	Upgrades = Upgrades,
 })

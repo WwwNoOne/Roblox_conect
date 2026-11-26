@@ -6,7 +6,7 @@
 
 1. Desde el worktree `Roblox_conect-backrooms` (rama `backrooms-cleanup`), ejecutar `rojo build` y `rojo serve`. Conectar el plugin de Rojo y verificar el lugar seleccionado antes de sincronizar.
 2. Mantener el escenario creado en Studio fuera de los contenedores que Rojo controla.
-3. En el lugar hay que renombrar: modelo `Submarine`→`Elevator` (`Hull`→`Body`, `Hatch`→`Gate`, `HullGauge`→`StatusGauge`, quitar `RepairStation`), `SubDock`→`ElevatorDock`, `ServerStorage.AbismoAssets`→`GameAssets`, plantilla `Kraken_map`→`Sala_Grande`. Eliminar `Workspace.sonidos` oceánicos que ya no se usen.
+3. En el lugar hay que renombrar: modelo `Submarine`→`Elevator` (`Hull`→`Body`, `Hatch`→`Gate`, `HullGauge`→`StatusGauge`, quitar `RepairStation`), `SubDock`→`ElevatorDock`, `ServerStorage.AbismoAssets`→`GameAssets`. Eliminar `Workspace.sonidos` oceánicos que ya no se usen.
 3. Los mapas viven bajo `Workspace.Maps` (`Level_N`, `Parada`) con los nombres de [creation_models.md](creation_models.md). **[POR DEFINIR]** cuando existan los nuevos niveles.
 4. Probar con **Server & Clients** y dos clientes como mínimo; cuatro para validar espacio interior, puerta y concurrencia.
 5. Registrar lugar, commit, cantidad de clientes, resultado y pasos para reproducir fallos en [arranque.md](arranque.md).

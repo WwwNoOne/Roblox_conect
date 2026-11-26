@@ -1,10 +1,10 @@
 --!strict
--- Estado compartido del nivel generado (lo escribe LevelService, lo leen MonsterService y otros): plan, red de navegación y contenedor.
+-- Estado compartido de la red de navegación de criaturas (lo leen MonsterService y otros). Vacío hasta que los mapas fijos
+-- publiquen su red de navegación (pendiente: criaturas, ver docs/plan.md T05).
 local LevelState = {
-	plan = nil :: any,
 	nav = nil :: any,
-	container = nil :: Instance?,
-	entry = nil :: Vector3?, -- puerto del pozo de la sala_0
+	container = nil :: Instance?, -- mapa activo
+	entry = nil :: Vector3?,
 }
 
 return LevelState

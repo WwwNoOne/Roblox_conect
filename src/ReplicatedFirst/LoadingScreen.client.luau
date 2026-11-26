@@ -70,17 +70,13 @@ local function waitReady()
 	local character = player.Character or player.CharacterAdded:Wait()
 	character:WaitForChild("HumanoidRootPart")
 
-	-- El servidor construye el nivel al arrancar (LevelService) y avisa con el atributo Workspace.WorldReady.
+	-- El servidor prepara el mundo al arrancar (LevelService) y avisa con el atributo Workspace.WorldReady.
 	if workspace:GetAttribute("WorldReady") ~= true then
 		label.Text = L.WorldText
 		while workspace:GetAttribute("WorldReady") ~= true do
 			workspace:GetAttributeChangedSignal("WorldReady"):Wait()
 		end
 		label.Text = L.Text
-	end
-	-- Solo se espera el nivel generado si el servidor llegó a generarlo (LevelSeed); sin mapa (mapas nuevos aún por modelar) no hay nada que esperar.
-	if workspace:GetAttribute("LevelSeed") ~= nil then
-		workspace:WaitForChild("NivelGenerado", 10)
 	end
 
 	local assets: { Instance } = {}

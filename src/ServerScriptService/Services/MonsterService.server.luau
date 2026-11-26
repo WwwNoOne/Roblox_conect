@@ -1,12 +1,12 @@
 --!strict
 -- Enemigos agresivos del laberinto (especies de Config.Monster.Species; salen Config.Monster.PerLevel por nivel). Patrullan siguiendo
--- la red de pasillos (LevelState.nav, que genera MazeGenerator.NavGraph) y, en cuanto te detectan (vista con línea de visión, oído),
+-- la red de pasillos (LevelState.nav, pendiente de publicar por los mapas fijos) y, en cuanto te detectan (vista con línea de visión, oído),
 -- te persiguen, te cortan el paso adelantándose a tu movimiento y te atacan con un zarpazo en tres fases: preparación (se frena y te
 -- encara, avisando), embestida (se lanza con velocidad extra y daña a quien toque su cuerpo) y recuperación (queda vulnerable un
 -- instante). Si te pierden, rastrean la zona del último punto visto antes de volver a patrullar, y avisan a los otros enemigos cercanos.
 -- No ven a quien está escondido (atributo Hidden) salvo pegados a su caja: si se quedan ahí olisqueando DiscoverSeconds lo descubren (lo sacan
 -- de la caja); si no, pierden el rastro a los HiddenLoseSeconds, rastrean la zona y se marchan lejos. Tampoco ven a quien está dentro del
--- ascensor, a salvo en la sala_0 (SafeZone: tampoco pueden entrar ahí) ni fuera del laberinto.
+-- ascensor, a salvo en el Ascensor (SafeZone: tampoco pueden entrar ahí) ni fuera del mapa.
 -- Se mueven con velocidad y aceleración propias y chocan contra las paredes del laberinto (esferas de colisión): se deslizan en vez
 -- de atravesarlas. Parámetros: Config.Monster. Plantillas: ServerStorage.GameAssets.Creatures (o Workspace.Creatures).
 local Players = game:GetService("Players")
@@ -148,7 +148,7 @@ local function setPath(m: Monster, targetPos: Vector3)
 	local from = nearestVertex(nav, m.pos, m.dir)
 	local to = nearestVertex(nav, targetPos, nil)
 	local full = shortestPath(nav, from, to)
-	-- el camino se corta antes de entrar en la zona vetada (sala_0 y tramo del pozo)
+	-- el camino se corta antes de entrar en la zona vetada (interior del Ascensor)
 	local path: { Vector3 } = {}
 	for _, p in full do
 		if SafeZone.BarsMonster(p) then
@@ -285,7 +285,7 @@ local function advance(m: Monster, dt: number): boolean
 		return false
 	end
 	if SafeZone.BarsMonster(m.pos + delta) then
-		m.vel = Vector3.zero -- la sala_0 es zona segura: no entran
+		m.vel = Vector3.zero -- el Ascensor es zona segura: no entran
 		return true
 	end
 	local blocked = false

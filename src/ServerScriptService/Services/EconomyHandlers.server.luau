@@ -10,7 +10,6 @@ local Runs = require(script.Parent:WaitForChild("Runs"))
 local Economy = require(script.Parent:WaitForChild("Economy"))
 local WorldRefs = require(Shared:WaitForChild("WorldRefs"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
-local LevelState = require(script.Parent:WaitForChild("LevelState"))
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local shopOpen = remotes:WaitForChild("ShopOpen") :: RemoteEvent
@@ -156,70 +155,17 @@ local function makeTreasure(ground: Vector3, tier: string)
 	object.Parent = treasureFolder
 end
 
--- Huecos de un nivel: puntos de suelo al azar dentro de las piezas del laberinto generado (más en las salas) y los TreasureSpawn
--- (Attachment) que haya colocado a mano en las piezas. Cada hueco es el punto de suelo donde se apoya el objeto.
+-- Huecos de un nivel: los TreasureSpawn (Attachment) colocados a mano en el mapa fijo cargado (Workspace.Maps). Cada hueco es el punto
+-- donde se apoya el objeto.
 local function collectSlots(): { Vector3 }
 	local slots: { Vector3 } = {}
-	local B = Config.Economy.Balance
-	local container = LevelState.container
-	local plan = LevelState.plan
-	if not container or not plan or #plan.nodes == 0 then
+	local maps = workspace:FindFirstChild("Maps")
+	if not maps then
 		return slots
 	end
-	for _, d in container:GetDescendants() do
+	for _, d in maps:GetDescendants() do
 		if d:IsA("Attachment") and d.Name == "TreasureSpawn" then
 			table.insert(slots, d.WorldPosition)
-		end
-	end
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = { container }
-	params.RespectCanCollide = true
-	local overlap = OverlapParams.new()
-	overlap.FilterType = Enum.RaycastFilterType.Include
-	overlap.FilterDescendantsInstances = { container }
-	overlap.RespectCanCollide = true
-	-- piezas con peso: las salas atraen más huecos que los tramos de pasillo
-	local nodes: { any } = {}
-	local total = 0
-	for _, node in plan.nodes do
-		local w = if node.def.kind == "room" then B.RoomWeight else 1
-		total += w
-		table.insert(nodes, { node = node, w = w })
-	end
-	local entry = LevelState.entry
-	local attempts = 0
-	while #slots < B.SlotCandidates and attempts < B.SlotAttempts do
-		attempts += 1
-		local r = rng:NextNumber() * total
-		local pick: any = nodes[1].node
-		for _, n in nodes do
-			r -= n.w
-			if r <= 0 then
-				pick = n.node
-				break
-			end
-		end
-		local c: Vector3, h: Vector3 = pick.center, pick.half
-		local margin = if pick.def.kind == "room" then B.EdgeMargin else 3
-		local hx, hy, hz = math.max(h.X - margin, 1), math.max(h.Y - 2, 1), math.max(h.Z - margin, 1)
-		local start = c + Vector3.new(rng:NextNumber(-hx, hx), rng:NextNumber(-hy, hy), rng:NextNumber(-hz, hz))
-		if #workspace:GetPartBoundsInRadius(start, B.ClearRadius, overlap) == 0 then
-			local hit = workspace:Raycast(start, Vector3.new(0, -(2 * h.Y + 4), 0), params)
-			if hit and hit.Normal.Y > 0.7 and hit.Position.Y >= c.Y - h.Y - 1 then
-				local ok = not entry or (hit.Position - entry).Magnitude >= B.SlotMinEntryDistance
-				if ok then
-					for _, s in slots do
-						if (s - hit.Position).Magnitude < B.SlotSpacing then
-							ok = false
-							break
-						end
-					end
-				end
-				if ok then
-					table.insert(slots, hit.Position)
-				end
-			end
 		end
 	end
 	return slots
@@ -292,7 +238,7 @@ local function spawnTreasure(run: Runs.Run?)
 	clearTreasure()
 	local slots = collectSlots()
 	if #slots == 0 then
-		warn("[Economy] No hay huecos para los objetos de recolección (laberinto sin generar o sin suelo libre)")
+		warn("[Economy] No hay huecos para los objetos de recolección (el mapa no tiene TreasureSpawn)")
 		return
 	end
 	local stage = run and (Config.Run.Stages :: any)[run.zone]

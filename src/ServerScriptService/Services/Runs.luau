@@ -109,13 +109,7 @@ local function dockOf(stage: number): BasePart?
 	local maps = workspace:FindFirstChild("Maps")
 	local map = def and maps and maps:FindFirstChild(def.Map)
 	local dock = map and map:FindFirstChild("ElevatorDock", true)
-	if dock and dock:IsA("BasePart") then
-		return dock
-	end
-	-- Sin dock en el mapa de la etapa: el ascensor aparece en Workspace.Sala_0.ElevatorDock (su pivote = el del ascensor).
-	local sala = workspace:FindFirstChild("Sala_0")
-	local salaDock = sala and sala:FindFirstChild("ElevatorDock", true)
-	return if salaDock and salaDock:IsA("BasePart") then salaDock else nil
+	return if dock and dock:IsA("BasePart") then dock else nil
 end
 
 local function aliveRoot(userId: number): BasePart?

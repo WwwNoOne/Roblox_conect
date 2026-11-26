@@ -2,7 +2,7 @@
 -- Estamina y sprint autoritativos (sustituye al dash). El cliente solo avisa de si mantiene la tecla (SetSprint); el servidor decide
 -- si corre, gasta y recupera la estamina, y lo publica en atributos del jugador (los lee MovementController para la velocidad y
 -- SurvivalHud para la barra): Stamina, StaminaMax, Sprinting, Exhausted. Parámetros: Config.Sprint.
--- Se corre (y se gasta estamina) siempre, también en el lobby, salvo dentro del ascensor en partida, en la sala_0, escondido,
+-- Se corre (y se gasta estamina) siempre, también en el lobby, salvo dentro del ascensor en partida, escondido,
 -- agachado o quieto. Al vaciarse queda agotado hasta recuperar Config.Sprint.ExhaustedUntil. Los enemigos oyen a quien corre.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -104,7 +104,7 @@ local function canSprint(player: Player): boolean
 		return false
 	end
 	if SafeZone.IsPlayerSafe(root.Position) then
-		return false -- en la sala_0 no hace falta correr
+		return false -- dentro del Ascensor no hace falta correr
 	end
 	return root.AssemblyLinearVelocity.Magnitude >= P.MinSpeed
 end

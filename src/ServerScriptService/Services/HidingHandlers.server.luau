@@ -1,5 +1,5 @@
 --!strict
--- Pone un ProximityPrompt en cada volumen `Escondite` del nivel generado (Workspace.NivelGenerado) y gestiona entrar/salir.
+-- Pone un ProximityPrompt en cada volumen `Escondite` de los mapas fijos (Workspace.Maps) y gestiona entrar/salir.
 -- Pulsar E en una caja = esconderse; pulsar E estando escondido = salir. Parámetros: Config.Hiding.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -47,10 +47,11 @@ local function scan(level: Instance)
 end
 
 local function start()
-	local level = workspace:FindFirstChild("NivelGenerado") or workspace:WaitForChild("NivelGenerado", 60)
-	if level then
-		scan(level)
-		level.DescendantAdded:Connect(function(d)
+	-- Runs mete y saca los mapas del Workspace.Maps según la etapa: se vigilan los que entren.
+	local maps = workspace:FindFirstChild("Maps") or workspace:WaitForChild("Maps", 60)
+	if maps then
+		scan(maps)
+		maps.DescendantAdded:Connect(function(d)
 			if d:IsA("BasePart") and d.Name == "Escondite" then
 				addPrompt(d)
 			end

@@ -36,7 +36,7 @@ Retirados: `MovementClient`, `SprintClient` y el panel de datos de `GameHud` (qu
 - Hacia atrás 75 %, de lado 90 %. Delante/detrás se mide con la **mirada de la cámara** (el cuerpo va por detrás al girar).
 - Peso: −4 % por objeto cargado. Agotado: 85 %. Vida < 25 %: 88 %. Caída fuerte (≥ 55 studs/s): frena 0,7 s.
 - Sprint predicho en el cliente durante 0,4 s y luego manda el atributo `Sprinting` del servidor.
-- La estamina se gasta **en cualquier sitio** (también en el lobby), salvo dentro del Ascensor en partida, en la Sala_0, escondido o agachado.
+- La estamina se gasta **en cualquier sitio** (también en el lobby), salvo dentro del Ascensor en partida, escondido o agachado.
 - Agachado: no corre, no salta, no se levanta con techo encima, y los enemigos lo oyen a la mitad de distancia (`CrouchHearFactor`, en `MonsterService`). Remoto `SetStance`.
 
 ## Cámara

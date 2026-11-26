@@ -126,6 +126,6 @@ Estación integrada (o adyacente) dentro de la zona segura del Ascensor, para qu
 4. **Rejugabilidad:** spawns aleatorios, mutadores y ambientación final (iluminación, niebla, audio).
 
 ## 8. Alcance
-**Se elimina:** todo lo oceánico (agua, nado, oxígeno, presión, casco, profundidad, fauna marina, naufragios, cuevas submarinas, baliza del fondo, combate con arpón), el dash, la generación procedural de salas (`MazeGenerator`, `RoomGenerator`) y la baliza final.
+**Se elimina:** todo lo oceánico (agua, nado, oxígeno, presión, casco, profundidad, fauna marina, naufragios, cuevas submarinas, baliza del fondo, combate con arpón), el dash, la generación procedural de salas (`MazeGenerator`, `RoomGenerator`, ya borrados del código) y la baliza final.
 
 **Se mantiene:** lobby por códigos, tesoros, economía en memoria, linterna, sprint con estamina, escondites, primera persona fija, indicador del Ascensor, temporizador, espectador, cabina sellada con traslado entre niveles.
