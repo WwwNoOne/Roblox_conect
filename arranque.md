@@ -58,7 +58,8 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 3. Sonidos `Criatura_*` en `Workspace.sonidos` (hoy suenan sustitutos); quitar `Config.Monster.Debug` antes de publicar; borrar las 7 criaturas oceánicas de `ServerStorage.GameAssets.Creatures`.
 4. ~~Ruido de `Turning`~~ (hecho 26/11): el rig usa `AnimationConstraint`, con `C0` de solo lectura; `Turning` escribía `C0` cada frame, fallaba y nunca giraba el cuerpo. Ahora escribe `Attachment0.CFrame` (o `C0` si es `Motor6D`): 0 errores, giro de cadera de 21° al moverse de lado.
 5. `assets_build/*Movement System.rbxm` y `legacy/` quedan en `.gitignore` (decisión del 26/11).
-6. Integrar las variantes de Codex (26/11): `sujetoFeliz` (`Behavior = "SujetoFeliz"`) y `creature_acosador_final_01` (`Behavior = "FinalPursuit"`), ver `docs/criaturas.md` §2.4–2.5. Los assets están en `assets_build/exports/creatures/`; falta el comportamiento en `MonsterService`.
+6. ~~Integrar las variantes de Codex~~ (hecho 26/11): SujetoFeliz y Acosador del Tramo Final en `MonsterService` (campo `Behavior`), probados con 1 cliente; ver `docs/integracion_criaturas.md` §5. Falta probarlos con 2+ clientes. `Config.Monster.PerLevel = 5` para pruebas: bajarlo antes de publicar.
+7. **Guardar el place en Studio**: ascensor del lobby movido y plantillas nuevas en `GameAssets.Creatures`.
 
 ## Entregas
 

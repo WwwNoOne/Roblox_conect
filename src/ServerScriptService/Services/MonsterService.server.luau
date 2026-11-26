@@ -4,6 +4,9 @@
 --   * Aggressive: patrulla, detecta vista (x linterna) y oído, persigue con frenesí y mata al atraparte (Windup -> Lunge).
 --   * Stalker: observa a distancia desde pasillos oscuros; huye si lo miras fijo y delata tu posición si lo ignoras.
 --   * Ambusher: espera en esquinas o cajas HideSpot/Escondite; lanza screamer 2D animado, quita vida y huye.
+-- Variantes con comportamiento propio (campo `Behavior` de la especie en Config.Monster.Species):
+--   * SujetoFeliz (Aggressive): aparece lejos y observa; si su objetivo lo mira fijo, embiste; si aparta la vista, desaparece.
+--   * FinalPursuit (Stalker): acecha como el Acosador y, en el tramo final del nivel, persigue despacio y sin descanso.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -58,6 +61,11 @@ type Monster = {
 	watchedT: number,
 	stalkIgnoredT: number,
 	cooldownUntil: number,
+	-- Variantes (SujetoFeliz / FinalPursuit)
+	behavior: string,
+	gazeT: number, -- s seguidos que el objetivo lo mira
+	awayT: number, -- s seguidos mirando a otro lado
+	seenOnce: boolean, -- el objetivo ya lo miró al menos una vez en esta aparición
 	-- Ambusher
 	ambushSpot: MapNav.AmbushSpot?,
 	lastAmbushPos: Vector3?,
@@ -600,7 +608,7 @@ local function alertAggressives(source: Monster?, pos: Vector3, radius: number)
 		return
 	end
 	for _, o in actives do
-		if o ~= source and not o.dead and o.category == "Aggressive" then
+		if o ~= source and not o.dead and o.category == "Aggressive" and o.behavior == "" then
 			if (o.state == "Patrol" or o.state == "Search" or o.state == "Investigate") and (o.pos - pos).Magnitude <= radius then
 				o.lastSeen = pos
 				setState(o, "Investigate")
@@ -1133,6 +1141,241 @@ local function stepAmbusher(m: Monster, dt: number, now: number)
 	end
 end
 
+-- ===== Variante agresiva: SujetoFeliz =====
+local HIDDEN_POS = Vector3.new(0, -2000, 0)
+
+-- Desaparece (sin atacar) y vuelve a aparecer pasados `delay` segundos.
+local function vanish(m: Monster, delay: number)
+	m.pos = HIDDEN_POS
+	m.vel = Vector3.zero
+	m.path = {}
+	m.pathReq += 1
+	m.pending = false
+	m.target = nil
+	place(m)
+	m.timer = delay
+	setState(m, "Hidden")
+end
+
+local function felizRespawnDelay(m: Monster): number
+	return rng:NextNumber(m.k.FelizRespawnMin, m.k.FelizRespawnMax)
+end
+
+-- Punto navegable a FelizAppearMin..Max del objetivo con línea de visión hacia él (fuera de la zona segura).
+local function pickAppearPoint(m: Monster, target: BasePart): Vector3?
+	local nav = LevelState.nav :: MapNav.NavGraph?
+	if not nav then
+		return nil
+	end
+	local candidates: { Vector3 } = {}
+	for _, p in nav.points do
+		local d = (p - target.Position).Magnitude
+		if d >= m.k.FelizAppearMin and d <= m.k.FelizAppearMax and not SafeZone.BarsMonster(p) then
+			if workspace:Raycast(p, target.Position - p, m.params) == nil then
+				table.insert(candidates, p)
+			end
+		end
+	end
+	if #candidates == 0 then
+		return nil
+	end
+	return candidates[rng:NextInteger(1, #candidates)]
+end
+
+local function stepSujetoFeliz(m: Monster, dt: number, now: number)
+	if m.state == "Hidden" then
+		m.timer -= dt
+		if m.timer > 0 or not LevelState.nav then
+			return
+		end
+		local visible = {}
+		for _, entry in eligiblePlayers(m) do
+			if entry.player:GetAttribute("Hidden") ~= true then
+				table.insert(visible, entry)
+			end
+		end
+		local chosen = if #visible > 0 then visible[rng:NextInteger(1, #visible)] else nil
+		local spot = chosen and pickAppearPoint(m, chosen.root)
+		if not chosen or not spot then
+			m.timer = 2 -- nadie a tiro o ningún punto con vista: reintenta pronto
+			return
+		end
+		local face = Vector3.new(chosen.root.Position.X - spot.X, 0, chosen.root.Position.Z - spot.Z)
+		m.pos = spot
+		m.vel = Vector3.zero
+		m.dir = if face.Magnitude > 0.1 then face.Unit else m.dir
+		m.stuckPos, m.stuckAt = spot, now
+		m.target = chosen.player
+		m.gazeT, m.awayT, m.seenOnce = 0, 0, false
+		place(m)
+		setState(m, "Stare")
+		dbg(m.model.Name .. " aparece y observa a " .. chosen.player.Name)
+		return
+	end
+
+	local player = m.target
+	local root = player and eligibleRoot(player, m)
+	if not player or not root or player:GetAttribute("Hidden") == true then
+		vanish(m, felizRespawnDelay(m)) -- el objetivo murió, se escondió o volvió al Ascensor
+		return
+	end
+
+	if m.state == "Stare" then
+		drive(m, Vector3.zero, m.k.Brake, dt)
+		turnToward(m, root.Position - m.pos, m.k.TurnRate, dt)
+		place(m)
+		-- Solo cuenta la mirada del objetivo; una pared en medio es perder la vista.
+		local looking = hasLineOfSight(m, root) and isPlayerLookingAt(player, root, m.pos, m.k.FelizLookDot)
+		if looking then
+			m.seenOnce = true
+			m.awayT = 0
+			m.gazeT += dt
+			if m.gazeT >= m.k.FelizGazeSeconds then
+				dbg(m.model.Name .. " embiste a " .. player.Name)
+				Sfx.Play(Config.Sfx.CreatureRoar, m.root, 0.95, 160)
+				m.repathAt = 0
+				setState(m, "Charge")
+			end
+		else
+			m.gazeT = 0
+			if m.seenOnce then
+				m.awayT += dt
+				if m.awayT >= m.k.FelizLookAwaySeconds then
+					dbg(m.model.Name .. " desaparece (apartó la vista)")
+					vanish(m, felizRespawnDelay(m))
+				end
+			elseif m.stateT >= m.k.FelizInitialWindow then
+				dbg(m.model.Name .. " desaparece (no lo miró)")
+				vanish(m, felizRespawnDelay(m))
+			end
+		end
+		return
+	end
+
+	-- Charge: una vez lanzada, apartar la mirada ya no la cancela. La ruta respeta paredes, puertas y el Ascensor.
+	if m.stateT >= m.k.FelizChargeMaxSeconds then
+		vanish(m, felizRespawnDelay(m))
+		return
+	end
+	if clearBetween(m, m.pos, root.Position, m.k.BodyRadius * 0.9) and not SafeZone.BarsMonster(root.Position) then
+		setDirect(m, root.Position)
+	elseif now >= m.repathAt then
+		m.repathAt = now + 0.3
+		setPath(m, root.Position)
+	end
+	follow(m, m.k.FelizChargeSpeed, dt, now)
+	if bodyDistance(m, root.Position) <= m.k.HitRadius then
+		damagePlayer(player, m.k.AttackDamage)
+		vanish(m, felizRespawnDelay(m))
+	end
+end
+
+-- ===== Variante del Acosador: persecución del tramo final =====
+local function nearestEligible(m: Monster): (Player?, BasePart?)
+	local best: Player? = nil
+	local bestRoot: BasePart? = nil
+	local bestD = math.huge
+	for _, entry in eligiblePlayers(m) do
+		local d = (entry.root.Position - m.pos).Magnitude
+		if entry.player:GetAttribute("Hidden") == true then
+			d += 1e4 -- prefiere a quien está a la vista
+		end
+		if d < bestD then
+			best, bestRoot, bestD = entry.player, entry.root, d
+		end
+	end
+	return best, bestRoot
+end
+
+-- Aparición para la persecución final: el punto navegable más cercano que esté a FinalSpawnMinDist o más del objetivo.
+local function pickFinalSpawn(m: Monster, target: BasePart): Vector3?
+	local nav = LevelState.nav :: MapNav.NavGraph?
+	if not nav then
+		return nil
+	end
+	local best: Vector3? = nil
+	local bestD = math.huge
+	for _, p in nav.points do
+		local d = (p - target.Position).Magnitude
+		if d >= m.k.FinalSpawnMinDist and d < bestD and not SafeZone.BarsMonster(p) then
+			best, bestD = p, d
+		end
+	end
+	return best
+end
+
+local function stepFinalPursuit(m: Monster, dt: number, now: number)
+	if m.state ~= "FinalChase" then
+		local run = Runs.Get(m.code)
+		local left = run and Runs.LevelTimeLeft(run)
+		if not left or left > m.k.FinalPhaseSeconds then
+			stepStalker(m, dt, now)
+			return
+		end
+		local player, root = nearestEligible(m)
+		if not player or not root then
+			stepStalker(m, dt, now) -- nadie fuera del Ascensor todavía
+			return
+		end
+		if m.state == "Hidden" or m.pos.Y < -500 then
+			local spot = pickFinalSpawn(m, root)
+			if not spot then
+				return
+			end
+			m.pos = spot
+			m.vel = Vector3.zero
+			m.stuckPos, m.stuckAt = spot, now
+			place(m)
+		end
+		m.target = player
+		m.lastSeen = root.Position
+		m.repathAt = 0
+		Sfx.Play(Config.Sfx.CreatureAlert, m.root, 0.95, 160)
+		dbg(m.model.Name .. " empieza la persecución final tras " .. player.Name)
+		setState(m, "FinalChase")
+		return
+	end
+
+	-- FinalChase: hasta que termine el nivel. Si su objetivo muere o entra al Ascensor, cambia a otro jugador válido.
+	local player = m.target
+	local root = player and eligibleRoot(player, m)
+	if not player or not root then
+		player, root = nearestEligible(m)
+		m.target = player
+		if root then
+			m.lastSeen = root.Position
+			m.repathAt = 0
+		end
+	end
+	if not player or not root then
+		drive(m, Vector3.zero, m.k.Brake, dt)
+		return
+	end
+	local hidden = player:GetAttribute("Hidden") == true
+	local sees = not hidden and hasLineOfSight(m, root)
+	if sees then
+		m.lastSeen = root.Position
+	end
+	local goal = m.lastSeen or root.Position
+	if sees and clearBetween(m, m.pos, goal, m.k.BodyRadius * 0.9) and not SafeZone.BarsMonster(goal) then
+		setDirect(m, goal)
+	elseif now >= m.repathAt then
+		m.repathAt = now + 0.8
+		setPath(m, goal)
+	end
+	if checkStuck(m, now) then
+		m.repathAt = 0
+	end
+	-- Llega a la última posición conocida sin verlo: retoma el rastro hacia donde está ahora (si no está escondido).
+	if follow(m, m.k.FinalChaseSpeed, dt, now) and not sees and not hidden then
+		m.lastSeen = root.Position
+		m.repathAt = 0
+	end
+	if not hidden and bodyDistance(m, root.Position) <= m.k.HitRadius then
+		damagePlayer(player, m.k.FinalAttackDamage)
+	end
+end
+
 -- ===== Despacho principal =====
 local function step(m: Monster, dt: number)
 	local now = os.clock()
@@ -1141,7 +1384,11 @@ local function step(m: Monster, dt: number)
 		m.stateT += dt
 	end
 
-	if m.category == "Stalker" then
+	if m.behavior == "SujetoFeliz" then
+		stepSujetoFeliz(m, dt, now)
+	elseif m.behavior == "FinalPursuit" then
+		stepFinalPursuit(m, dt, now)
+	elseif m.category == "Stalker" then
 		stepStalker(m, dt, now)
 	elseif m.category == "Ambusher" then
 		stepAmbusher(m, dt, now)
@@ -1279,6 +1526,10 @@ local function prepare(code: string, spec: any, delay: number): Monster?
 		watchedT = 0,
 		stalkIgnoredT = 0,
 		cooldownUntil = 0,
+		behavior = k.Behavior or "",
+		gazeT = 0,
+		awayT = 0,
+		seenOnce = false,
 		ambushSpot = nil,
 		lastAmbushPos = nil,
 		stuckPos = hidden,

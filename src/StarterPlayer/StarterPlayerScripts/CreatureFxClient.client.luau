@@ -51,6 +51,9 @@ local ROW_BY_STATE: { [string]: number } = {
 	AmbushMove = 1,
 	Chase = 2,
 	Flee = 2,
+	Stare = 1, -- SujetoFeliz observando (fila de observación)
+	Charge = 2, -- SujetoFeliz embistiendo (fila de avance)
+	FinalChase = 2, -- Acosador del tramo final persiguiendo
 	Windup = 3,
 	Lunge = 3,
 	Recover = 3,
@@ -209,7 +212,9 @@ RunService.RenderStepped:Connect(function(dt)
 		t.lastPos = pos
 
 		local row = math.min(t.rows - 1, ROW_BY_STATE[state] or 0)
-		local speedMul = if state == "Chase" or state == "Flee" then 1.45 elseif state == "Windup" or state == "Lunge" then 1.8 else 0.85
+		local speedMul = if state == "Chase" or state == "Flee" then 1.45
+			elseif state == "Windup" or state == "Lunge" or state == "Charge" then 1.8
+			else 0.85
 		t.phase += dt * t.fps * speedMul
 		local col = math.floor(t.phase) % t.cols
 		local rectOffset = Vector2.new(col * t.cellW, row * t.cellH)
@@ -218,7 +223,7 @@ RunService.RenderStepped:Connect(function(dt)
 		local bobY = math.abs(math.sin(now * (7 + moveFactor * 5))) * (0.06 + 0.35 * moveFactor)
 		local swayX = math.sin(now * 5.5) * 0.14 * moveFactor
 		local rotDeg = math.sin(now * 6) * (1.2 + 5.5 * moveFactor)
-		if state == "Windup" or state == "Lunge" or state == "AmbushStrike" then
+		if state == "Windup" or state == "Lunge" or state == "AmbushStrike" or state == "Charge" then
 			swayX += (math.random() - 0.5) * 0.28
 			bobY += (math.random() - 0.5) * 0.18
 			rotDeg += (math.random() - 0.5) * 7

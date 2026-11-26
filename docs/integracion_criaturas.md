@@ -89,3 +89,22 @@ Descartado: las 372 piezas de `Level_1` con `CanQuery = false` son decoración s
 
 **Sin probar:** `Noise.Emitted` → `Investigate`, olfateo de escondites, Acechador en taquilla ocupada, 2+ clientes.
 
+
+## 5. Variantes de Codex: SujetoFeliz y Acosador del Tramo Final (2026-11-26)
+
+Diseño en [criaturas.md](criaturas.md) §2.4–2.5. Plantillas `sujetoFeliz` y `creature_acosador_final_01` movidas de `Workspace` a `ServerStorage.GameAssets.Creatures` (cambio del place: guardar en Studio). Si faltan, `MonsterService` las construye con los IDs de `Config.Monster.Species`.
+
+* **Registro.** Nuevo campo `Behavior` en cada especie de `Config.Monster.Species`; `MonsterService` despacha por él antes que por `Category`. Los parámetros van en la propia especie (`Feliz*`, `Final*`). Solo los Agresivos sin `Behavior` acuden a ruidos y avisos del Acosador.
+* **SujetoFeliz** (`stepSujetoFeliz`). Estados `Hidden` → `Stare` → `Charge`. Aparece en un nodo de la red a 50–90 studs de un jugador visible elegido al azar, con línea de visión. Solo cuenta la mirada de ese jugador (cono `FelizLookDot` = 0.9, con línea de visión). 3 s seguidos → `Charge` a 44 studs/s; mirar a otro lado reinicia el contador. Tras haberlo mirado, 0,6 s apartando la vista → desaparece; si no lo mira en 5 s, también. Al alcanzarlo hace `AttackDamage` (100) y desaparece; reaparece a los 18–32 s. Si el objetivo muere, se esconde o vuelve al Ascensor, desaparece.
+* **Acosador del Tramo Final** (`stepFinalPursuit`). Usa `stepStalker` hasta que `Runs.LevelTimeLeft` ≤ `FinalPhaseSeconds` (30 s). Entonces, si estaba oculto, aparece en el nodo más cercano a ≥ 40 studs del objetivo y pasa a `FinalChase` a 6 studs/s, sin que la mirada lo ahuyente. Sigue la última posición conocida. Al llegar sin verlo, retoma hacia la posición actual (salvo si está escondido). Si el objetivo muere o entra al Ascensor, cambia al jugador elegible más cercano. Alcanzarlo hace `FinalAttackDamage` (100): decisión de integración, el diseño no fijaba el daño.
+* **Cliente.** `CreatureFxClient`: `Stare` usa la fila 1 (observación), `Charge` y `FinalChase` la fila 2 (avance). `Charge` tiene el temblor y la velocidad de animación del ataque.
+* **Pruebas.** `Config.Monster.PerLevel = 5`: salen todas las especies.
+
+**Probado en Play (1 cliente, modo dios, nivel acortado temporalmente a 75–150 s):**
+- [x] SujetoFeliz aparece a 56–69 studs en `Stare`. Si no lo miras, desaparece a los 5 s.
+- [x] Mirándolo fijo pasa a `Charge` a los 3,3 s. Desde 69 studs te alcanza en ~2 s y desaparece.
+- [x] Mirarlo 1,2 s y apartar la vista lo hace desaparecer a los 0,75 s (0,6 s más la latencia).
+- [x] El Acosador final acecha como el Acosador y pasa a `FinalChase` a 30 s del final, desde 74 studs. Te alcanza en zona abierta.
+- [x] Las criaturas se borran al acabar el nivel. Sin errores en la salida.
+- Junto a la salida del Ascensor ninguna criatura llega a tocarte: `SafeZone.PlanePad` (6 studs) veta ese margen. Es intencionado.
+- [ ] Sin probar: 2+ clientes (solo cuenta la mirada del objetivo; cambio de objetivo del Acosador final) y esconderse durante `FinalChase`.

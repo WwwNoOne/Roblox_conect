@@ -106,8 +106,8 @@ local Monster = table.freeze({
 	AmbushCooldown = 16,
 	AmbushRelocateSeconds = 35, -- si nadie pasa en este tiempo, cambia de esquina/escondite
 	Debug = true,
-	-- Cuántos enemigos salen por nivel (con 3 especies salen las 3 categorías para probar).
-	PerLevel = 3,
+	-- Cuántos enemigos salen por nivel (pruebas: 5 = salen todas las especies, incluidas las variantes de Codex).
+	PerLevel = 5,
 	SpawnStagger = 8, -- segundos entre la aparición de un enemigo y el siguiente
 	-- Especies 2.5D de Codex (assets_build/exports/creatures/ -> ServerStorage.GameAssets.Creatures).
 	-- Si aún no se importan los .rbxmx en Studio, MonsterService construye el modelo 2.5D con estos mismos IDs.
@@ -157,6 +157,53 @@ local Monster = table.freeze({
 			BillboardSize = Vector2.new(7.5, 7.5),
 			StudsOffset = Vector3.new(0, -1.05, 0),
 			LightColor = Color3.fromRGB(220, 175, 85),
+		}),
+		-- Variante agresiva (docs/criaturas.md §2.4): aparece lejos y observa quieta a un jugador. Si este la mira fijo
+		-- FelizGazeSeconds seguidos, embiste; si aparta la vista (o nunca la mira) antes, desaparece.
+		table.freeze({
+			Name = "SujetoFeliz",
+			TemplateName = "sujetoFeliz",
+			Category = "Aggressive",
+			Behavior = "SujetoFeliz",
+			Weight = 1,
+			BodyImage = "rbxassetid://90487424687754",
+			SpriteCols = 4,
+			SpriteRows = 4,
+			AnimFps = 12,
+			BillboardSize = Vector2.new(6.5, 6.5),
+			StudsOffset = Vector3.new(0, 0.5, 0),
+			LightColor = Color3.fromRGB(235, 225, 200),
+			FelizAppearMin = 50, -- studs: distancia de aparición respecto al objetivo
+			FelizAppearMax = 90,
+			FelizInitialWindow = 5, -- s: si el objetivo no la mira en este tiempo, desaparece
+			FelizGazeSeconds = 3, -- s de mirada continua para que embista
+			FelizLookAwaySeconds = 0.6, -- s mirando a otro lado (tras haberla mirado) para que desaparezca
+			FelizLookDot = 0.9, -- coseno del cono de "mirar directamente" (~25°)
+			FelizChargeSpeed = 44, -- studs/s de la embestida (más que el sprint, 34)
+			FelizChargeMaxSeconds = 8, -- si no alcanza al objetivo en este tiempo, desaparece
+			FelizRespawnMin = 18, -- s ocultas antes de volver a aparecer
+			FelizRespawnMax = 32,
+		}),
+		-- Variante del Acosador (docs/criaturas.md §2.5): acecha como el Acosador y, a FinalPhaseSeconds del final del nivel,
+		-- persigue despacio y sin descanso al jugador más cercano hasta que termina el nivel. Mirarlo ya no lo ahuyenta.
+		table.freeze({
+			Name = "AcosadorFinal",
+			TemplateName = "creature_acosador_final_01",
+			Category = "Stalker",
+			Behavior = "FinalPursuit",
+			Weight = 1,
+			BodyImage = "rbxassetid://103015054361096",
+			EyesImage = "rbxassetid://88928650877582",
+			SpriteCols = 4,
+			SpriteRows = 4,
+			AnimFps = 12,
+			BillboardSize = Vector2.new(9, 9),
+			StudsOffset = Vector3.new(0, 0.5, 0),
+			LightColor = Color3.fromRGB(230, 235, 255),
+			FinalPhaseSeconds = 30, -- s restantes del nivel en que empieza la persecución
+			FinalChaseSpeed = 6, -- studs/s (caminar son 16: se le esquiva, pero no se rinde)
+			FinalSpawnMinDist = 40, -- si estaba oculto, aparece al menos a esta distancia del objetivo
+			FinalAttackDamage = 100, -- si te alcanza, mata
 		}),
 	}),
 })
