@@ -62,7 +62,8 @@ def clean(root):
                 other=[j for j in range(3) if j!=ax]
                 for side in (0,1):
                     for attempt in range(7):
-                        conflicts=faces[(ax,side,round(b[side][ax],5))]
+                        bucket=math.floor(b[side][ax]*1000)
+                        conflicts=[q for k in range(bucket-1,bucket+2) for q in faces[(ax,side,k)] if abs(b[side][ax]-q[side][ax])<=.001]
                         if not any(all(min(b[1][j],q[1][j])-max(b[0][j],q[0][j])>0.001 for j in other) for q in conflicts):break
                         if attempt==6:
                             raise ValueError(f'Cannot separate {root.name}/{p.name} without changing its shape')
@@ -81,7 +82,7 @@ def clean(root):
             p.props['size']=tuple(sum(abs(r[i*3+j])*world_size[i] for i in range(3)) for j in range(3))
             changed.append((p,old))
         for ax in range(3):
-            for side in (0,1):faces[(ax,side,round(b[side][ax],5))].append(b)
+            for side in (0,1):faces[(ax,side,math.floor(b[side][ax]*1000))].append(b)
     return {'removed':removed,'changed':changed}
 
 def perimeter(lay):

@@ -13,7 +13,7 @@ El escritor XML conserva nueve cifras significativas: con las cinco anteriores s
 | Fábrica | 2873 | 0 | 244 |
 | Pantano | 2114 | 0 | 170 |
 | Hospital | 4811 | 0 | 20 |
-| Escuela | 1345 | 0 | 4 |
+| Escuela | 1347 | 0 | 4 |
 | Mansión | 1045 | 4 | 4 |
 | Centro comercial | 3696 | 14 | 4 |
 
@@ -27,7 +27,7 @@ La altura supera la pieza sólida más alta del mapa en 15,2 studs: salto de 7,2
 
 ## Verificaciones y reproducción
 
-- Cinco pruebas de regresión: solapes parciales, conservación de siluetas y marcadores, plataforma y colisión, líneas de grosor mínimo y puente superior sin barrera interior.
+- Seis pruebas de regresión: solapes parciales, conservación de siluetas y marcadores, plataforma y colisión, líneas de grosor mínimo puente superior sin barrera interior y casi coincidencias por redondeo de 0,001 studs.
 - Cero caras coincidentes en los bloques alineados de los seis archivos XML exportados. La revisión no evalúa superficies curvas ni bloques de rotación arbitraria.
 - Marcadores y atributos protegidos comparados antes/después de generar.
 
@@ -46,4 +46,26 @@ python3 -m http.server 8791 --bind 127.0.0.1 --directory /tmp/backrooms-polish
 
 `studio_patch.luau` se ejecuta como herramienta de edición, nunca como script de juego. Requiere el dominio local autorizado en MCP. Anteponer `local mapName = "Level_1"; local apply = false` para verificar la coincidencia de cada pieza, después `apply = true` para aplicar. Conserva un respaldo en `ServerStorage.MapsBackup.BeforePolish_20261126`. `studio_verify.luau` comprueba los segmentos con Blockcast en ambos sentidos y varias alturas.
 
-**Estado de Studio:** aplicación y pruebas en el lugar pendientes de restablecer la conexión/permisos MCP. Los exports sí están corregidos y verificados localmente.
+## Resultado en Studio
+
+Aplicado en el place `137133016631933`, guardado en Roblox como versión **481** (sin publicar). Se conservaron los seis respaldos en `ServerStorage.MapsBackup.BeforePolish_20261126`. El MCP necesitó reconexión para reconocer el dominio autorizado.
+
+- Cero caras coplanares residuales en los bloques alineados de los seis mapas del place. Se corrigió una casi coincidencia adicional en un librero de la Escuela; ahora el generador contempla 0,001 studs de tolerancia.
+- **43.590 Blockcasts**, repartidos por todos los segmentos, en ambos sentidos y tres alturas: cero pasos a través de las barreras.
+- **Play, un cliente:** intentos de caminar/saltar hacia fuera en un borde de cada mapa (incluida la azotea del Hospital): ninguno cruzó. Es una prueba puntual por mapa, complementada por el muestreo geométrico del perímetro; no equivale a recorrer todas las rutas posibles.
+- Revisión visual de la Fábrica y del área del librero de la Escuela. Las colisiones nuevas son invisibles.
+- `Workspace.zona` ya no existe en este lugar; no fue necesario moverla.
+- Scripts de prueba reproducibles fuera de `src/`: `studio_faces.luau`, `studio_verify.luau`, `play_check.luau` y `nav_check.luau`. Anteponer `local mapName = "Level_N"`; los dos últimos se ejecutan en servidor durante Play. Solo alteran temporalmente el estado de la prueba.
+
+### Navegación de criaturas, antes/después en la misma sesión
+
+| Nivel | Nodos antes → después | Mayor componente antes → después | Componentes antes/después |
+| --- | --- | --- | --- |
+| 1 | 2663 → 2663 | 2663 → 2663 | 1 / 1 |
+| 2 | 2150 → 2150 | 1810 → 1810 | 35 / 35 |
+| 3 | 7950 → 7954 | 7945 → 7949 | 6 / 6 |
+| 4 | 4374 → 4376 | 4374 → 4376 | 1 / 1 |
+| 5 | 7134 → 7134 | 7134 → 7134 | 1 / 1 |
+| 6 | 9004 → 9006 | 8972 → 8974 | 20 / 20 |
+
+No se perdió conectividad. Los 340 nodos fuera del componente principal del Pantano siguen siendo un pendiente anterior, independiente de este trabajo.

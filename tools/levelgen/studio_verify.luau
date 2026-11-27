@@ -27,6 +27,6 @@ for wi,p in walls:GetChildren() do
 end
 local markerCounts={}
 for _,p in map:GetDescendants() do
-    if p:IsA('Attachment') or p.Name=='Escondite' then markerCounts[p.Name]=(markerCounts[p.Name] or 0)+1 end
+    if p:IsA('Attachment') or p.Name=='Escondite' then local name=string.match(p.Name,'^Patrol%d+$') and 'Patrol' or p.Name;markerCounts[name]=(markerCounts[name] or 0)+1 end
 end
 return {map=mapName,casts=count,leaks=#failures,examples={table.unpack(failures,1,math.min(5,#failures))},markers=markerCounts}

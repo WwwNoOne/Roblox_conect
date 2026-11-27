@@ -37,10 +37,10 @@
   },
   {
     "map": "Level_4",
-    "coincident_faces_before": 4371,
+    "coincident_faces_before": 4372,
     "coincident_faces_after": 0,
     "true_duplicates_removed": 0,
-    "parts_adjusted": 1345,
+    "parts_adjusted": 1347,
     "boundary_segments": 4,
     "instances_before": 10397,
     "instances_after": 10402,

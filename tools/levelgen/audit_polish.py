@@ -3,7 +3,7 @@
 Independent of the repair function; ignores invisible parts, curved/meshed parts
 and non-axis-aligned blocks. Counts faces, not unique part pairs.
 """
-import sys, collections, itertools, json
+import sys, collections, itertools, json, math
 import level1,level2,hospital,school,mansion,mall
 
 def walk(root,path=''):
@@ -27,8 +27,9 @@ def overlaps(root):
   for ax in range(3):
    other=[i for i in range(3) if i!=ax]
    for sign in (0,1):
-    key=(ax,sign,b[sign][ax]);bucket=faces[key]
-    for q,qb,qpath in bucket:
+    plane=math.floor(b[sign][ax]*1000);key=(ax,sign,plane);bucket=faces[key]
+    candidates=[entry for k in range(plane-1,plane+2) for entry in faces[(ax,sign,k)] if abs(entry[1][sign][ax]-b[sign][ax])<=.001]
+    for q,qb,qpath in candidates:
      ds=[min(hi[i],qb[1][i])-max(lo[i],qb[0][i]) for i in other]
      if min(ds)>0.001:
       out.append((p,q,path,qpath,ax,ds[0]*ds[1]))

@@ -91,6 +91,6 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 ## Pulido de mapas (Codex, 26/11/2026)
 
 - [x] Regenerados los seis exports con separación de caras coplanares y `ContencionExterior`. Distribución, marcadores y `src/` conservados.
-- [x] Cinco pruebas de regresión y auditoría de los seis XML: cero caras coincidentes en bloques alineados. Informe en `assets_build/reports/map_polish.json`.
-- [ ] Aplicar los parches en Studio, comprobar contención en Play y guardar el place. En esta sesión el dominio local seguía rechazado tras el primer cambio de permisos y luego se desconectó el MCP. Los mapas del place aún no se han modificado.
-- Detalles y comandos para continuar: [docs/pulido_mapas.md](docs/pulido_mapas.md). La conectividad de criaturas del Pantano y `Workspace.zona` siguen pendientes.
+- [x] Seis pruebas de regresión y auditoría de los seis XML: cero caras coincidentes en bloques alineados. Informe en `assets_build/reports/map_polish.json`.
+- [x] Aplicados los parches en Studio con respaldo de los seis mapas; guardado en Roblox, versión 481. 43.590 barridos de colisión sin fugas, un intento de escape saltando por mapa en Play sin cruzar y red de criaturas sin pérdida de conectividad. Cero caras coplanares residuales en los bloques alineados del place.
+- Detalles y comandos para continuar: [docs/pulido_mapas.md](docs/pulido_mapas.md). La conectividad de criaturas del Pantano sigue pendiente. `Workspace.zona` ya no existe en el lugar revisado.

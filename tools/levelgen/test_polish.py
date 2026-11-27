@@ -44,4 +44,12 @@ class PolishTests(unittest.TestCase):
   for p in f.children:
    self.assertFalse(p.props['size'][0]<1 and p.props['pos'][0] in (10,20))
 
+class RoundingRegression(unittest.TestCase):
+ def test_nearly_coplanar_books(self):
+  root=rbx.model(None,'Level_4')
+  rbx.box(root,'Cuerpo',0,7,0,9,0,1,(100,100,100))
+  rbx.box(root,'Libros',1,3,7,8.9998,0,1.6,(200,100,100))
+  polish.clean(root)
+  self.assertEqual(len(overlaps(root)),0)
+
 if __name__=='__main__':unittest.main()

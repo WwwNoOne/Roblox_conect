@@ -1,0 +1,187 @@
+{
+  "placeId": 137133016631933,
+  "savedVersion": 481,
+  "clients": 1,
+  "maps": [
+    {
+      "map": "Level_1",
+      "boundaryCasts": 15894,
+      "boundaryLeaks": 0,
+      "coplanarFaces": 0,
+      "navigation": {
+        "map": "Level_1",
+        "after": {
+          "nodes": 2663,
+          "seconds": 0.28289980000045034,
+          "components": 1,
+          "largest": 2663
+        },
+        "before": {
+          "nodes": 2663,
+          "seconds": 0.42305470000064815,
+          "components": 1,
+          "largest": 2663
+        }
+      },
+      "escapeAttempt": {
+        "escaped": false,
+        "maxOutside": -1.29644775390625
+      }
+    },
+    {
+      "map": "Level_2",
+      "boundaryCasts": 13452,
+      "boundaryLeaks": 0,
+      "coplanarFaces": 0,
+      "navigation": {
+        "map": "Level_2",
+        "after": {
+          "nodes": 2150,
+          "seconds": 0.2854417000016838,
+          "components": 35,
+          "largest": 1810
+        },
+        "before": {
+          "nodes": 2150,
+          "seconds": 0.3374288999984856,
+          "components": 35,
+          "largest": 1810
+        }
+      },
+      "escapeAttempt": {
+        "map": "Level_2",
+        "maxHeight": 62.46741485595703,
+        "start": "1286.4996337890625, 55.29158020019531, 626.0003051757812",
+        "maxOutside": -0.79656982421875,
+        "wall": "Limite_084",
+        "escaped": false,
+        "boundaryTop": 105.19999694824219,
+        "finish": "1286.6070556640625, 55.282257080078125, 630.0537109375"
+      }
+    },
+    {
+      "map": "Level_3",
+      "boundaryCasts": 3360,
+      "boundaryLeaks": 0,
+      "coplanarFaces": 0,
+      "navigation": {
+        "map": "Level_3",
+        "after": {
+          "nodes": 7954,
+          "seconds": 2.540131300000212,
+          "components": 6,
+          "largest": 7949
+        },
+        "before": {
+          "nodes": 7950,
+          "seconds": 2.576966500000708,
+          "components": 6,
+          "largest": 7945
+        }
+      },
+      "escapeAttempt": {
+        "map": "Level_3",
+        "maxHeight": 119.2679214477539,
+        "start": "-94.50004577636719, 110.68132019042969, 1499.999755859375",
+        "maxOutside": -0.8077392578125,
+        "wall": "Limite_001",
+        "escaped": false,
+        "boundaryTop": 136.20000076293945,
+        "finish": "-94.08695983886719, 111.9666748046875, 1496.0142822265625"
+      }
+    },
+    {
+      "map": "Level_4",
+      "boundaryCasts": 2808,
+      "boundaryLeaks": 0,
+      "coplanarFaces": 0,
+      "navigation": {
+        "map": "Level_4",
+        "after": {
+          "nodes": 4376,
+          "seconds": 0.9322900000006484,
+          "components": 1,
+          "largest": 4376
+        },
+        "before": {
+          "nodes": 4374,
+          "seconds": 0.9062650999985635,
+          "components": 1,
+          "largest": 4374
+        }
+      },
+      "escapeAttempt": {
+        "map": "Level_4",
+        "maxHeight": 40.996337890625,
+        "start": "1595.499755859375, 33.543766021728516, 1718.4998779296875",
+        "maxOutside": -1.676025390625,
+        "wall": "Limite_004",
+        "escaped": false,
+        "boundaryTop": 100.70009994506836,
+        "finish": "1598.823974609375, 33.76564025878906, 1718.6239013671875"
+      }
+    },
+    {
+      "map": "Level_5",
+      "boundaryCasts": 4128,
+      "boundaryLeaks": 0,
+      "coplanarFaces": 0,
+      "navigation": {
+        "map": "Level_5",
+        "after": {
+          "nodes": 7134,
+          "seconds": 1.3187641999975313,
+          "components": 1,
+          "largest": 7134
+        },
+        "before": {
+          "nodes": 7134,
+          "seconds": 1.3283002999996825,
+          "components": 1,
+          "largest": 7134
+        }
+      },
+      "escapeAttempt": {
+        "map": "Level_5",
+        "maxHeight": 47.98442840576172,
+        "start": "-99.50005340576172, 38.81251907348633, 2883.49951171875",
+        "maxOutside": -1.205078125,
+        "wall": "Limite_001",
+        "escaped": false,
+        "boundaryTop": 127.4000015258789,
+        "finish": "-99.52091217041016, 38.779380798339844, 2879.9013671875"
+      }
+    },
+    {
+      "map": "Level_6",
+      "boundaryCasts": 3948,
+      "boundaryLeaks": 0,
+      "coplanarFaces": 0,
+      "navigation": {
+        "map": "Level_6",
+        "after": {
+          "nodes": 9006,
+          "seconds": 1.664658400000917,
+          "components": 20,
+          "largest": 8974
+        },
+        "before": {
+          "nodes": 9004,
+          "seconds": 1.6560771000004024,
+          "components": 20,
+          "largest": 8972
+        }
+      },
+      "escapeAttempt": {
+        "map": "Level_6",
+        "maxHeight": 62.5460319519043,
+        "start": "1405.5006103515625, 55.297447204589844, 3139.99951171875",
+        "maxOutside": -0.80029296875,
+        "wall": "Limite_001",
+        "escaped": false,
+        "boundaryTop": 108.20000076293945,
+        "finish": "1405.72705078125, 55.29104232788086, 3135.982666015625"
+      }
+    }
+  ]
+}
