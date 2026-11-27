@@ -87,3 +87,10 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 | Hecho | Puertas con panel de interruptores (`Puerta*`) | Claude |
 | Pendiente | Máquinas de comunicación y criaturas (T05: 3 categorías 2.5D + screamer 2D) | Claude |
 | Por definir | Tipos de puzzle extra, reparación de máquinas, condición de victoria, temáticas de niveles 2+ | Usuario |
+
+## Pulido de mapas (Codex, 26/11/2026)
+
+- [x] Regenerados los seis exports con separación de caras coplanares y `ContencionExterior`. Distribución, marcadores y `src/` conservados.
+- [x] Cinco pruebas de regresión y auditoría de los seis XML: cero caras coincidentes en bloques alineados. Informe en `assets_build/reports/map_polish.json`.
+- [ ] Aplicar los parches en Studio, comprobar contención en Play y guardar el place. En esta sesión el dominio local seguía rechazado tras el primer cambio de permisos y luego se desconectó el MCP. Los mapas del place aún no se han modificado.
+- Detalles y comandos para continuar: [docs/pulido_mapas.md](docs/pulido_mapas.md). La conectividad de criaturas del Pantano y `Workspace.zona` siguen pendientes.

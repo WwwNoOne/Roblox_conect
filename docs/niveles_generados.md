@@ -151,3 +151,7 @@ Medido en Studio con los 6 mapas importados. No bloquea la partida, pero hay que
 - Los postes de barandilla salen repetidos donde se juntan dos tramos. Se arregla en `arch.py` deduplicando por posición al emitir.
 - Solo se contaron duplicados exactos. Faltan los solapes parciales (suelos o muros que se pisan a medias y parpadean); hay que revisarlos a ojo o con `GetPartsInPart`.
 - Las cajas de los mapas 3 a 6 se solapan entre sí en el lugar. En partida no importa, porque solo hay uno cargado a la vez, pero en el editor se ven mezclados.
+
+## Pulido del 26/11/2026
+
+Exports corregidos contra caras coplanares y límites exteriores; detalle y estado de pruebas en [pulido_mapas.md](pulido_mapas.md). La revisión antigua de duplicados por posición/tamaño incluía falsos positivos de siluetas cruzadas. La conectividad de criaturas del Pantano es un pendiente separado de este pulido.

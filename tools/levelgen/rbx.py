@@ -220,7 +220,7 @@ def _s(props, typ, name, text):
 
 
 def _f(v: float) -> str:
-    return f"{v:.5g}" if abs(v) < 1e5 else f"{v:.7g}"
+    return f"{v:.9g}"  # Preserve 0.02-stud face separation, including large map coordinates.
 
 
 def _cf(props, name, pos, rot):

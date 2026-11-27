@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 import plan  # noqa: E402
 import rbx  # noqa: E402
+import polish  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 OUT = os.path.join(ROOT, "assets_build", "exports")
@@ -31,6 +32,8 @@ def run(which: str, seed: int | None, out_dir: str):
         import level1
         lvl = level1.Level1(seed or 27)
         B = lvl.build()
+        polish.clean(B.root)
+        polish.enclose(B)
         rbx.write_rbxmx(B.root, os.path.join(out_dir, "Level_1.rbxmx"), primary=lvl.dock)
         plan.render(lvl.lay, os.path.join(out_dir, "Level_1_Planta.png"), "Level_1 · Complejo Fabril", level1.C, B.markers, lvl.labels)
         report("Level_1", lvl, B)
@@ -38,6 +41,8 @@ def run(which: str, seed: int | None, out_dir: str):
         import level2
         lvl = level2.Level2(seed or 5)
         B = lvl.build()
+        polish.clean(B.root)
+        polish.enclose(B)
         rbx.write_rbxmx(B.root, os.path.join(out_dir, "Level_2.rbxmx"), primary=lvl.dock)
         plan.render(lvl.lay, os.path.join(out_dir, "Level_2_Planta.png"), "Level_2 · Pantano de la Esclusa", level2.C, B.markers,
                     lvl.labels, theme=level2.PLAN_THEME)
@@ -52,6 +57,8 @@ def run(which: str, seed: int | None, out_dir: str):
         m = __import__(mod)
         lvl = getattr(m, cls)(seed or 3)
         B = lvl.build()
+        polish.clean(B.root)
+        polish.enclose(B)
         rbx.write_rbxmx(B.root, os.path.join(out_dir, f"{name}.rbxmx"), primary=lvl.dock)
         plan.render(lvl.lay, os.path.join(out_dir, f"{name}_Planta.png"), title, 10, B.markers, lvl.labels, px=6)
         report(name, lvl, B)
