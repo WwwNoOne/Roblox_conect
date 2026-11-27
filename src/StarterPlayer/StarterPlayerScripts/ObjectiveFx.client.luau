@@ -13,6 +13,8 @@ local SoundService = game:GetService("SoundService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local S = Config.Objectives.Sounds
+local Sfx = require(ReplicatedStorage.Shared:WaitForChild("Sfx"))
+local CueRules = require(script.Parent:WaitForChild("AudioCueRules"))
 
 local player = Players.LocalPlayer
 local objectives = workspace:WaitForChild("RunObjectives", 60)
@@ -82,6 +84,9 @@ type GenFx = {
 	leverBase: CFrame?,
 	nextSpark: number,
 	statusLight: PointLight?,
+	marker: BillboardGui?,
+	markerText: TextLabel?,
+	cue: Sound?,
 }
 local gens: { [Model]: GenFx } = {}
 
@@ -92,6 +97,44 @@ local function trackGenerator(model: Model)
 	local fan = model:FindFirstChild("Fan")
 	local lever = model:FindFirstChild("Lever", true)
 	local status = model:FindFirstChild("StatusLight", true)
+	local body = model.PrimaryPart or model:FindFirstChild("Body")
+	local marker: BillboardGui? = nil
+	local markerText: TextLabel? = nil
+	local cue: Sound? = nil
+	if body and body:IsA("BasePart") then
+		marker = Instance.new("BillboardGui")
+		marker.Name = "GeneratorNearby"
+		marker.Adornee = body
+		marker.Size = UDim2.fromOffset(160, 38)
+		marker.StudsOffsetWorldSpace = Vector3.new(0, 5.5, 0)
+		marker.MaxDistance = CueRules.GeneratorRange
+		marker.AlwaysOnTop = false
+		marker.LightInfluence = 0
+		marker.Enabled = false
+		marker.Parent = model
+		markerText = Instance.new("TextLabel")
+		markerText.Name = "Label"
+		markerText.Size = UDim2.fromScale(1, 1)
+		markerText.BackgroundColor3 = Color3.fromRGB(18, 22, 19)
+		markerText.BackgroundTransparency = 0.25
+		markerText.BorderSizePixel = 0
+		markerText.Font = Enum.Font.Code
+		markerText.TextSize = 13
+		markerText.TextColor3 = Color3.fromRGB(246, 210, 121)
+		markerText.Text = "[ ENERGÍA ]\nGENERADOR AVERIADO"
+		markerText.Parent = marker
+		local template = Sfx.Find("Generador_Pista") or model:FindFirstChild("Spark", true)
+		if template and template:IsA("Sound") then
+			cue = template:Clone()
+			cue.Name = "GeneratorGuideSpark"
+			cue.Volume = 0.4
+			cue.Looped = false
+			cue.RollOffMode = Enum.RollOffMode.InverseTapered
+			cue.RollOffMinDistance = 8
+			cue.RollOffMaxDistance = CueRules.SparkRange
+			cue.Parent = body
+		end
+	end
 	local fx: GenFx = {
 		model = model,
 		fan = if fan and fan:IsA("Model") then fan else nil,
@@ -102,6 +145,7 @@ local function trackGenerator(model: Model)
 		leverBase = if lever and lever:IsA("BasePart") then lever.CFrame else nil,
 		nextSpark = os.clock() + math.random() * 4,
 		statusLight = status and status:FindFirstChildOfClass("PointLight"),
+		marker = marker, markerText = markerText, cue = cue,
 	}
 	gens[model] = fx
 	model:GetAttributeChangedSignal("SparkAt"):Connect(function()
@@ -110,6 +154,8 @@ local function trackGenerator(model: Model)
 	model.AncestryChanged:Connect(function()
 		if not model:IsDescendantOf(workspace) then
 			gens[model] = nil
+			if cue then cue:Destroy() end
+			if marker then marker:Destroy() end
 		end
 	end)
 end
@@ -297,7 +343,21 @@ end
 local baseBrightness = Config.TreasureGlowBrightness
 RunService.RenderStepped:Connect(function(dt)
 	local now = os.clock()
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local canCue = player:GetAttribute("InRun") == true and player:GetAttribute("Hidden") ~= true
+		and humanoid ~= nil and humanoid.Health > 0
 	for model, fx in gens do
+		local distance = if root and root:IsA("BasePart") then (model:GetPivot().Position - root.Position).Magnitude else math.huge
+		if fx.marker then
+			fx.marker.Enabled = CueRules.ShowGenerator(model:GetAttribute("State") or "", distance, canCue)
+		end
+		if fx.markerText then
+			local fade = math.clamp((distance - 28) / 14, 0, 1)
+			fx.markerText.TextTransparency = fade * 0.8
+			fx.markerText.BackgroundTransparency = 0.25 + fade * 0.7
+		end
 		local repaired = model:GetAttribute("State") == "Repaired"
 		-- Ventilador: acelera al arrancar, se para si no hay energía.
 		fx.fanSpeed += ((if repaired then 18 else 0) - fx.fanSpeed) * (1 - math.exp(-1.2 * dt))
@@ -315,12 +375,17 @@ RunService.RenderStepped:Connect(function(dt)
 			if now >= fx.nextSpark then
 				fx.nextSpark = now + 3 + math.random() * 6
 				burst(model, 8 + math.random(0, 8))
+				if canCue and distance <= CueRules.SparkRange and fx.cue and not fx.cue.IsPlaying then
+					fx.cue.PlaybackSpeed = 0.97 + math.random() * 0.06
+					fx.cue:Play()
+				end
 			end
 			if light then
 				light.Enabled = math.noise(now * 6, model:GetPivot().X) > -0.25
 			end
-		elseif light then
-			light.Enabled = true
+		else
+			if light then light.Enabled = true end
+			if fx.cue then fx.cue:Stop() end
 		end
 	end
 	for _, fx in safes do

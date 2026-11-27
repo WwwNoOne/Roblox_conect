@@ -94,3 +94,9 @@ Implementadas las 3 categorías 2.5D (ver [criaturas.md](docs/criaturas.md) e [i
 - [x] Seis pruebas de regresión y auditoría de los seis XML: cero caras coincidentes en bloques alineados. Informe en `assets_build/reports/map_polish.json`.
 - [x] Aplicados los parches en Studio con respaldo de los seis mapas; guardado en Roblox, versión 481. 43.590 barridos de colisión sin fugas, un intento de escape saltando por mapa en Play sin cruzar y red de criaturas sin pérdida de conectividad. Cero caras coplanares residuales en los bloques alineados del place.
 - Detalles y comandos para continuar: [docs/pulido_mapas.md](docs/pulido_mapas.md). La conectividad de criaturas del Pantano sigue pendiente. `Workspace.zona` ya no existe en el lugar revisado.
+
+## Audio analógico (Codex, 26/11/2026)
+
+- Banco, ambientes de seis mapas, música de persecución e indicador/chispas de generadores implementados y probados. Excepción cliente autorizada expresamente por el usuario.
+- Instalación y verificación: [docs/sonido_analogico.md](docs/sonido_analogico.md). Reaplicar `tools/audio/install.luau` tras regenerar mapas.
+- Propuesta pendiente de diseño/implementación: [docs/propuesta_tesoros.md](docs/propuesta_tesoros.md).

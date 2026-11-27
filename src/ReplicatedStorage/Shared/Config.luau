@@ -708,7 +708,7 @@ local Audio = table.freeze({
 			Level_5 = "Nivel(2)",
 			Level_6 = "Pendiente(2)",
 		}),
-		Volume = 0.35,
+		Volume = 0.22,
 		FadeSeconds = 2.5, -- cruce entre pistas; en la Parada y los viajes la música se desvanece
 	}),
 	ElevatorVolume = 0.6,
